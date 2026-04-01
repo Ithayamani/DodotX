@@ -281,22 +281,36 @@ export default function ParentTasks() {
               />
 
               <View style={styles.row}>
-                <TextInput
-                  style={[styles.inputSmall, { borderColor: colors.primary }]}
-                  placeholder="Icon"
-                  placeholderTextColor="#999"
-                  value={icon}
-                  onChangeText={setIcon}
-                  maxLength={2}
-                />
-                <TextInput
-                  style={[styles.inputSmall, { borderColor: colors.primary }]}
-                  placeholder="Points"
-                  placeholderTextColor="#999"
-                  value={points}
-                  onChangeText={setPoints}
-                  keyboardType="number-pad"
-                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Emoji Icon</Text>
+                  <TextInput
+                    style={[styles.inputSmall, { borderColor: colors.primary, fontSize: 28, textAlign: 'center' }]}
+                    placeholder="🎯"
+                    placeholderTextColor="#999"
+                    value={icon}
+                    onChangeText={(text) => {
+                      // Take only the last emoji entered if user types multiple
+                      if (text.length > 0) {
+                        // Get the last character/emoji
+                        const chars = [...text];
+                        setIcon(chars[chars.length - 1]);
+                      } else {
+                        setIcon('');
+                      }
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Points</Text>
+                  <TextInput
+                    style={[styles.inputSmall, { borderColor: colors.primary }]}
+                    placeholder="10"
+                    placeholderTextColor="#999"
+                    value={points}
+                    onChangeText={setPoints}
+                    keyboardType="number-pad"
+                  />
+                </View>
               </View>
 
               <Text style={styles.label}>Category</Text>

@@ -199,6 +199,11 @@ export const aiAPI = {
     const response = await api.post('/ai/suggest-tasks', data);
     return response.data;
   },
+  
+  generateTheme: async (description: string): Promise<any> => {
+    const response = await api.post('/ai/generate-theme', { description });
+    return response.data;
+  },
 };
 
 export default api;

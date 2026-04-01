@@ -203,10 +203,11 @@ async def update_family(family_data: FamilyUpdate, current_user: User = Depends(
     if not family:
         raise HTTPException(status_code=404, detail="Family not found")
     
-    update_data = {k: v for k, v in family_data.dict().items() if v is not None}
+    # Use exclude_unset to only update fields explicitly sent by the client
+    update_data = family_data.dict(exclude_unset=True)
     
     # Hash PIN if provided
-    if "pin" in update_data:
+    if "pin" in update_data and update_data["pin"] is not None:
         update_data["pin"] = get_pin_hash(update_data["pin"])
     
     if update_data:

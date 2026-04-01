@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal, Share, Image, ActivityIndicator, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useAppStore } from '../../src/stores';
-import { familyAPI } from '../../src/api/client';
+import { familyAPI, aiAPI } from '../../src/api/client';
 import { getThemeColors, THEMES } from '../../src/constants';
 import type { Theme, Family } from '../../src/types';
 
@@ -18,6 +19,12 @@ export default function ParentSettings() {
   const [confirmPin, setConfirmPin] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [parentProfilePic, setParentProfilePic] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showAIThemeModal, setShowAIThemeModal] = useState(false);
+  const [themeDescription, setThemeDescription] = useState('');
+  const [generatingTheme, setGeneratingTheme] = useState(false);
+  const [savingMode, setSavingMode] = useState(false);
   const colors = getThemeColors(theme);
 
   useEffect(() => {
@@ -29,6 +36,9 @@ export default function ParentSettings() {
       const familyData = await familyAPI.get();
       setLocalFamily(familyData);
       setFamily(familyData);
+      if (familyData.parent_profile_picture) {
+        setParentProfilePic(familyData.parent_profile_picture);
+      }
     } catch (error) {
       console.error('Failed to load family:', error);
     }
@@ -60,8 +70,67 @@ export default function ParentSettings() {
     }
   };
 
+  const handlePickProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please grant photo library access to set a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.3,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setUploadingImage(true);
+      try {
+        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        await familyAPI.update({ parent_profile_picture: base64Image });
+        setParentProfilePic(base64Image);
+        Alert.alert('Success', 'Profile picture updated!');
+      } catch (error) {
+        Alert.alert('Error', 'Failed to upload profile picture');
+      } finally {
+        setUploadingImage(false);
+      }
+    }
+  };
+
+  const handleGenerateAITheme = async () => {
+    if (!themeDescription.trim()) {
+      Alert.alert('Error', 'Please describe the theme you want');
+      return;
+    }
+
+    setGeneratingTheme(true);
+    try {
+      const customTheme = await aiAPI.generateTheme(themeDescription.trim());
+      
+      // Save to family
+      await familyAPI.update({ custom_theme: customTheme });
+      
+      const updatedFamily = { ...localFamily!, custom_theme: customTheme };
+      setLocalFamily(updatedFamily);
+      setFamily(updatedFamily);
+      setShowAIThemeModal(false);
+      setThemeDescription('');
+      
+      Alert.alert(
+        'Theme Generated!',
+        `"${customTheme.name}" has been created and saved! You can apply it from the theme section.`
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to generate theme');
+    } finally {
+      setGeneratingTheme(false);
+    }
+  };
+
   const handleEnableVacationMode = () => {
-    // Pre-fill with today and 7 days from now
     const today = new Date();
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
@@ -69,6 +138,36 @@ export default function ParentSettings() {
     setStartDate(today.toISOString().split('T')[0]);
     setEndDate(nextWeek.toISOString().split('T')[0]);
     setShowVacationModal(true);
+  };
+
+  const handleToggleVacationMode = async (enabled: boolean) => {
+    if (enabled) {
+      handleEnableVacationMode();
+    } else {
+      setSavingMode(true);
+      try {
+        await familyAPI.update({
+          vacation_mode: false,
+          vacation_start_date: null as any,
+          vacation_end_date: null as any,
+        });
+        
+        const updatedFamily = {
+          ...localFamily!,
+          vacation_mode: false,
+          vacation_start_date: undefined,
+          vacation_end_date: undefined,
+        };
+        setLocalFamily(updatedFamily);
+        setFamily(updatedFamily);
+        
+        Alert.alert('Regular Mode Enabled!', 'Daily tasks are now active');
+      } catch (error) {
+        Alert.alert('Error', 'Failed to switch mode');
+      } finally {
+        setSavingMode(false);
+      }
+    }
   };
 
   const handleSaveVacationMode = async () => {
@@ -106,41 +205,6 @@ export default function ParentSettings() {
     } catch (error) {
       Alert.alert('Error', 'Failed to enable vacation mode');
     }
-  };
-
-  const handleDisableVacationMode = async () => {
-    Alert.alert(
-      'Switch to Regular Mode',
-      'This will show daily tasks instead of vacation tasks.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Switch',
-          onPress: async () => {
-            try {
-              await familyAPI.update({
-                vacation_mode: false,
-                vacation_start_date: null,
-                vacation_end_date: null,
-              });
-              
-              const updatedFamily = {
-                ...localFamily!,
-                vacation_mode: false,
-                vacation_start_date: undefined,
-                vacation_end_date: undefined,
-              };
-              setLocalFamily(updatedFamily);
-              setFamily(updatedFamily);
-              
-              Alert.alert('Regular Mode Enabled! 🏠', 'Daily tasks are now active');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to switch mode');
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handleChangePin = async () => {
@@ -200,37 +264,69 @@ export default function ParentSettings() {
       <View style={styles.content}>
         <Text style={styles.title}>Settings</Text>
 
+        {/* Profile Picture Section */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={styles.sectionTitle}>Profile Picture</Text>
+          <View style={styles.profileSection}>
+            <TouchableOpacity onPress={handlePickProfileImage} activeOpacity={0.7} disabled={uploadingImage}>
+              <View style={[styles.profileImageContainer, { borderColor: colors.primary }]}>
+                {uploadingImage ? (
+                  <ActivityIndicator size="large" color={colors.primary} />
+                ) : parentProfilePic ? (
+                  <Image source={{ uri: parentProfilePic }} style={styles.profileImage} />
+                ) : (
+                  <View style={styles.profilePlaceholder}>
+                    <Ionicons name="person" size={48} color="#999" />
+                  </View>
+                )}
+                <View style={[styles.cameraIcon, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="camera" size={16} color="#fff" />
+                </View>
+              </View>
+            </TouchableOpacity>
+            <Text style={styles.profileHint}>Tap to change your profile picture</Text>
+          </View>
+        </View>
+
         {/* Mode Section */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={styles.sectionTitle}>Current Mode</Text>
+          <Text style={styles.sectionTitle}>Task Mode</Text>
           
-          <View style={[styles.modeCard, { backgroundColor: localFamily?.vacation_mode ? '#ff9800' : colors.primary }]}>
-            <View style={styles.modeInfo}>
-              <Text style={styles.modeIcon}>
+          <View style={styles.modeToggleRow}>
+            <View style={styles.modeToggleInfo}>
+              <Text style={styles.modeToggleIcon}>
                 {localFamily?.vacation_mode ? '🏝️' : '🏠'}
               </Text>
-              <View>
-                <Text style={styles.modeName}>{getCurrentMode()}</Text>
-                <Text style={styles.modeDesc}>
-                  {localFamily?.vacation_mode ? 'Vacation tasks active' : 'Daily tasks active'}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modeToggleLabel}>
+                  {localFamily?.vacation_mode ? 'Vacation Mode' : 'Regular Mode'}
+                </Text>
+                <Text style={styles.modeToggleDesc}>
+                  {localFamily?.vacation_mode
+                    ? `Active until ${localFamily?.vacation_end_date || 'N/A'}`
+                    : 'Daily tasks active'}
                 </Text>
               </View>
             </View>
+            {savingMode ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Switch
+                value={localFamily?.vacation_mode || false}
+                onValueChange={handleToggleVacationMode}
+                trackColor={{ false: '#555', true: '#ff9800' }}
+                thumbColor={localFamily?.vacation_mode ? '#fff' : '#ccc'}
+              />
+            )}
           </View>
 
-          {!localFamily?.vacation_mode ? (
+          {localFamily?.vacation_mode && (
             <TouchableOpacity
               style={[styles.modeButton, { backgroundColor: '#ff9800' }]}
               onPress={handleEnableVacationMode}
+              activeOpacity={0.7}
             >
-              <Text style={styles.modeButtonText}>🏝️ Enable Vacation Mode</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.modeButton, { backgroundColor: colors.primary }]}
-              onPress={handleDisableVacationMode}
-            >
-              <Text style={styles.modeButtonText}>🏠 Switch to Regular Mode</Text>
+              <Text style={styles.modeButtonText}>Edit Vacation Dates</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -270,12 +366,24 @@ export default function ParentSettings() {
                   theme === t.value && styles.themeButtonSelected,
                 ]}
                 onPress={() => handleThemeChange(t.value as Theme)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.themeEmoji}>{t.icon}</Text>
                 <Text style={styles.themeLabel}>{t.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
+
+          <TouchableOpacity
+            style={[styles.aiThemeButton, { borderColor: colors.primary }]}
+            onPress={() => setShowAIThemeModal(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="sparkles" size={20} color={colors.primary} />
+            <Text style={[styles.aiThemeButtonText, { color: colors.primary }]}>
+              Generate Custom Theme with AI
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Security Section */}
@@ -317,6 +425,55 @@ export default function ParentSettings() {
           <Text style={styles.backText}>← Back to Home</Text>
         </TouchableOpacity>
       </View>
+
+      {/* AI Theme Generator Modal */}
+      <Modal visible={showAIThemeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.aiHeader}>
+              <Ionicons name="sparkles" size={28} color={colors.primary} />
+              <Text style={styles.modalTitle}>AI Theme Generator</Text>
+            </View>
+            <Text style={styles.modalDesc}>
+              Describe the theme you want and AI will create a custom color palette for your app!
+            </Text>
+            
+            <TextInput
+              style={[styles.input, { borderColor: colors.primary }]}
+              placeholder='e.g. "Sunset beach vibes" or "Space galaxy purple"'
+              placeholderTextColor="#999"
+              value={themeDescription}
+              onChangeText={setThemeDescription}
+              multiline
+              numberOfLines={2}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowAIThemeModal(false);
+                  setThemeDescription('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                onPress={handleGenerateAITheme}
+                disabled={generatingTheme}
+              >
+                {generatingTheme ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Generate</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Vacation Mode Modal */}
       <Modal visible={showVacationModal} transparent animationType="slide">
@@ -441,6 +598,72 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 16,
   },
+  // Profile Picture Styles
+  profileSection: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  profilePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  profileHint: {
+    fontSize: 13,
+    color: '#aaa',
+  },
+  // Mode Toggle Styles
+  modeToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modeToggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  modeToggleIcon: {
+    fontSize: 32,
+  },
+  modeToggleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  modeToggleDesc: {
+    fontSize: 13,
+    color: '#aaa',
+  },
   modeCard: {
     padding: 16,
     borderRadius: 12,
@@ -466,14 +689,36 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   modeButton: {
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   modeButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#fff',
+  },
+  // AI Theme Button
+  aiThemeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  aiThemeButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
   },
   settingRow: {
     flexDirection: 'row',

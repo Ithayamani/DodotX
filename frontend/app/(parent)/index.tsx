@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { childrenAPI, progressAPI } from '../../src/api/client';
@@ -103,6 +104,33 @@ export default function ParentChildren() {
     );
   };
 
+  const handlePickChildProfilePic = async (child: Child) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please grant photo library access.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.3,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      try {
+        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        await childrenAPI.update(child.id, { profile_picture: base64Image });
+        loadData();
+        Alert.alert('Success', `${child.name}'s photo updated!`);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to upload photo');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -135,7 +163,18 @@ export default function ParentChildren() {
               
               return (
                 <View key={child.id} style={[styles.childCard, { backgroundColor: colors.card }]}>
-                  <Text style={styles.avatar}>{child.avatar}</Text>
+                  <TouchableOpacity onPress={() => handlePickChildProfilePic(child)} activeOpacity={0.7}>
+                    <View style={[styles.avatarContainer, { borderColor: colors.primary }]}>
+                      {child.profile_picture ? (
+                        <Image source={{ uri: child.profile_picture }} style={styles.childProfileImage} />
+                      ) : (
+                        <Text style={styles.avatar}>{child.avatar}</Text>
+                      )}
+                      <View style={[styles.smallCameraIcon, { backgroundColor: colors.primary }]}>
+                        <Ionicons name="camera" size={10} color="#fff" />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                   
                   <View style={styles.childInfo}>
                     <Text style={styles.childName}>{child.name}</Text>
@@ -288,6 +327,33 @@ const styles = StyleSheet.create({
   },
   avatar: {
     fontSize: 48,
+  },
+  avatarContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  childProfileImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  smallCameraIcon: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#fff',
   },
   childInfo: {
     flex: 1,
