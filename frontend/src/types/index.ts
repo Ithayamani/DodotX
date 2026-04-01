@@ -30,10 +30,12 @@ export interface Family {
   code: string;
   pin: string;
   theme: Theme;
+  custom_theme?: CustomTheme;
   vacation_mode: boolean;
   vacation_start_date?: string; // YYYY-MM-DD
   vacation_end_date?: string;   // YYYY-MM-DD
   parent_id: string;
+  parent_profile_picture?: string;
   created_at: string;
 }
 
@@ -43,11 +45,21 @@ export interface FamilyCreate {
   theme: Theme;
 }
 
+export interface CustomTheme {
+  name: string;
+  primary: string;
+  background: string;
+  card: string;
+  text: string;
+  accent: string;
+}
+
 export interface Child {
   id: string;
   name: string;
   avatar: string;
   age?: number;
+  profile_picture?: string;
   family_id: string;
   created_at: string;
 }

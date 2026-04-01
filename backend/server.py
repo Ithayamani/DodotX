@@ -16,7 +16,8 @@ from models import (
     Task, TaskCreate, TaskUpdate, TaskCompletion,
     Reward, RewardCreate, RewardUpdate,
     Progress, CheerMessage, CheerCreate,
-    AITaskSuggestion, AITaskResponse, TaskMode
+    AITaskSuggestion, AITaskResponse, TaskMode,
+    AIThemeRequest, CustomTheme
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -721,7 +722,7 @@ Make tasks fun, achievable, and motivating for the child's age."""
 
 
 @api_router.post("/ai/generate-theme")
-async def ai_generate_theme(request_data: models.AIThemeRequest, current_user: User = Depends(get_current_user)):
+async def ai_generate_theme(request_data: AIThemeRequest, current_user: User = Depends(get_current_user)):
     """Generate a custom theme using AI based on user description"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     
@@ -772,7 +773,7 @@ Make it professional, modern, and suitable for a gamified family app."""
         
         theme_data = json.loads(clean_response)
         
-        return models.CustomTheme(**theme_data)
+        return CustomTheme(**theme_data)
     
     except Exception as e:
         logging.error(f"AI theme generation error: {str(e)}")
