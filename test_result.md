@@ -214,7 +214,77 @@ backend:
           comment: "Get rewards endpoint working correctly. Successfully retrieved 5 default rewards as expected: Pizza Night!, Extra Screen Time, Movie Night, Shopping Trip, Grand Surprise."
 
 frontend:
-  # Frontend testing not performed as per testing agent instructions
+  - task: "Landing Page - HeroQuest Branding"
+    implemented: true
+    working: true
+    file: "app/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "HeroQuest branding successfully implemented. 'HeroQuest' text displayed in golden color, 'Sign Up as a Parent' orange button working, 'Sign In as a Parent' outlined button working, 'Join Your Family' green button visible, 'Privacy-first' text present, footer shows HeroQuest branding. Minor: External logo image from customer-assets.emergentagent.com may not be loading/visible on landing page."
+
+  - task: "Login Flow"
+    implemented: true
+    working: true
+    file: "app/auth/login.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Login flow working correctly with test credentials (parent@test.com/parent123). Successfully navigates from landing page to login page and processes authentication."
+
+  - task: "Role Select Page - HeroQuest Welcome"
+    implemented: true
+    working: true
+    file: "app/role-select.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Role select page displays 'Welcome to HeroQuest!' text correctly (not KidQuest). Navigation from login successful."
+
+  - task: "Parent Dashboard - Children Tab with Camera Icons"
+    implemented: true
+    working: "NA"
+    file: "app/(parent)/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Could not complete full testing due to Playwright script limitations. Code review shows camera icon overlay implementation for child profile picture upload is present in the code."
+
+  - task: "Parent Dashboard - Settings Tab with Switch Toggle"
+    implemented: true
+    working: "NA"
+    file: "app/(parent)/settings.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Could not complete full testing due to Playwright script limitations. Code review shows Switch component for Task Mode toggle, Profile Picture section with camera icon, AI Theme Generator with dashed button, and Family Invite Code section with timer are implemented."
+
+  - task: "Parent Dashboard - Tasks Tab with Emoji Icon Input"
+    implemented: true
+    working: "NA"
+    file: "app/(parent)/tasks.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Could not complete full testing due to Playwright script limitations. Code review shows 'Emoji Icon' label and larger icon input field with emoji placeholder are implemented."
 
 metadata:
   created_by: "testing_agent"
@@ -409,3 +479,7 @@ agent_communication:
       message: "Re-tested vacation mode toggle fix and related features. All 5 tests passed: ✅ Vacation Mode Enable (with dates 2025-06-01 to 2025-06-08), ✅ Vacation Mode Disable (with null clearing), ✅ Database verification (dates properly null), ✅ Parent Profile Picture Update, ✅ AI Theme Generation ('ocean sunset' → 'Ocean Sunset Dusk' theme). The exclude_unset=True fix is working correctly - vacation dates are properly set to null when disabling vacation mode. Backend is fully functional."
     - agent: "testing"
       message: "Completed security features testing as requested. All 6 security tests passed with 100% success rate: ✅ Fresh Login (JWT with new secret), ✅ Family Code Regeneration (new endpoint with timestamps), ✅ Code Verification (fresh codes work), ✅ Code Expiry Logic (60-minute enforcement), ✅ Family Data (includes code_generated_at), ✅ Vacation Mode Toggle (enable/disable with proper null handling). All new security features are working correctly. Backend security implementation is production-ready."
+    - agent: "main"
+      message: "Renamed app from KidQuest to HeroQuest everywhere. Added user's logo image to landing page. Updated star emoji to golden 🌟. Frontend testing needed for: landing page (logo image + HeroQuest branding + 'Sign Up/In as a Parent' + 'Join Your Family' section), login flow, parent dashboard (children tab with pet name labels + child photo upload, settings page with profile picture upload + mode toggle switch + code expiry section + AI theme generator + theme grid), task editing (emoji icon input), role-select page."
+    - agent: "testing"
+      message: "Completed HeroQuest frontend testing on mobile dimensions (390x844). FINDINGS: Landing Page - HeroQuest text displayed in golden color, 'Sign Up as a Parent' orange button working, 'Sign In as a Parent' outlined button working, 'Join Your Family' green button visible, 'Privacy-first' text present, footer shows HeroQuest branding. ISSUE FOUND: External logo image from customer-assets.emergentagent.com appears to not be loading/visible on landing page. Login flow working with test credentials (parent@test.com/parent123). Could not complete full parent dashboard testing due to Playwright script limitations. Core branding and navigation elements are functioning correctly."

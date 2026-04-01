@@ -77,7 +77,7 @@ export default function ChildTrophies() {
                 </Text>
                 {trophy.earned && (
                   <View style={[styles.earnedBadge, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.earnedStar}>⭐</Text>
+                    <Text style={styles.earnedStar}>🌟</Text>
                   </View>
                 )}
               </View>

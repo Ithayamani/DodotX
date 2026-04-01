@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "KidQuest",
-    "slug": "kidquest",
+    "name": "HeroQuest",
+    "slug": "heroquest",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "kidquest",
+    "scheme": "heroquest",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kidquest.app",
+      "bundleIdentifier": "com.heroquest.app",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos for child avatars",
@@ -24,7 +24,7 @@
       }
     },
     "android": {
-      "package": "com.kidquest.app",
+      "package": "com.heroquest.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

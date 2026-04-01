@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../src/stores';
 
 const { width } = Dimensions.get('window');
+
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_app-store-setup-2/artifacts/wraue94r_image.png';
 
 export default function Index() {
   const router = useRouter();
@@ -38,7 +40,8 @@ export default function Index() {
         style={styles.hero}
       >
         <View style={styles.heroContent}>
-          <Text style={styles.logo}>⭐ KidQuest</Text>
+          <Image source={{ uri: LOGO_URL }} style={styles.logoImage} resizeMode="contain" />
+          <Text style={styles.logo}>HeroQuest</Text>
           <Text style={styles.heroTitle}>
             Turn Daily Tasks{'\n'}Into Epic Adventures
           </Text>
@@ -83,7 +86,7 @@ export default function Index() {
 
       {/* Features Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Why Parents Love KidQuest</Text>
+        <Text style={styles.sectionTitle}>Why Parents Love HeroQuest</Text>
         
         <View style={styles.features}>
           <View style={styles.feature}>
@@ -212,7 +215,7 @@ export default function Index() {
           Made with ❤️ for families
         </Text>
         <Text style={styles.footerCopy}>
-          © 2026 KidQuest • Privacy-first • COPPA compliant
+          © 2026 HeroQuest • Privacy-first • COPPA compliant
         </Text>
       </View>
     </ScrollView>
@@ -237,11 +240,16 @@ const styles = StyleSheet.create({
   heroContent: {
     alignItems: 'center',
   },
+  logoImage: {
+    width: 80,
+    height: 80,
+    marginBottom: 8,
+  },
   logo: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FF6B35',
-    marginBottom: 24,
+    color: '#FFD700',
+    marginBottom: 16,
   },
   heroTitle: {
     fontSize: width > 768 ? 56 : 40,
