@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { familyAPI, childrenAPI } from '../../src/api/client';
-import { useAppStore } from '../../src/stores';
+import { useAppStore, useAuthStore } from '../../src/stores';
 import { getThemeColors, THEMES, AVATARS } from '../../src/constants';
 import type { Theme } from '../../src/types';
 
 export default function Onboarding() {
   const router = useRouter();
   const setFamily = useAppStore((state) => state.setFamily);
+  const user = useAuthStore((state) => state.user);
   const [step, setStep] = useState(1);
   const [familyName, setFamilyName] = useState('');
   const [childName, setChildName] = useState('');
@@ -19,6 +20,22 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
 
   const colors = getThemeColors(theme);
+
+  // Check if user already has a family
+  useEffect(() => {
+    const checkExistingFamily = async () => {
+      if (user?.family_id) {
+        try {
+          const family = await familyAPI.get();
+          setFamily(family);
+          router.replace('/role-select');
+        } catch (error) {
+          console.log('No existing family found, continue onboarding');
+        }
+      }
+    };
+    checkExistingFamily();
+  }, [user]);
 
   const handleComplete = async () => {
     if (pin !== pinConfirm) {
@@ -33,15 +50,31 @@ export default function Onboarding() {
 
     setLoading(true);
     try {
-      // Create family
-      const family = await familyAPI.create({ name: familyName, pin, theme });
-      setFamily(family);
+      // Try to create family
+      try {
+        const family = await familyAPI.create({ name: familyName, pin, theme });
+        setFamily(family);
+      } catch (familyError: any) {
+        // If family already exists, fetch it
+        if (familyError.response?.status === 400) {
+          const existingFamily = await familyAPI.get();
+          setFamily(existingFamily);
+        } else {
+          throw familyError;
+        }
+      }
 
-      // Create first child
-      await childrenAPI.create({ name: childName, avatar: childAvatar });
+      // Create first child (if they don't have one already)
+      try {
+        await childrenAPI.create({ name: childName, avatar: childAvatar });
+      } catch (childError: any) {
+        // Child might already exist, that's okay
+        console.log('Child creation skipped:', childError);
+      }
 
       router.replace('/role-select');
     } catch (error: any) {
+      console.error('Setup error:', error);
       Alert.alert('Setup Failed', error.response?.data?.detail || 'Could not complete setup');
     } finally {
       setLoading(false);
