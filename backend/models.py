@@ -139,7 +139,7 @@ class Family(BaseModel):
 class FamilyCreate(BaseModel):
     name: str
     pin: str  # 4 digits
-    theme: Theme = Theme.FOOTBALL
+    theme: Theme = Theme.GAMING
 
 class FamilyUpdate(BaseModel):
     name: Optional[str] = None

@@ -14,7 +14,7 @@ export default function Onboarding() {
   const [familyName, setFamilyName] = useState('');
   const [childName, setChildName] = useState('');
   const [childAvatar, setChildAvatar] = useState('👦');
-  const [theme, setTheme] = useState<Theme>('football');
+  const [theme, setTheme] = useState<Theme>('gaming');
   const [pin, setPin] = useState('');
   const [pinConfirm, setPinConfirm] = useState('');
   const [loading, setLoading] = useState(false);

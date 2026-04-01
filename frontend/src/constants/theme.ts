@@ -2,51 +2,51 @@ import { Theme } from '../types';
 
 export const THEME_COLORS = {
   football: {
-    primary: '#00c853',
-    background: '#1b5e20',
-    card: '#2e7d32',
+    primary: '#4CAF50',
+    background: '#1e3a28',
+    card: '#2d5a3f',
     text: '#ffffff',
-    accent: '#76ff03',
+    accent: '#81C784',
   },
   space: {
-    primary: '#7c4dff',
-    background: '#1a237e',
-    card: '#283593',
+    primary: '#9C27B0',
+    background: '#1a1a2e',
+    card: '#2d2d44',
     text: '#ffffff',
-    accent: '#b388ff',
+    accent: '#BA68C8',
   },
   ocean: {
-    primary: '#00bcd4',
-    background: '#006064',
-    card: '#0097a7',
+    primary: '#2196F3',
+    background: '#0d1b2a',
+    card: '#1b3a52',
     text: '#ffffff',
-    accent: '#18ffff',
+    accent: '#64B5F6',
   },
   nature: {
-    primary: '#8bc34a',
-    background: '#33691e',
-    card: '#558b2f',
+    primary: '#66BB6A',
+    background: '#1b2a1e',
+    card: '#2d4a32',
     text: '#ffffff',
-    accent: '#ccff90',
+    accent: '#A5D6A7',
   },
   gaming: {
-    primary: '#e040fb',
-    background: '#4a148c',
-    card: '#6a1b9a',
+    primary: '#FF6B35',
+    background: '#0f1419',
+    card: '#1c2128',
     text: '#ffffff',
-    accent: '#ea80fc',
+    accent: '#FFA726',
   },
   adventure: {
-    primary: '#ff6f00',
-    background: '#e65100',
-    card: '#ef6c00',
+    primary: '#FF9800',
+    background: '#1c1410',
+    card: '#2e2318',
     text: '#ffffff',
-    accent: '#ffab40',
+    accent: '#FFB74D',
   },
 };
 
 export const getThemeColors = (theme: Theme) => {
-  return THEME_COLORS[theme] || THEME_COLORS.football;
+  return THEME_COLORS[theme] || THEME_COLORS.gaming;
 };
 
 export const AVATARS = [
