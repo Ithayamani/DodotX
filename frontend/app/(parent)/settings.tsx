@@ -273,7 +273,12 @@ export default function ParentSettings() {
 
   const getCodeExpiryInfo = () => {
     if (!localFamily?.code_generated_at) return { expired: false, minutesLeft: 60 };
-    const generatedAt = new Date(localFamily.code_generated_at).getTime();
+    // Ensure UTC parsing - append Z if no timezone indicator present
+    let dateStr = localFamily.code_generated_at;
+    if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+      dateStr += 'Z';
+    }
+    const generatedAt = new Date(dateStr).getTime();
     const expiresAt = generatedAt + (60 * 60 * 1000); // 60 minutes
     const now = Date.now();
     const minutesLeft = Math.max(0, Math.ceil((expiresAt - now) / (60 * 1000)));

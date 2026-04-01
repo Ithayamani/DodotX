@@ -185,6 +185,18 @@ async def create_family(family_data: FamilyCreate, current_user: User = Depends(
     
     return family
 
+def ensure_utc_timestamps(family_dict: dict) -> dict:
+    """Ensure datetime fields have UTC timezone info for proper frontend parsing"""
+    for key in ['code_generated_at', 'created_at']:
+        if key in family_dict and family_dict[key] is not None:
+            val = family_dict[key]
+            if isinstance(val, datetime):
+                # Store as ISO string with Z suffix
+                family_dict[key] = val.isoformat() + "Z"
+            elif isinstance(val, str) and not val.endswith('Z') and '+' not in val:
+                family_dict[key] = val + "Z"
+    return family_dict
+
 @api_router.get("/family", response_model=Family)
 async def get_family(current_user: User = Depends(get_current_user)):
     """Get current user's family"""
@@ -195,6 +207,7 @@ async def get_family(current_user: User = Depends(get_current_user)):
     if not family:
         raise HTTPException(status_code=404, detail="Family not found")
     
+    family = ensure_utc_timestamps(family)
     return Family(**family)
 
 @api_router.put("/family", response_model=Family)
@@ -221,6 +234,7 @@ async def update_family(family_data: FamilyUpdate, current_user: User = Depends(
         )
     
     updated_family = await db.families.find_one({"id": current_user.family_id})
+    updated_family = ensure_utc_timestamps(updated_family)
     return Family(**updated_family)
 
 @api_router.post("/family/verify-pin")
@@ -319,8 +333,8 @@ async def regenerate_family_code(current_user: User = Depends(get_current_user))
     
     return {
         "code": new_code,
-        "generated_at": now.isoformat(),
-        "expires_at": (now + timedelta(minutes=FAMILY_CODE_EXPIRY_MINUTES)).isoformat()
+        "generated_at": now.isoformat() + "Z",
+        "expires_at": (now + timedelta(minutes=FAMILY_CODE_EXPIRY_MINUTES)).isoformat() + "Z"
     }
 
 # ============ CHILDREN ROUTES ============
