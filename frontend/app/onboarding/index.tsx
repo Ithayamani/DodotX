@@ -93,11 +93,14 @@ export default function Onboarding() {
       />
       <TextInput
         style={[styles.input, { borderColor: colors.primary }]}
-        placeholder="First Child's Name"
+        placeholder="Child's Pet Name / Nickname"
         placeholderTextColor="#999"
         value={childName}
         onChangeText={setChildName}
       />
+      <Text style={styles.privacyNote}>
+        Use a nickname or pet name for your child's privacy
+      </Text>
       <Text style={styles.label}>Choose Avatar</Text>
       <View style={styles.avatarGrid}>
         {AVATARS.slice(0, 12).map((avatar) => (
@@ -230,6 +233,12 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: '#ccc',
+  },
+  privacyNote: {
+    fontSize: 13,
+    color: '#7ec8e3',
+    fontStyle: 'italic',
+    marginTop: -8,
   },
   label: {
     fontSize: 16,

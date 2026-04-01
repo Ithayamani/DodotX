@@ -76,6 +76,11 @@ export const familyAPI = {
     return response.data;
   },
   
+  regenerateCode: async (): Promise<{ code: string; generated_at: string; expires_at: string }> => {
+    const response = await api.post('/family/regenerate-code');
+    return response.data;
+  },
+  
   verifyPin: async (pin: string): Promise<{ success: boolean }> => {
     const response = await api.post('/family/verify-pin', null, {
       params: { pin },

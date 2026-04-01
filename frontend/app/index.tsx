@@ -51,20 +51,35 @@ export default function Index() {
               style={styles.primaryButton}
               onPress={() => router.push('/auth/signup')}
             >
-              <Text style={styles.primaryButtonText}>Start Free</Text>
+              <Text style={styles.primaryButtonText}>Sign Up as a Parent</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => router.push('/auth/login')}
             >
-              <Text style={styles.secondaryButtonText}>Sign In</Text>
+              <Text style={styles.secondaryButtonText}>Sign In as a Parent</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.heroNote}>No credit card required • COPPA compliant</Text>
+          <Text style={styles.heroNote}>No credit card required • COPPA compliant • Privacy-first</Text>
         </View>
       </LinearGradient>
+
+      {/* Join Family Section */}
+      <View style={[styles.section, styles.joinSection]}>
+        <Text style={styles.joinIcon}>👨‍👩‍👧‍👦</Text>
+        <Text style={styles.joinTitle}>Already have a family code?</Text>
+        <Text style={styles.joinDesc}>
+          Your parent will share a 6-digit code with you.{'\n'}Use it to join your family and start your quest!
+        </Text>
+        <TouchableOpacity
+          style={styles.joinButton}
+          onPress={() => router.push('/auth/login')}
+        >
+          <Text style={styles.joinButtonText}>Join Your Family</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Features Section */}
       <View style={styles.section}>
@@ -386,6 +401,46 @@ const styles = StyleSheet.create({
   ctaSection: {
     backgroundColor: '#FF6B35',
     alignItems: 'center',
+  },
+  // Join Family Section
+  joinSection: {
+    backgroundColor: '#1c2128',
+    alignItems: 'center',
+    paddingVertical: 48,
+    borderTopWidth: 1,
+    borderTopColor: '#2d333b',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2d333b',
+  },
+  joinIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  joinTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  joinDesc: {
+    fontSize: 16,
+    color: '#b0b8c1',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  joinButton: {
+    backgroundColor: '#2ea043',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+  },
+  joinButtonText: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '600',
   },
   ctaTitle: {
     fontSize: 40,

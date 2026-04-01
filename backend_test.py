@@ -1,285 +1,359 @@
 #!/usr/bin/env python3
 """
-KidQuest Backend API Test Suite
-Focus: Vacation Mode Toggle Fix and Core Features
+KidQuest Backend API Security Features Test
+Testing specific security features: JWT authentication, family code regeneration, and expiry logic
 """
 
 import requests
 import json
-import sys
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
-# Backend URL from frontend .env
+# Configuration
 BASE_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
 
 # Test credentials from review request
 TEST_EMAIL = "parent@test.com"
 TEST_PASSWORD = "parent123"
 
-class KidQuestTester:
+class KidQuestAPITester:
     def __init__(self):
-        self.token = None
+        self.base_url = BASE_URL
+        self.access_token = None
         self.family_id = None
-        self.child_id = None
-        self.session = requests.Session()
-        self.session.headers.update({
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        })
+        self.test_results = []
         
-    def log(self, message, level="INFO"):
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        print(f"[{timestamp}] {level}: {message}")
+    def log_result(self, test_name, success, details="", response_data=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "timestamp": datetime.now().isoformat()
+        }
+        if response_data:
+            result["response_data"] = response_data
+        self.test_results.append(result)
         
-    def authenticate(self):
-        """Login and get authentication token"""
-        self.log("🔐 Authenticating user...")
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status} {test_name}: {details}")
+        
+    def make_request(self, method, endpoint, data=None, headers=None):
+        """Make HTTP request with error handling"""
+        url = f"{self.base_url}{endpoint}"
+        
+        if headers is None:
+            headers = {"Content-Type": "application/json"}
+            
+        if self.access_token and "Authorization" not in headers:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+            
+        try:
+            if method.upper() == "GET":
+                response = requests.get(url, headers=headers)
+            elif method.upper() == "POST":
+                response = requests.post(url, json=data, headers=headers)
+            elif method.upper() == "PUT":
+                response = requests.put(url, json=data, headers=headers)
+            else:
+                raise ValueError(f"Unsupported method: {method}")
+                
+            return response
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            return None
+    
+    def test_fresh_login(self):
+        """Test 1: Fresh login with new JWT secret"""
+        print("\n=== Test 1: Fresh Login ===")
         
         login_data = {
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         }
         
-        try:
-            response = self.session.post(f"{BASE_URL}/auth/login", json=login_data)
+        response = self.make_request("POST", "/auth/login", login_data)
+        
+        if response is None:
+            self.log_result("Fresh Login", False, "Request failed")
+            return False
             
-            if response.status_code == 200:
-                data = response.json()
-                self.token = data["access_token"]
+        if response.status_code == 200:
+            data = response.json()
+            if "access_token" in data and "user" in data:
+                self.access_token = data["access_token"]
                 self.family_id = data["user"].get("family_id")
-                
-                # Set authorization header for future requests
-                self.session.headers.update({
-                    'Authorization': f'Bearer {self.token}'
-                })
-                
-                self.log(f"✅ Authentication successful. Family ID: {self.family_id}")
+                self.log_result("Fresh Login", True, 
+                               f"Successfully logged in. User ID: {data['user']['id']}, Family ID: {self.family_id}",
+                               {"user_info": data["user"]})
                 return True
             else:
-                self.log(f"❌ Authentication failed: {response.status_code} - {response.text}", "ERROR")
+                self.log_result("Fresh Login", False, "Missing access_token or user in response", data)
                 return False
-                
-        except Exception as e:
-            self.log(f"❌ Authentication error: {str(e)}", "ERROR")
+        else:
+            self.log_result("Fresh Login", False, 
+                           f"Login failed with status {response.status_code}: {response.text}")
             return False
     
-    def test_vacation_mode_enable(self):
-        """Test vacation mode enable with dates"""
-        self.log("🏖️ Testing vacation mode enable...")
+    def test_family_code_regeneration(self):
+        """Test 2: Family code regeneration"""
+        print("\n=== Test 2: Family Code Regeneration ===")
         
-        vacation_data = {
-            "vacation_mode": True,
-            "vacation_start_date": "2025-06-01",
-            "vacation_end_date": "2025-06-08"
-        }
-        
-        try:
-            response = self.session.put(f"{BASE_URL}/family", json=vacation_data)
+        if not self.access_token:
+            self.log_result("Family Code Regeneration", False, "No access token available")
+            return None
             
-            if response.status_code == 200:
-                family_data = response.json()
-                
-                # Verify vacation mode is enabled
-                if (family_data.get("vacation_mode") == True and 
-                    family_data.get("vacation_start_date") == "2025-06-01" and
-                    family_data.get("vacation_end_date") == "2025-06-08"):
-                    self.log("✅ Vacation mode enabled successfully with correct dates")
-                    return True
-                else:
-                    self.log(f"❌ Vacation mode data mismatch: {family_data}", "ERROR")
+        response = self.make_request("POST", "/family/regenerate-code")
+        
+        if response is None:
+            self.log_result("Family Code Regeneration", False, "Request failed")
+            return None
+            
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["code", "generated_at", "expires_at"]
+            
+            if all(field in data for field in required_fields):
+                # Verify timestamps are valid
+                try:
+                    generated_at = datetime.fromisoformat(data["generated_at"].replace('Z', '+00:00'))
+                    expires_at = datetime.fromisoformat(data["expires_at"].replace('Z', '+00:00'))
+                    
+                    # Check if expiry is approximately 60 minutes from generation
+                    expected_expiry = generated_at + timedelta(minutes=60)
+                    time_diff = abs((expires_at - expected_expiry).total_seconds())
+                    
+                    if time_diff < 5:  # Allow 5 seconds tolerance
+                        self.log_result("Family Code Regeneration", True,
+                                       f"New code generated: {data['code']}, expires in 60 minutes",
+                                       data)
+                        return data["code"]
+                    else:
+                        self.log_result("Family Code Regeneration", False,
+                                       f"Expiry time incorrect. Expected ~60 min, got {time_diff}s difference")
+                        return None
+                        
+                except ValueError as e:
+                    self.log_result("Family Code Regeneration", False, f"Invalid timestamp format: {e}")
+                    return None
+            else:
+                missing = [f for f in required_fields if f not in data]
+                self.log_result("Family Code Regeneration", False, 
+                               f"Missing required fields: {missing}", data)
+                return None
+        else:
+            self.log_result("Family Code Regeneration", False,
+                           f"Request failed with status {response.status_code}: {response.text}")
+            return None
+    
+    def test_verify_new_code(self, family_code):
+        """Test 3: Verify the new family code works"""
+        print("\n=== Test 3: Verify New Code ===")
+        
+        if not family_code:
+            self.log_result("Verify New Code", False, "No family code to test")
+            return False
+            
+        verify_data = {"code": family_code}
+        
+        # Don't use authorization header for code verification (public endpoint)
+        response = self.make_request("POST", "/family/verify-code", verify_data, 
+                                   headers={"Content-Type": "application/json"})
+        
+        if response is None:
+            self.log_result("Verify New Code", False, "Request failed")
+            return False
+            
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["family_id", "family_name", "theme"]
+            
+            if all(field in data for field in required_fields):
+                self.log_result("Verify New Code", True,
+                               f"Code verified successfully. Family: {data['family_name']}, Theme: {data['theme']}",
+                               data)
+                return True
+            else:
+                missing = [f for f in required_fields if f not in data]
+                self.log_result("Verify New Code", False,
+                               f"Missing required fields: {missing}", data)
+                return False
+        else:
+            self.log_result("Verify New Code", False,
+                           f"Code verification failed with status {response.status_code}: {response.text}")
+            return False
+    
+    def test_get_family_with_code_generated_at(self):
+        """Test 4: Get family and verify code_generated_at field"""
+        print("\n=== Test 4: Get Family (verify code_generated_at) ===")
+        
+        if not self.access_token:
+            self.log_result("Get Family", False, "No access token available")
+            return False
+            
+        response = self.make_request("GET", "/family")
+        
+        if response is None:
+            self.log_result("Get Family", False, "Request failed")
+            return False
+            
+        if response.status_code == 200:
+            data = response.json()
+            
+            if "code_generated_at" in data:
+                try:
+                    # Verify the timestamp is valid and recent
+                    code_generated_at = datetime.fromisoformat(data["code_generated_at"].replace('Z', '+00:00'))
+                    now = datetime.utcnow()
+                    time_diff = abs((now - code_generated_at).total_seconds())
+                    
+                    # Should be recent (within last few minutes)
+                    if time_diff < 300:  # 5 minutes tolerance
+                        self.log_result("Get Family", True,
+                                       f"Family data includes code_generated_at: {data['code_generated_at']}",
+                                       {"code_generated_at": data["code_generated_at"], 
+                                        "family_name": data.get("name", "Unknown")})
+                        return True
+                    else:
+                        self.log_result("Get Family", False,
+                                       f"code_generated_at is too old: {time_diff}s ago")
+                        return False
+                        
+                except ValueError as e:
+                    self.log_result("Get Family", False, f"Invalid code_generated_at format: {e}")
                     return False
             else:
-                self.log(f"❌ Vacation mode enable failed: {response.status_code} - {response.text}", "ERROR")
+                self.log_result("Get Family", False, "Missing code_generated_at field", data)
                 return False
-                
-        except Exception as e:
-            self.log(f"❌ Vacation mode enable error: {str(e)}", "ERROR")
+        else:
+            self.log_result("Get Family", False,
+                           f"Get family failed with status {response.status_code}: {response.text}")
             return False
     
-    def test_vacation_mode_disable(self):
-        """Test vacation mode disable with null clearing"""
-        self.log("🏠 Testing vacation mode disable with null clearing...")
+    def test_vacation_mode_toggle(self):
+        """Test 5: Full family update (vacation mode toggle)"""
+        print("\n=== Test 5: Vacation Mode Toggle ===")
         
+        if not self.access_token:
+            self.log_result("Vacation Mode Toggle", False, "No access token available")
+            return False
+        
+        # Test 5a: Enable vacation mode
+        print("5a: Enabling vacation mode...")
+        enable_data = {
+            "vacation_mode": True,
+            "vacation_start_date": "2025-07-01",
+            "vacation_end_date": "2025-07-10"
+        }
+        
+        response = self.make_request("PUT", "/family", enable_data)
+        
+        if response is None:
+            self.log_result("Vacation Mode Enable", False, "Request failed")
+            return False
+            
+        if response.status_code == 200:
+            data = response.json()
+            if (data.get("vacation_mode") == True and 
+                data.get("vacation_start_date") == "2025-07-01" and
+                data.get("vacation_end_date") == "2025-07-10"):
+                self.log_result("Vacation Mode Enable", True,
+                               "Vacation mode enabled successfully with dates")
+            else:
+                self.log_result("Vacation Mode Enable", False,
+                               "Vacation mode data not updated correctly", data)
+                return False
+        else:
+            self.log_result("Vacation Mode Enable", False,
+                           f"Enable failed with status {response.status_code}: {response.text}")
+            return False
+        
+        # Test 5b: Disable vacation mode
+        print("5b: Disabling vacation mode...")
         disable_data = {
             "vacation_mode": False,
             "vacation_start_date": None,
             "vacation_end_date": None
         }
         
-        try:
-            response = self.session.put(f"{BASE_URL}/family", json=disable_data)
-            
-            if response.status_code == 200:
-                family_data = response.json()
-                
-                # Verify vacation mode is disabled and dates are null
-                if (family_data.get("vacation_mode") == False and 
-                    family_data.get("vacation_start_date") is None and
-                    family_data.get("vacation_end_date") is None):
-                    self.log("✅ Vacation mode disabled successfully with null dates")
-                    return True
-                else:
-                    self.log(f"❌ Vacation mode disable data mismatch: {family_data}", "ERROR")
-                    self.log(f"   vacation_mode: {family_data.get('vacation_mode')}")
-                    self.log(f"   vacation_start_date: {family_data.get('vacation_start_date')}")
-                    self.log(f"   vacation_end_date: {family_data.get('vacation_end_date')}")
-                    return False
-            else:
-                self.log(f"❌ Vacation mode disable failed: {response.status_code} - {response.text}", "ERROR")
-                return False
-                
-        except Exception as e:
-            self.log(f"❌ Vacation mode disable error: {str(e)}", "ERROR")
+        response = self.make_request("PUT", "/family", disable_data)
+        
+        if response is None:
+            self.log_result("Vacation Mode Disable", False, "Request failed")
             return False
-    
-    def test_verify_null_dates(self):
-        """Verify dates are actually null after disable by fetching family data"""
-        self.log("🔍 Verifying dates are null in database...")
-        
-        try:
-            response = self.session.get(f"{BASE_URL}/family")
             
-            if response.status_code == 200:
-                family_data = response.json()
-                
-                # Verify vacation mode is disabled and dates are null
-                if (family_data.get("vacation_mode") == False and 
-                    family_data.get("vacation_start_date") is None and
-                    family_data.get("vacation_end_date") is None):
-                    self.log("✅ Database verification: dates are properly null")
-                    return True
-                else:
-                    self.log(f"❌ Database verification failed: {family_data}", "ERROR")
-                    self.log(f"   vacation_mode: {family_data.get('vacation_mode')}")
-                    self.log(f"   vacation_start_date: {family_data.get('vacation_start_date')}")
-                    self.log(f"   vacation_end_date: {family_data.get('vacation_end_date')}")
-                    return False
+        if response.status_code == 200:
+            data = response.json()
+            if (data.get("vacation_mode") == False and 
+                data.get("vacation_start_date") is None and
+                data.get("vacation_end_date") is None):
+                self.log_result("Vacation Mode Disable", True,
+                               "Vacation mode disabled successfully with null dates")
+                return True
             else:
-                self.log(f"❌ Family data fetch failed: {response.status_code} - {response.text}", "ERROR")
+                self.log_result("Vacation Mode Disable", False,
+                               "Vacation mode disable data not updated correctly", data)
                 return False
-                
-        except Exception as e:
-            self.log(f"❌ Database verification error: {str(e)}", "ERROR")
-            return False
-    
-    def test_profile_picture_update(self):
-        """Test parent profile picture update"""
-        self.log("📸 Testing parent profile picture update...")
-        
-        profile_data = {
-            "parent_profile_picture": "data:image/jpeg;base64,test123"
-        }
-        
-        try:
-            response = self.session.put(f"{BASE_URL}/family", json=profile_data)
-            
-            if response.status_code == 200:
-                family_data = response.json()
-                
-                # Verify profile picture is updated
-                if family_data.get("parent_profile_picture") == "data:image/jpeg;base64,test123":
-                    self.log("✅ Parent profile picture updated successfully")
-                    return True
-                else:
-                    self.log(f"❌ Profile picture update failed: {family_data.get('parent_profile_picture')}", "ERROR")
-                    return False
-            else:
-                self.log(f"❌ Profile picture update failed: {response.status_code} - {response.text}", "ERROR")
-                return False
-                
-        except Exception as e:
-            self.log(f"❌ Profile picture update error: {str(e)}", "ERROR")
-            return False
-    
-    def test_ai_theme_generation(self):
-        """Test AI theme generation"""
-        self.log("🎨 Testing AI theme generation...")
-        
-        theme_data = {
-            "description": "ocean sunset"
-        }
-        
-        try:
-            response = self.session.post(f"{BASE_URL}/ai/generate-theme", json=theme_data)
-            
-            if response.status_code == 200:
-                theme_result = response.json()
-                
-                # Verify theme has required fields
-                required_fields = ["name", "primary", "background", "card", "text", "accent"]
-                if all(field in theme_result for field in required_fields):
-                    self.log(f"✅ AI theme generated successfully: {theme_result['name']}")
-                    self.log(f"   Colors: primary={theme_result['primary']}, background={theme_result['background']}")
-                    return True
-                else:
-                    self.log(f"❌ AI theme missing required fields: {theme_result}", "ERROR")
-                    return False
-            else:
-                self.log(f"❌ AI theme generation failed: {response.status_code} - {response.text}", "ERROR")
-                return False
-                
-        except Exception as e:
-            self.log(f"❌ AI theme generation error: {str(e)}", "ERROR")
+        else:
+            self.log_result("Vacation Mode Disable", False,
+                           f"Disable failed with status {response.status_code}: {response.text}")
             return False
     
     def run_all_tests(self):
-        """Run all tests in sequence"""
-        self.log("🚀 Starting KidQuest Backend API Tests")
-        self.log(f"   Backend URL: {BASE_URL}")
-        self.log(f"   Test Email: {TEST_EMAIL}")
+        """Run all security feature tests"""
+        print("🚀 Starting KidQuest Backend Security Features Test")
+        print(f"Testing against: {self.base_url}")
+        print("=" * 60)
         
-        results = {}
+        # Test 1: Fresh login
+        if not self.test_fresh_login():
+            print("\n❌ Login failed - cannot proceed with other tests")
+            return self.generate_summary()
         
-        # Authentication is required for all tests
-        if not self.authenticate():
-            self.log("❌ Authentication failed - cannot proceed with tests", "ERROR")
-            return False
+        # Test 2: Family code regeneration
+        new_code = self.test_family_code_regeneration()
         
-        # Test vacation mode enable
-        results["vacation_enable"] = self.test_vacation_mode_enable()
+        # Test 3: Verify new code works
+        self.test_verify_new_code(new_code)
         
-        # Test vacation mode disable with null clearing
-        results["vacation_disable"] = self.test_vacation_mode_disable()
+        # Test 4: Get family with code_generated_at
+        self.test_get_family_with_code_generated_at()
         
-        # Verify dates are null in database
-        results["verify_null_dates"] = self.test_verify_null_dates()
+        # Test 5: Vacation mode toggle
+        self.test_vacation_mode_toggle()
         
-        # Test profile picture update
-        results["profile_picture"] = self.test_profile_picture_update()
-        
-        # Test AI theme generation
-        results["ai_theme"] = self.test_ai_theme_generation()
-        
-        # Summary
-        self.log("\n" + "="*60)
-        self.log("📊 TEST RESULTS SUMMARY")
-        self.log("="*60)
-        
-        passed = 0
-        total = len(results)
-        
-        for test_name, result in results.items():
-            status = "✅ PASS" if result else "❌ FAIL"
-            self.log(f"{test_name.replace('_', ' ').title()}: {status}")
-            if result:
-                passed += 1
-        
-        self.log(f"\nOverall: {passed}/{total} tests passed")
-        
-        if passed == total:
-            self.log("🎉 All tests passed! Vacation mode fix is working correctly.")
-            return True
-        else:
-            self.log("⚠️  Some tests failed. Please check the errors above.")
-            return False
-
-def main():
-    """Main test execution"""
-    tester = KidQuestTester()
-    success = tester.run_all_tests()
+        return self.generate_summary()
     
-    # Exit with appropriate code
-    sys.exit(0 if success else 1)
+    def generate_summary(self):
+        """Generate test summary"""
+        print("\n" + "=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
+        
+        passed = sum(1 for result in self.test_results if result["success"])
+        total = len(self.test_results)
+        
+        print(f"Total Tests: {total}")
+        print(f"Passed: {passed}")
+        print(f"Failed: {total - passed}")
+        print(f"Success Rate: {(passed/total*100):.1f}%" if total > 0 else "0%")
+        
+        print("\nDetailed Results:")
+        for result in self.test_results:
+            status = "✅" if result["success"] else "❌"
+            print(f"{status} {result['test']}: {result['details']}")
+        
+        return {
+            "total_tests": total,
+            "passed": passed,
+            "failed": total - passed,
+            "success_rate": (passed/total*100) if total > 0 else 0,
+            "results": self.test_results
+        }
 
 if __name__ == "__main__":
-    main()
+    tester = KidQuestAPITester()
+    summary = tester.run_all_tests()
+    
+    # Exit with appropriate code
+    exit(0 if summary["failed"] == 0 else 1)

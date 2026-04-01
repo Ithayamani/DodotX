@@ -139,6 +139,7 @@ class Family(BaseModel):
     id: str
     name: str
     code: str  # 6-char invite code
+    code_generated_at: datetime = Field(default_factory=datetime.utcnow)
     pin: str  # Hashed 4-digit PIN
     theme: Theme = Theme.FOOTBALL
     custom_theme: Optional[CustomTheme] = None  # AI-generated or user-created

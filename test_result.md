@@ -336,6 +336,66 @@ test_plan:
           agent: "testing"
           comment: "Error handling working correctly. Invalid endpoints return 404, unauthorized requests return 403. Minor: Empty child names are accepted (may be intentional for flexibility)."
 
+  - task: "Security Features - JWT Authentication"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "JWT authentication with new secret working correctly. Fresh login successful with parent@test.com credentials. Access token generated and user info returned properly."
+
+  - task: "Security Features - Family Code Regeneration"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Family code regeneration endpoint working correctly. POST /api/family/regenerate-code generates new code (094X30) with proper timestamps: generated_at and expires_at (60 minutes from generation). All required fields present in response."
+
+  - task: "Security Features - Family Code Verification"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Family code verification working correctly. POST /api/family/verify-code successfully verifies fresh codes and returns family_id, family_name, and theme. Public endpoint (no auth required) functioning as expected."
+
+  - task: "Security Features - Code Expiry Logic"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Family code expiry logic implemented correctly. 60-minute expiry enforced in both verify-code and join-child endpoints. code_generated_at field properly tracked and validated."
+
+  - task: "Security Features - Family Data with Timestamps"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/family endpoint correctly includes code_generated_at field with valid timestamp (2026-04-01T18:16:31.561000). Timestamp validation confirms recent generation within expected timeframe."
+
 agent_communication:
     - agent: "testing"
       message: "Completed comprehensive backend API testing. All 9 critical endpoints tested successfully: health check, user signup/login, family creation/retrieval, child creation/retrieval, and default tasks/rewards retrieval. Backend is fully functional and ready for production use. Email validation requires real domains (not .test). All default data (8 tasks, 5 rewards) created correctly during family setup."
@@ -343,5 +403,9 @@ agent_communication:
       message: "Completed extended backend integration testing covering all 18 requested endpoints. Successfully tested: Core APIs (auth, family, children, tasks, rewards), New Features (AI task suggestions, AI theme generation, custom themes, profile pictures), Vacation Mode (enable/disable with date ranges), Task completion and progress tracking, Error handling. Fixed one critical bug in AI theme generation (models.CustomTheme reference). All major functionality working correctly. Backend is production-ready with comprehensive AI integration."
     - agent: "main"
       message: "Applied 4 fixes: 1) Backend fix for update_family using exclude_unset=True to properly handle null values when toggling vacation mode. 2) Frontend settings.tsx now has: Profile Picture upload (expo-image-picker + base64), Mode toggle using Switch component (was irresponsive button), AI Theme Generator UI with modal. 3) Frontend tasks.tsx: Fixed emoji icon input to allow keyboard emoji selection with better UX. 4) Frontend parent/index.tsx: Added child profile picture upload with camera icon overlay. 5) Added aiAPI.generateTheme to client.ts. Need to re-test backend vacation mode update and frontend rendering."
+    - agent: "main"
+      message: "Security & Privacy update: 1) Family code now expires after 60 minutes. Backend adds code_generated_at timestamp and checks expiry on verify-code and join-child. 2) New POST /api/family/regenerate-code endpoint to generate fresh codes. 3) JWT secret upgraded from hardcoded weak value to proper 256-bit hex token in .env. 4) Landing page updated: 'Sign Up as a Parent', 'Sign In as a Parent', and new 'Join Your Family' section. 5) All child registration forms now use 'Pet Name / Nickname' with privacy note. 6) Settings shows family code with expiry timer, Share/Regenerate buttons. Test the regenerate-code endpoint and verify the code expiry logic."
     - agent: "testing"
       message: "Re-tested vacation mode toggle fix and related features. All 5 tests passed: ✅ Vacation Mode Enable (with dates 2025-06-01 to 2025-06-08), ✅ Vacation Mode Disable (with null clearing), ✅ Database verification (dates properly null), ✅ Parent Profile Picture Update, ✅ AI Theme Generation ('ocean sunset' → 'Ocean Sunset Dusk' theme). The exclude_unset=True fix is working correctly - vacation dates are properly set to null when disabling vacation mode. Backend is fully functional."
+    - agent: "testing"
+      message: "Completed security features testing as requested. All 6 security tests passed with 100% success rate: ✅ Fresh Login (JWT with new secret), ✅ Family Code Regeneration (new endpoint with timestamps), ✅ Code Verification (fresh codes work), ✅ Code Expiry Logic (60-minute enforcement), ✅ Family Data (includes code_generated_at), ✅ Vacation Mode Toggle (enable/disable with proper null handling). All new security features are working correctly. Backend security implementation is production-ready."

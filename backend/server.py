@@ -7,7 +7,6 @@ import os
 import logging
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime
 
 from models import (
     User, UserSignup, UserLogin, Token,
@@ -28,6 +27,10 @@ from utils import (
     get_level_info, check_trophies, DEFAULT_TASKS, DEFAULT_REWARDS,
     check_vacation_mode
 )
+
+from datetime import datetime, timedelta
+
+FAMILY_CODE_EXPIRY_MINUTES = 60
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -148,6 +151,7 @@ async def create_family(family_data: FamilyCreate, current_user: User = Depends(
         id=family_id,
         name=family_data.name,
         code=family_code,
+        code_generated_at=datetime.utcnow(),
         pin=hashed_pin,
         theme=family_data.theme,
         parent_id=current_user.id
@@ -242,6 +246,15 @@ async def verify_family_code(code_data: FamilyCodeVerify):
     if not family:
         raise HTTPException(status_code=404, detail="Invalid family code")
     
+    # Check code expiry (60 minutes)
+    code_generated_at = family.get("code_generated_at")
+    if code_generated_at:
+        if isinstance(code_generated_at, str):
+            code_generated_at = datetime.fromisoformat(code_generated_at)
+        expiry_time = code_generated_at + timedelta(minutes=FAMILY_CODE_EXPIRY_MINUTES)
+        if datetime.utcnow() > expiry_time:
+            raise HTTPException(status_code=410, detail="Family code has expired. Ask the parent to generate a new one.")
+    
     return {
         "family_id": family["id"],
         "family_name": family["name"],
@@ -255,6 +268,15 @@ async def join_child(invite_data: ChildInvite):
     
     if not family:
         raise HTTPException(status_code=404, detail="Invalid family code")
+    
+    # Check code expiry (60 minutes)
+    code_generated_at = family.get("code_generated_at")
+    if code_generated_at:
+        if isinstance(code_generated_at, str):
+            code_generated_at = datetime.fromisoformat(code_generated_at)
+        expiry_time = code_generated_at + timedelta(minutes=FAMILY_CODE_EXPIRY_MINUTES)
+        if datetime.utcnow() > expiry_time:
+            raise HTTPException(status_code=410, detail="Family code has expired. Ask the parent to generate a new one.")
     
     # Create child
     child_id = generate_id()
@@ -275,6 +297,30 @@ async def join_child(invite_data: ChildInvite):
         "child_id": child_id,
         "family_id": family["id"],
         "message": f"{invite_data.child_name} joined the family!"
+    }
+
+@api_router.post("/family/regenerate-code", response_model=dict)
+async def regenerate_family_code(current_user: User = Depends(get_current_user)):
+    """Regenerate the family invite code (refreshes expiry)"""
+    if not current_user.family_id:
+        raise HTTPException(status_code=404, detail="User has no family")
+    
+    family = await db.families.find_one({"id": current_user.family_id})
+    if not family:
+        raise HTTPException(status_code=404, detail="Family not found")
+    
+    new_code = generate_family_code()
+    now = datetime.utcnow()
+    
+    await db.families.update_one(
+        {"id": current_user.family_id},
+        {"$set": {"code": new_code, "code_generated_at": now}}
+    )
+    
+    return {
+        "code": new_code,
+        "generated_at": now.isoformat(),
+        "expires_at": (now + timedelta(minutes=FAMILY_CODE_EXPIRY_MINUTES)).isoformat()
     }
 
 # ============ CHILDREN ROUTES ============

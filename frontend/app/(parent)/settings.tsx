@@ -259,6 +259,27 @@ export default function ParentSettings() {
     );
   };
 
+  const handleRegenerateCode = async () => {
+    try {
+      const result = await familyAPI.regenerateCode();
+      const updatedFamily = { ...localFamily!, code: result.code, code_generated_at: result.generated_at };
+      setLocalFamily(updatedFamily);
+      setFamily(updatedFamily);
+      Alert.alert('New Code Generated!', `Your new family code is: ${result.code}\nIt expires in 60 minutes.`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to regenerate code');
+    }
+  };
+
+  const getCodeExpiryInfo = () => {
+    if (!localFamily?.code_generated_at) return { expired: false, minutesLeft: 60 };
+    const generatedAt = new Date(localFamily.code_generated_at).getTime();
+    const expiresAt = generatedAt + (60 * 60 * 1000); // 60 minutes
+    const now = Date.now();
+    const minutesLeft = Math.max(0, Math.ceil((expiresAt - now) / (60 * 1000)));
+    return { expired: minutesLeft <= 0, minutesLeft };
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
@@ -399,6 +420,59 @@ export default function ParentSettings() {
               <Ionicons name="chevron-forward" size={20} color="#ccc" />
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* Family Invite Code Section */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={styles.sectionTitle}>Family Invite Code</Text>
+          
+          {(() => {
+            const { expired, minutesLeft } = getCodeExpiryInfo();
+            return (
+              <View style={styles.codeSection}>
+                <View style={styles.codeDisplay}>
+                  <Text style={[styles.codeText, expired && styles.codeExpired]}>
+                    {localFamily?.code || '------'}
+                  </Text>
+                  {expired ? (
+                    <View style={styles.expiredBadge}>
+                      <Text style={styles.expiredBadgeText}>EXPIRED</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.codeTimer}>
+                      {minutesLeft} min left
+                    </Text>
+                  )}
+                </View>
+                
+                <Text style={styles.codeHint}>
+                  Share this code with family members to join. Codes expire after 60 minutes for security.
+                </Text>
+
+                <View style={styles.codeActions}>
+                  <TouchableOpacity
+                    style={[styles.codeActionButton, { backgroundColor: colors.primary }]}
+                    onPress={handleShareFamilyCode}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="share-outline" size={18} color="#fff" />
+                    <Text style={styles.codeActionText}>Share</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.codeActionButton, { backgroundColor: expired ? '#ff9800' : '#555' }]}
+                    onPress={handleRegenerateCode}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="refresh" size={18} color="#fff" />
+                    <Text style={styles.codeActionText}>
+                      {expired ? 'Generate New Code' : 'Regenerate'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })()}
         </View>
 
         {/* Account Section */}
@@ -854,6 +928,70 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  // Family Code Styles
+  codeSection: {
+    gap: 12,
+  },
+  codeDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 12,
+  },
+  codeText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 4,
+    fontFamily: 'monospace',
+  },
+  codeExpired: {
+    opacity: 0.4,
+    textDecorationLine: 'line-through',
+  },
+  codeTimer: {
+    fontSize: 13,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  expiredBadge: {
+    backgroundColor: '#ff4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  expiredBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  codeHint: {
+    fontSize: 13,
+    color: '#aaa',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  codeActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  codeActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  codeActionText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

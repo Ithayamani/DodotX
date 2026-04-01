@@ -231,11 +231,12 @@ export default function ParentChildren() {
             
             <TextInput
               style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="Child's Name"
+              placeholder="Child's Pet Name / Nickname"
               placeholderTextColor="#999"
               value={newChildName}
               onChangeText={setNewChildName}
             />
+            <Text style={styles.privacyNote}>Use a nickname for your child's privacy</Text>
 
             <TextInput
               style={[styles.input, { borderColor: colors.primary }]}
@@ -440,6 +441,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     marginBottom: 12,
+  },
+  privacyNote: {
+    fontSize: 12,
+    color: '#7ec8e3',
+    fontStyle: 'italic',
+    marginTop: -4,
+    marginBottom: 8,
   },
   avatarGrid: {
     flexDirection: 'row',

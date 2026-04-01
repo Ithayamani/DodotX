@@ -28,6 +28,7 @@ export interface Family {
   id: string;
   name: string;
   code: string;
+  code_generated_at?: string;
   pin: string;
   theme: Theme;
   custom_theme?: CustomTheme;
