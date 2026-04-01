@@ -583,6 +583,10 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
     
+    # Remove MongoDB _id field
+    if "_id" in child:
+        del child["_id"]
+    
     progress = await db.progress.find_one({"child_id": child_id})
     if not progress:
         progress = Progress(child_id=child_id).dict()
@@ -598,6 +602,9 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
     rewards = await db.rewards.find({"family_id": child["family_id"]}).sort("pts", 1).to_list(100)
     rewards_status = []
     for reward in rewards:
+        # Remove MongoDB _id
+        if "_id" in reward:
+            del reward["_id"]
         rewards_status.append({
             **reward,
             "unlocked": progress.get("points", 0) >= reward["pts"],

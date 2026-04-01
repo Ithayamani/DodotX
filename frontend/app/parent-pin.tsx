@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { familyAPI, useAppStore } from '../src/api/client';
+import { familyAPI } from '../src/api/client';
+import { useAppStore } from '../src/stores';
 import { getThemeColors } from '../src/constants';
 
 export default function ParentPin() {
