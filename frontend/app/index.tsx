@@ -78,7 +78,7 @@ export default function Index() {
         </Text>
         <TouchableOpacity
           style={styles.joinButton}
-          onPress={() => router.push('/auth/login')}
+          onPress={() => router.push('/join-family')}
         >
           <Text style={styles.joinButtonText}>Join Your Family</Text>
         </TouchableOpacity>
