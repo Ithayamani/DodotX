@@ -60,7 +60,7 @@ export default function RoleSelect() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome to HeroQuest!</Text>
+          <Text style={styles.title}>Welcome to DoneDash!</Text>
           <Text style={styles.subtitle}>{family?.name || 'Your Family'}</Text>
         </View>
 

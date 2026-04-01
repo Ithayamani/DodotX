@@ -6,7 +6,7 @@ import { useAuthStore } from '../src/stores';
 
 const { width } = Dimensions.get('window');
 
-const LOGO_URL = 'https://customer-assets.emergentagent.com/job_app-store-setup-2/artifacts/wraue94r_image.png';
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_app-store-setup-2/artifacts/qx0pyx58_image.png';
 
 export default function Index() {
   const router = useRouter();
@@ -41,12 +41,11 @@ export default function Index() {
       >
         <View style={styles.heroContent}>
           <Image source={{ uri: LOGO_URL }} style={styles.logoImage} resizeMode="contain" />
-          <Text style={styles.logo}>HeroQuest</Text>
           <Text style={styles.heroTitle}>
-            Turn Daily Tasks{'\n'}Into Epic Adventures
+            Make Everyday Things{'\n'}a Game
           </Text>
           <Text style={styles.heroSubtitle}>
-            Motivate kids with gamification.{'\n'}Build positive habits. Track progress.
+            Turn small actions into big wins—every day, as a family.
           </Text>
           
           <View style={styles.heroButtons}>
@@ -65,6 +64,7 @@ export default function Index() {
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.aiLine}>Smart routines, powered by AI.</Text>
           <Text style={styles.heroNote}>No credit card required • COPPA compliant • Privacy-first</Text>
         </View>
       </LinearGradient>
@@ -86,7 +86,7 @@ export default function Index() {
 
       {/* Features Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Why Parents Love HeroQuest</Text>
+        <Text style={styles.sectionTitle}>Why Parents Love DoneDash</Text>
         
         <View style={styles.features}>
           <View style={styles.feature}>
@@ -215,7 +215,7 @@ export default function Index() {
           Made with ❤️ for families
         </Text>
         <Text style={styles.footerCopy}>
-          © 2026 HeroQuest • Privacy-first • COPPA compliant
+          © 2026 DoneDash • Privacy-first • COPPA compliant
         </Text>
       </View>
     </ScrollView>
@@ -241,15 +241,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoImage: {
-    width: 80,
+    width: 280,
     height: 80,
-    marginBottom: 8,
+    marginBottom: 24,
   },
-  logo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 16,
+  aiLine: {
+    fontSize: 14,
+    color: '#FF6B35',
+    fontWeight: '600',
+    fontStyle: 'italic',
+    marginTop: 12,
+    marginBottom: 4,
   },
   heroTitle: {
     fontSize: width > 768 ? 56 : 40,

@@ -234,7 +234,7 @@ export default function ParentSettings() {
     
     try {
       await Share.share({
-        message: `Join our HeroQuest family! \n\nFamily: ${localFamily.name}\nCode: ${localFamily.code}\n\nDownload HeroQuest and enter this code to join!`,
+        message: `Join our DoneDash family! \n\nFamily: ${localFamily.name}\nCode: ${localFamily.code}\n\nDownload DoneDash and enter this code to join!`,
       });
     } catch (error) {
       console.log('Share error:', error);

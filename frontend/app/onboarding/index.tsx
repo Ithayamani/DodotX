@@ -192,7 +192,7 @@ export default function Onboarding() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Setup HeroQuest</Text>
+        <Text style={styles.title}>Setup DoneDash</Text>
         <Text style={styles.subtitle}>Step {step} of 3</Text>
       </View>
       {step === 1 && renderStep1()}
