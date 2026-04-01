@@ -121,7 +121,7 @@ export default function JoinFamily() {
             />
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#2ea043' }, (!familyCode.trim() || loading) && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: '#4A9B6B' }, (!familyCode.trim() || loading) && styles.buttonDisabled]}
               onPress={handleVerifyCode}
               disabled={!familyCode.trim() || loading}
               activeOpacity={0.7}
@@ -163,7 +163,7 @@ export default function JoinFamily() {
             </Text>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#FF6B35' }, (!petName.trim() || loading) && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: '#D4845C' }, (!petName.trim() || loading) && styles.buttonDisabled]}
               onPress={handleJoinFamily}
               disabled={!petName.trim() || loading}
               activeOpacity={0.7}
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   familyName: {
-    color: '#FF6B35',
+    color: '#D4845C',
     fontWeight: '700',
   },
   label: {
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#1c2128',
     borderWidth: 2,
-    borderColor: '#2ea043',
+    borderColor: '#4A9B6B',
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 24,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#1c2128',
     borderWidth: 2,
-    borderColor: '#FF6B35',
+    borderColor: '#D4845C',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 20,

@@ -27,7 +27,7 @@ export default function Index() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#D4845C" />
       </View>
     );
   }
@@ -145,7 +145,7 @@ export default function Index() {
         
         <View style={styles.steps}>
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: '#FF6B35' }]}>
+            <View style={[styles.stepNumber, { backgroundColor: '#D4845C' }]}>
               <Text style={styles.stepNumberText}>1</Text>
             </View>
             <Text style={styles.stepTitle}>Create Your Family</Text>
@@ -155,7 +155,7 @@ export default function Index() {
           </View>
 
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: '#9C27B0' }]}>
+            <View style={[styles.stepNumber, { backgroundColor: '#9B6DAE' }]}>
               <Text style={styles.stepNumberText}>2</Text>
             </View>
             <Text style={styles.stepTitle}>Kids Complete Tasks</Text>
@@ -165,7 +165,7 @@ export default function Index() {
           </View>
 
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: '#2196F3' }]}>
+            <View style={[styles.stepNumber, { backgroundColor: '#5A9FCF' }]}>
               <Text style={styles.stepNumberText}>3</Text>
             </View>
             <Text style={styles.stepTitle}>Redeem Rewards</Text>
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   aiLine: {
     fontSize: 14,
-    color: '#FF6B35',
+    color: '#D4845C',
     fontWeight: '600',
     fontStyle: 'italic',
     marginTop: 12,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#D4845C',
     paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -296,10 +296,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FF6B35',
+    borderColor: '#D4845C',
   },
   secondaryButtonText: {
-    color: '#FF6B35',
+    color: '#D4845C',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 56,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#D4845C',
     marginBottom: 8,
   },
   statLabel: {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ctaSection: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#D4845C',
     alignItems: 'center',
   },
   // Join Family Section
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   joinButton: {
-    backgroundColor: '#2ea043',
+    backgroundColor: '#4A9B6B',
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 12,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   ctaButtonText: {
-    color: '#FF6B35',
+    color: '#D4845C',
     fontSize: 18,
     fontWeight: '600',
   },

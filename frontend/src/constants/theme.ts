@@ -2,46 +2,46 @@ import { Theme } from '../types';
 
 export const THEME_COLORS = {
   football: {
-    primary: '#4CAF50',
+    primary: '#5E9E62',
     background: '#1e3a28',
     card: '#2d5a3f',
     text: '#ffffff',
-    accent: '#81C784',
+    accent: '#8FC793',
   },
   space: {
-    primary: '#9C27B0',
+    primary: '#9B6DAE',
     background: '#1a1a2e',
     card: '#2d2d44',
     text: '#ffffff',
-    accent: '#BA68C8',
+    accent: '#BF94CF',
   },
   ocean: {
-    primary: '#2196F3',
+    primary: '#5A9FCF',
     background: '#0d1b2a',
     card: '#1b3a52',
     text: '#ffffff',
-    accent: '#64B5F6',
+    accent: '#85BDE0',
   },
   nature: {
-    primary: '#66BB6A',
+    primary: '#72AB76',
     background: '#1b2a1e',
     card: '#2d4a32',
     text: '#ffffff',
-    accent: '#A5D6A7',
+    accent: '#A5CCB0',
   },
   gaming: {
-    primary: '#FF6B35',
+    primary: '#D4845C',
     background: '#0f1419',
     card: '#1c2128',
     text: '#ffffff',
-    accent: '#FFA726',
+    accent: '#E0A87E',
   },
   adventure: {
-    primary: '#FF9800',
+    primary: '#D4924A',
     background: '#1c1410',
     card: '#2e2318',
     text: '#ffffff',
-    accent: '#FFB74D',
+    accent: '#E0B47E',
   },
 };
 

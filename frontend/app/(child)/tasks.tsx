@@ -136,7 +136,7 @@ export default function ChildTasks() {
           {/* Mode Indicator */}
           <View style={[
             styles.modeIndicator,
-            { backgroundColor: isVacationMode ? '#ff9800' : colors.primary }
+            { backgroundColor: isVacationMode ? '#D4924A' : colors.primary }
           ]}>
             <Text style={styles.modeIcon}>
               {isVacationMode ? '🏝️' : '🏠'}

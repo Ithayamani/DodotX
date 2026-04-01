@@ -340,7 +340,7 @@ export default function ParentSettings() {
               <Switch
                 value={localFamily?.vacation_mode || false}
                 onValueChange={handleToggleVacationMode}
-                trackColor={{ false: '#555', true: '#ff9800' }}
+                trackColor={{ false: '#555', true: '#D4924A' }}
                 thumbColor={localFamily?.vacation_mode ? '#fff' : '#ccc'}
               />
             )}
@@ -348,7 +348,7 @@ export default function ParentSettings() {
 
           {localFamily?.vacation_mode && (
             <TouchableOpacity
-              style={[styles.modeButton, { backgroundColor: '#ff9800' }]}
+              style={[styles.modeButton, { backgroundColor: '#D4924A' }]}
               onPress={handleEnableVacationMode}
               activeOpacity={0.7}
             >
@@ -465,7 +465,7 @@ export default function ParentSettings() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={[styles.codeActionButton, { backgroundColor: expired ? '#ff9800' : '#555' }]}
+                    style={[styles.codeActionButton, { backgroundColor: expired ? '#D4924A' : '#555' }]}
                     onPress={handleRegenerateCode}
                     activeOpacity={0.7}
                   >
@@ -489,10 +489,10 @@ export default function ParentSettings() {
             onPress={handleLogout}
           >
             <View style={styles.settingButtonContent}>
-              <Text style={[styles.settingButtonText, { color: '#ff4444' }]}>
+              <Text style={[styles.settingButtonText, { color: '#C47070' }]}>
                 Sign Out
               </Text>
-              <Ionicons name="log-out-outline" size={20} color="#ff4444" />
+              <Ionicons name="log-out-outline" size={20} color="#C47070" />
             </View>
           </TouchableOpacity>
         </View>
@@ -588,7 +588,7 @@ export default function ParentSettings() {
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: '#ff9800' }]}
+                style={[styles.modalButton, { backgroundColor: '#D4924A' }]}
                 onPress={handleSaveVacationMode}
               >
                 <Text style={styles.modalButtonText}>Enable</Text>
@@ -961,11 +961,11 @@ const styles = StyleSheet.create({
   },
   codeTimer: {
     fontSize: 13,
-    color: '#4CAF50',
+    color: '#5E9E62',
     fontWeight: '600',
   },
   expiredBadge: {
-    backgroundColor: '#ff4444',
+    backgroundColor: '#C47070',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,

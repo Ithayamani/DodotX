@@ -199,7 +199,7 @@ export default function ParentChildren() {
                     style={styles.deleteButton}
                     onPress={() => handleDeleteChild(child)}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                    <Ionicons name="trash-outline" size={20} color="#C47070" />
                   </TouchableOpacity>
                 </View>
               );

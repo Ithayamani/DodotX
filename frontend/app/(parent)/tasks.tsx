@@ -246,7 +246,7 @@ export default function ParentTasks() {
                     <Ionicons name="pencil" size={20} color="#4a90e2" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDelete(task)}>
-                    <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                    <Ionicons name="trash-outline" size={20} color="#C47070" />
                   </TouchableOpacity>
                 </View>
               </View>
