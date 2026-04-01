@@ -13,9 +13,11 @@ export default function ParentSettings() {
   const { family, setFamily, theme, setTheme } = useAppStore();
   const [localFamily, setLocalFamily] = useState<Family | null>(family);
   const [showPinModal, setShowPinModal] = useState(false);
+  const [showVacationModal, setShowVacationModal] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [showResetModal, setShowResetModal] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const colors = getThemeColors(theme);
 
   useEffect(() => {
@@ -32,6 +34,22 @@ export default function ParentSettings() {
     }
   };
 
+  const getCurrentMode = () => {
+    if (!localFamily) return 'Regular';
+    
+    if (!localFamily.vacation_mode) return 'Regular Mode';
+    
+    const today = new Date().toISOString().split('T')[0];
+    const start = localFamily.vacation_start_date;
+    const end = localFamily.vacation_end_date;
+    
+    if (start && end && start <= today && today <= end) {
+      return `Vacation Mode (until ${end})`;
+    }
+    
+    return 'Regular Mode';
+  };
+
   const handleThemeChange = async (newTheme: Theme) => {
     try {
       await familyAPI.update({ theme: newTheme });
@@ -42,23 +60,87 @@ export default function ParentSettings() {
     }
   };
 
-  const handleVacationModeToggle = async () => {
-    if (!localFamily) return;
+  const handleEnableVacationMode = () => {
+    // Pre-fill with today and 7 days from now
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
     
-    const newMode = !localFamily.vacation_mode;
+    setStartDate(today.toISOString().split('T')[0]);
+    setEndDate(nextWeek.toISOString().split('T')[0]);
+    setShowVacationModal(true);
+  };
+
+  const handleSaveVacationMode = async () => {
+    if (!startDate || !endDate) {
+      Alert.alert('Error', 'Please enter both start and end dates');
+      return;
+    }
+
+    if (startDate > endDate) {
+      Alert.alert('Error', 'Start date must be before end date');
+      return;
+    }
+
     try {
-      await familyAPI.update({ vacation_mode: newMode });
-      const updatedFamily = { ...localFamily, vacation_mode: newMode };
+      await familyAPI.update({
+        vacation_mode: true,
+        vacation_start_date: startDate,
+        vacation_end_date: endDate,
+      });
+      
+      const updatedFamily = {
+        ...localFamily!,
+        vacation_mode: true,
+        vacation_start_date: startDate,
+        vacation_end_date: endDate,
+      };
       setLocalFamily(updatedFamily);
       setFamily(updatedFamily);
+      setShowVacationModal(false);
       
       Alert.alert(
-        'Vacation Mode',
-        newMode ? 'Vacation mode enabled! 🌴' : 'Daily mode enabled! 🏠'
+        'Vacation Mode Enabled! 🏝️',
+        `Vacation tasks active from ${startDate} to ${endDate}`
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to toggle vacation mode');
+      Alert.alert('Error', 'Failed to enable vacation mode');
     }
+  };
+
+  const handleDisableVacationMode = async () => {
+    Alert.alert(
+      'Switch to Regular Mode',
+      'This will show daily tasks instead of vacation tasks.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Switch',
+          onPress: async () => {
+            try {
+              await familyAPI.update({
+                vacation_mode: false,
+                vacation_start_date: null,
+                vacation_end_date: null,
+              });
+              
+              const updatedFamily = {
+                ...localFamily!,
+                vacation_mode: false,
+                vacation_start_date: undefined,
+                vacation_end_date: undefined,
+              };
+              setLocalFamily(updatedFamily);
+              setFamily(updatedFamily);
+              
+              Alert.alert('Regular Mode Enabled! 🏠', 'Daily tasks are now active');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to switch mode');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleChangePin = async () => {
@@ -118,6 +200,41 @@ export default function ParentSettings() {
       <View style={styles.content}>
         <Text style={styles.title}>Settings</Text>
 
+        {/* Mode Section */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={styles.sectionTitle}>Current Mode</Text>
+          
+          <View style={[styles.modeCard, { backgroundColor: localFamily?.vacation_mode ? '#ff9800' : colors.primary }]}>
+            <View style={styles.modeInfo}>
+              <Text style={styles.modeIcon}>
+                {localFamily?.vacation_mode ? '🏝️' : '🏠'}
+              </Text>
+              <View>
+                <Text style={styles.modeName}>{getCurrentMode()}</Text>
+                <Text style={styles.modeDesc}>
+                  {localFamily?.vacation_mode ? 'Vacation tasks active' : 'Daily tasks active'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {!localFamily?.vacation_mode ? (
+            <TouchableOpacity
+              style={[styles.modeButton, { backgroundColor: '#ff9800' }]}
+              onPress={handleEnableVacationMode}
+            >
+              <Text style={styles.modeButtonText}>🏝️ Enable Vacation Mode</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.modeButton, { backgroundColor: colors.primary }]}
+              onPress={handleDisableVacationMode}
+            >
+              <Text style={styles.modeButtonText}>🏠 Switch to Regular Mode</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Family Section */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={styles.sectionTitle}>Family</Text>
@@ -138,18 +255,6 @@ export default function ParentSettings() {
               </TouchableOpacity>
             </View>
           </View>
-
-          <TouchableOpacity
-            style={styles.settingButton}
-            onPress={handleVacationModeToggle}
-          >
-            <View style={styles.settingButtonContent}>
-              <Text style={styles.settingButtonText}>
-                {localFamily?.vacation_mode ? '🏠 Switch to Daily Mode' : '🌴 Enable Vacation Mode'}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#ccc" />
-            </View>
-          </TouchableOpacity>
         </View>
 
         {/* Theme Section */}
@@ -212,6 +317,50 @@ export default function ParentSettings() {
           <Text style={styles.backText}>← Back to Home</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Vacation Mode Modal */}
+      <Modal visible={showVacationModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={styles.modalTitle}>🏝️ Vacation Mode</Text>
+            <Text style={styles.modalDesc}>Set the dates for vacation mode. Vacation tasks will be shown instead of daily tasks during this period.</Text>
+            
+            <Text style={styles.inputLabel}>Start Date</Text>
+            <TextInput
+              style={[styles.input, { borderColor: colors.primary }]}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#999"
+              value={startDate}
+              onChangeText={setStartDate}
+            />
+
+            <Text style={styles.inputLabel}>End Date</Text>
+            <TextInput
+              style={[styles.input, { borderColor: colors.primary }]}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#999"
+              value={endDate}
+              onChangeText={setEndDate}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowVacationModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: '#ff9800' }]}
+                onPress={handleSaveVacationMode}
+              >
+                <Text style={styles.modalButtonText}>Enable</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Change PIN Modal */}
       <Modal visible={showPinModal} transparent animationType="slide">
@@ -291,6 +440,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     marginBottom: 16,
+  },
+  modeCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  modeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modeIcon: {
+    fontSize: 40,
+  },
+  modeName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  modeDesc: {
+    fontSize: 14,
+    color: '#fff',
+    opacity: 0.9,
+  },
+  modeButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   settingRow: {
     flexDirection: 'row',
@@ -383,7 +566,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+    marginBottom: 12,
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: '#ccc',
     marginBottom: 20,
+    lineHeight: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#fff',

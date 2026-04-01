@@ -14,6 +14,22 @@ def get_today_date() -> str:
     """Get today's date in YYYY-MM-DD format"""
     return datetime.utcnow().strftime("%Y-%m-%d")
 
+def check_vacation_mode(family: dict) -> bool:
+    """Check if vacation mode should be active based on dates"""
+    if not family.get("vacation_mode"):
+        return False
+    
+    # If no dates set, use the toggle value
+    start_date = family.get("vacation_start_date")
+    end_date = family.get("vacation_end_date")
+    
+    if not start_date or not end_date:
+        return family.get("vacation_mode", False)
+    
+    # Check if today is within vacation dates
+    today = get_today_date()
+    return start_date <= today <= end_date
+
 def get_level_info(points: int) -> dict:
     """Get level name and progress based on total points"""
     levels = [

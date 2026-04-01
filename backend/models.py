@@ -131,6 +131,8 @@ class Family(BaseModel):
     pin: str  # Hashed 4-digit PIN
     theme: Theme = Theme.FOOTBALL
     vacation_mode: bool = False
+    vacation_start_date: Optional[str] = None  # YYYY-MM-DD
+    vacation_end_date: Optional[str] = None    # YYYY-MM-DD
     parent_id: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -143,6 +145,8 @@ class FamilyUpdate(BaseModel):
     name: Optional[str] = None
     theme: Optional[Theme] = None
     vacation_mode: Optional[bool] = None
+    vacation_start_date: Optional[str] = None
+    vacation_end_date: Optional[str] = None
     pin: Optional[str] = None
 
 class User(BaseModel):

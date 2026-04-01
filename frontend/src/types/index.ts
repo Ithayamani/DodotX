@@ -31,6 +31,8 @@ export interface Family {
   pin: string;
   theme: Theme;
   vacation_mode: boolean;
+  vacation_start_date?: string; // YYYY-MM-DD
+  vacation_end_date?: string;   // YYYY-MM-DD
   parent_id: string;
   created_at: string;
 }

@@ -105,6 +105,8 @@ export default function ChildTasks() {
     .filter(task => completedToday.includes(task.id))
     .reduce((sum, task) => sum + task.pts, 0);
 
+  const isVacationMode = family?.vacation_mode || false;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showConfetti && (
@@ -129,6 +131,19 @@ export default function ChildTasks() {
             <View style={[styles.pointsBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.pointsText}>{points} pts</Text>
             </View>
+          </View>
+
+          {/* Mode Indicator */}
+          <View style={[
+            styles.modeIndicator,
+            { backgroundColor: isVacationMode ? '#ff9800' : colors.primary }
+          ]}>
+            <Text style={styles.modeIcon}>
+              {isVacationMode ? '🏝️' : '🏠'}
+            </Text>
+            <Text style={styles.modeText}>
+              {isVacationMode ? 'Vacation Mode' : 'Regular Mode'}
+            </Text>
           </View>
 
           <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
@@ -221,6 +236,23 @@ const styles = StyleSheet.create({
   },
   pointsText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  modeIcon: {
+    fontSize: 20,
+  },
+  modeText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },

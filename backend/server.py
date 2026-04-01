@@ -24,7 +24,8 @@ from auth import (
 )
 from utils import (
     generate_id, generate_family_code, get_today_date,
-    get_level_info, check_trophies, DEFAULT_TASKS, DEFAULT_REWARDS
+    get_level_info, check_trophies, DEFAULT_TASKS, DEFAULT_REWARDS,
+    check_vacation_mode
 )
 
 ROOT_DIR = Path(__file__).parent
