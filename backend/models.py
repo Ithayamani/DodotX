@@ -66,8 +66,9 @@ class RewardUpdate(BaseModel):
 class Child(BaseModel):
     id: str
     name: str
-    avatar: str
+    avatar: str  # emoji or base64 image
     age: Optional[int] = None
+    profile_picture: Optional[str] = None  # base64 image
     family_id: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -75,11 +76,13 @@ class ChildCreate(BaseModel):
     name: str
     avatar: str = "👦"
     age: Optional[int] = None
+    profile_picture: Optional[str] = None
 
 class ChildUpdate(BaseModel):
     name: Optional[str] = None
     avatar: Optional[str] = None
     age: Optional[int] = None
+    profile_picture: Optional[str] = None
 
 class Progress(BaseModel):
     child_id: str
@@ -124,16 +127,26 @@ class Theme(str, Enum):
     GAMING = "gaming"
     ADVENTURE = "adventure"
 
+class CustomTheme(BaseModel):
+    name: str
+    primary: str
+    background: str
+    card: str
+    text: str
+    accent: str
+
 class Family(BaseModel):
     id: str
     name: str
     code: str  # 6-char invite code
     pin: str  # Hashed 4-digit PIN
     theme: Theme = Theme.FOOTBALL
+    custom_theme: Optional[CustomTheme] = None  # AI-generated or user-created
     vacation_mode: bool = False
     vacation_start_date: Optional[str] = None  # YYYY-MM-DD
     vacation_end_date: Optional[str] = None    # YYYY-MM-DD
     parent_id: str
+    parent_profile_picture: Optional[str] = None  # base64 image
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class FamilyCreate(BaseModel):
@@ -144,10 +157,12 @@ class FamilyCreate(BaseModel):
 class FamilyUpdate(BaseModel):
     name: Optional[str] = None
     theme: Optional[Theme] = None
+    custom_theme: Optional[CustomTheme] = None
     vacation_mode: Optional[bool] = None
     vacation_start_date: Optional[str] = None
     vacation_end_date: Optional[str] = None
     pin: Optional[str] = None
+    parent_profile_picture: Optional[str] = None
 
 class User(BaseModel):
     id: str
@@ -194,3 +209,7 @@ class AITaskResponse(BaseModel):
     pts: int
     cat: TaskCategory
     modes: TaskMode
+
+
+class AIThemeRequest(BaseModel):
+    description: str  # User describes the theme they want

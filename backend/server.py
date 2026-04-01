@@ -719,6 +719,65 @@ Make tasks fun, achievable, and motivating for the child's age."""
         logging.error(f"AI suggestion error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate suggestions: {str(e)}")
 
+
+@api_router.post("/ai/generate-theme")
+async def ai_generate_theme(request_data: models.AIThemeRequest, current_user: User = Depends(get_current_user)):
+    """Generate a custom theme using AI based on user description"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    prompt = f"""You are a UI/UX color palette generator. Create a beautiful, cohesive color scheme for a family task management app.
+
+User's theme description: "{request_data.description}"
+
+Generate a color palette with these requirements:
+1. Dark background (like #0f1419 or similar dark color)
+2. Card color slightly lighter than background
+3. Primary color that pops but isn't too bright
+4. Accent color complementary to primary
+5. All colors should work well together and be pleasant for kids and parents
+
+Return ONLY a valid JSON object with no additional text:
+{{
+  "name": "descriptive theme name",
+  "primary": "#hex_color",
+  "background": "#hex_color",
+  "card": "#hex_color",
+  "text": "#ffffff",
+  "accent": "#hex_color"
+}}
+
+Make it professional, modern, and suitable for a gamified family app."""
+
+    try:
+        # Initialize LLM Chat
+        api_key = os.getenv("EMERGENT_LLM_KEY")
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"theme_gen_{current_user.id}",
+            system_message="You are a professional UI/UX color palette designer. Always return valid JSON."
+        ).with_model("openai", "gpt-5.2")
+        
+        # Send message
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parse response
+        import json
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        clean_response = clean_response.strip()
+        
+        theme_data = json.loads(clean_response)
+        
+        return models.CustomTheme(**theme_data)
+    
+    except Exception as e:
+        logging.error(f"AI theme generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate theme: {str(e)}")
+
 # ============ ROOT ROUTES ============
 
 @api_router.get("/")
