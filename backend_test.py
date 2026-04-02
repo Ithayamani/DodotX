@@ -1,362 +1,328 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for DoneDash - Focus on Forgot Password Flow
-Testing the forgot password and reset password endpoints
+DoneDash Backend API Testing - Forgot Password Flow with Real SMTP Email
+Test the forgot-password endpoint to verify real email delivery via SMTP
 """
 
-import asyncio
-import aiohttp
+import requests
 import json
-import os
+import time
 from datetime import datetime
 
-# Get backend URL from environment
-BACKEND_URL = "https://app-store-setup-2.preview.emergentagent.com"
-
-# Test credentials from review request
+# Configuration
+BACKEND_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
 TEST_EMAIL = "parent@test.com"
 TEST_PASSWORD = "parent123"
+NON_EXISTENT_EMAIL = "nobody@test.com"
 
-class DoneDashAPITester:
-    def __init__(self):
-        self.session = None
-        self.access_token = None
-        self.base_url = BACKEND_URL
-        
-    async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
-        return self
-        
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
+def print_test_header(test_name):
+    print(f"\n{'='*60}")
+    print(f"TEST: {test_name}")
+    print(f"{'='*60}")
+
+def print_result(success, message):
+    status = "✅ PASS" if success else "❌ FAIL"
+    print(f"{status}: {message}")
+
+def test_login():
+    """Test 1: Login with parent@test.com / parent123 to confirm auth works"""
+    print_test_header("Login Authentication Test")
     
-    async def make_request(self, method, endpoint, data=None, headers=None, timeout=30):
-        """Make HTTP request with proper error handling"""
-        url = f"{self.base_url}/api{endpoint}"
-        
-        default_headers = {"Content-Type": "application/json"}
-        if headers:
-            default_headers.update(headers)
-            
-        if self.access_token and "Authorization" not in default_headers:
-            default_headers["Authorization"] = f"Bearer {self.access_token}"
-        
-        try:
-            timeout_obj = aiohttp.ClientTimeout(total=timeout)
-            async with self.session.request(
-                method, url, 
-                json=data if data else None,
-                headers=default_headers,
-                timeout=timeout_obj
-            ) as response:
-                response_text = await response.text()
-                
-                try:
-                    response_data = json.loads(response_text) if response_text else {}
-                except json.JSONDecodeError:
-                    response_data = {"raw_response": response_text}
-                
-                return {
-                    "status": response.status,
-                    "data": response_data,
-                    "headers": dict(response.headers)
-                }
-        except asyncio.TimeoutError:
-            return {"status": 408, "data": {"error": "Request timeout"}}
-        except Exception as e:
-            return {"status": 500, "data": {"error": str(e)}}
-
-    async def test_login(self):
-        """Test fresh login with new JWT secret"""
-        print("🔐 Testing Login (Fresh JWT Token)...")
-        
-        response = await self.make_request("POST", "/auth/login", {
+    try:
+        response = requests.post(f"{BACKEND_URL}/auth/login", json={
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
         
-        if response["status"] == 200:
-            self.access_token = response["data"]["access_token"]
-            user_info = response["data"]["user"]
-            print(f"✅ Login successful! User: {user_info['name']} ({user_info['email']})")
-            print(f"   Family ID: {user_info.get('family_id', 'None')}")
-            return True
-        else:
-            print(f"❌ Login failed: {response['status']} - {response['data']}")
-            return False
-
-    async def test_family_get_with_z_suffix(self):
-        """Test GET /api/family and verify code_generated_at has Z suffix"""
-        print("\n📋 Testing Family GET (Z suffix verification)...")
-        
-        response = await self.make_request("GET", "/family")
-        
-        if response["status"] == 200:
-            family_data = response["data"]
-            code_generated_at = family_data.get("code_generated_at")
-            
-            print(f"✅ Family GET successful!")
-            print(f"   Family: {family_data.get('name')}")
-            print(f"   Code: {family_data.get('code')}")
-            print(f"   code_generated_at: {code_generated_at}")
-            
-            if code_generated_at and code_generated_at.endswith('Z'):
-                print("✅ code_generated_at has Z suffix - VERIFIED")
-                return True
+        if response.status_code == 200:
+            data = response.json()
+            if "access_token" in data and "user" in data:
+                print_result(True, f"Login successful for {TEST_EMAIL}")
+                print(f"   User ID: {data['user']['id']}")
+                print(f"   User Name: {data['user']['name']}")
+                print(f"   Family ID: {data['user'].get('family_id', 'None')}")
+                return data["access_token"]
             else:
-                print(f"❌ code_generated_at missing Z suffix: {code_generated_at}")
-                return False
+                print_result(False, "Login response missing required fields")
+                return None
         else:
-            print(f"❌ Family GET failed: {response['status']} - {response['data']}")
-            return False
+            print_result(False, f"Login failed with status {response.status_code}: {response.text}")
+            return None
+            
+    except Exception as e:
+        print_result(False, f"Login request failed: {str(e)}")
+        return None
 
-    async def test_ai_auto_routines(self):
-        """Test POST /api/ai/auto-routines - Auto-generate routines"""
-        print("\n🤖 Testing AI Auto-Generate Routines...")
-        print("   NOTE: This calls OpenAI via Emergent LLM - may take 10-15 seconds")
-        
-        # Use longer timeout for LLM calls
-        response = await self.make_request("POST", "/ai/auto-routines", timeout=30)
-        
-        if response["status"] == 200:
-            result = response["data"]
-            message = result.get("message", "")
-            tasks = result.get("tasks", [])
-            
-            print(f"✅ AI Auto-Routines successful!")
-            print(f"   Message: {message}")
-            print(f"   Generated {len(tasks)} tasks")
-            
-            if tasks:
-                print("   Sample tasks:")
-                for i, task in enumerate(tasks[:3]):
-                    print(f"     {i+1}. {task.get('title')} {task.get('icon')} ({task.get('stars')}pts)")
-            
-            # Verify tasks are saved by calling GET /api/tasks
-            print("\n   Verifying tasks saved in database...")
-            tasks_response = await self.make_request("GET", "/tasks")
-            if tasks_response["status"] == 200:
-                all_tasks = tasks_response["data"]
-                print(f"✅ Database verification: {len(all_tasks)} total tasks found")
-                return True
-            else:
-                print(f"❌ Database verification failed: {tasks_response['status']}")
-                return False
-        else:
-            print(f"❌ AI Auto-Routines failed: {response['status']} - {response['data']}")
-            return False
-
-    async def test_ai_adjust_difficulty(self):
-        """Test POST /api/ai/adjust-difficulty - Analyze and adjust task difficulty"""
-        print("\n🎯 Testing AI Adjust Difficulty...")
-        print("   NOTE: This calls OpenAI via Emergent LLM - may take 10-15 seconds")
-        
-        response = await self.make_request("POST", "/ai/adjust-difficulty", timeout=30)
-        
-        if response["status"] == 200:
-            result = response["data"]
-            analysis = result.get("analysis", "")
-            suggestions = result.get("suggestions", [])
-            
-            print(f"✅ AI Adjust Difficulty successful!")
-            print(f"   Analysis: {analysis}")
-            print(f"   Suggestions: {len(suggestions)} recommendations")
-            
-            if suggestions:
-                print("   Sample suggestions:")
-                for i, suggestion in enumerate(suggestions[:3]):
-                    action = suggestion.get("action", "")
-                    title = suggestion.get("title", "")
-                    icon = suggestion.get("icon", "")
-                    pts = suggestion.get("pts", 0)
-                    reason = suggestion.get("reason", "")
-                    print(f"     {i+1}. {action.upper()}: {title} {icon} ({pts}pts) - {reason}")
-            
-            # Verify required fields
-            required_fields = ["analysis", "suggestions"]
-            missing_fields = [field for field in required_fields if field not in result]
-            if missing_fields:
-                print(f"❌ Missing required fields: {missing_fields}")
-                return False
-            
-            # Verify suggestion structure
-            for suggestion in suggestions:
-                required_suggestion_fields = ["action", "title", "icon", "pts", "reason"]
-                missing_suggestion_fields = [field for field in required_suggestion_fields if field not in suggestion]
-                if missing_suggestion_fields:
-                    print(f"❌ Suggestion missing fields: {missing_suggestion_fields}")
-                    return False
-            
-            return True
-        else:
-            print(f"❌ AI Adjust Difficulty failed: {response['status']} - {response['data']}")
-            return False
-
-    async def test_forgot_password_existing_email(self):
-        """Test POST /api/auth/forgot-password with existing email"""
-        print("\n🔑 Testing Forgot Password - Existing Email...")
-        
-        response = await self.make_request("POST", "/auth/forgot-password", {
+def test_forgot_password_existing_email():
+    """Test 2: Call forgot-password with existing email"""
+    print_test_header("Forgot Password - Existing Email Test")
+    
+    try:
+        response = requests.post(f"{BACKEND_URL}/auth/forgot-password", json={
             "email": TEST_EMAIL
-        }, headers={})  # No auth required
+        })
         
-        if response["status"] == 200:
-            message = response["data"].get("message", "")
+        if response.status_code == 200:
+            data = response.json()
             expected_message = "If an account exists with this email, a reset code has been sent."
-            
-            print(f"✅ Forgot password request successful!")
-            print(f"   Message: {message}")
-            
-            if message == expected_message:
-                print("✅ Correct security message returned (prevents email enumeration)")
+            if data.get("message") == expected_message:
+                print_result(True, f"Forgot password request successful for {TEST_EMAIL}")
+                print(f"   Response: {data['message']}")
                 return True
             else:
-                print(f"❌ Unexpected message. Expected: '{expected_message}'")
+                print_result(False, f"Unexpected response message: {data.get('message')}")
                 return False
         else:
-            print(f"❌ Forgot password failed: {response['status']} - {response['data']}")
+            print_result(False, f"Forgot password failed with status {response.status_code}: {response.text}")
             return False
+            
+    except Exception as e:
+        print_result(False, f"Forgot password request failed: {str(e)}")
+        return False
 
-    async def test_forgot_password_nonexistent_email(self):
-        """Test POST /api/auth/forgot-password with non-existent email"""
-        print("\n🔑 Testing Forgot Password - Non-existent Email...")
+def test_forgot_password_non_existent_email():
+    """Test 3: Call forgot-password with non-existent email (security test)"""
+    print_test_header("Forgot Password - Non-existent Email Test")
+    
+    try:
+        response = requests.post(f"{BACKEND_URL}/auth/forgot-password", json={
+            "email": NON_EXISTENT_EMAIL
+        })
         
-        response = await self.make_request("POST", "/auth/forgot-password", {
-            "email": "nobody@test.com"
-        }, headers={})  # No auth required
-        
-        if response["status"] == 200:
-            message = response["data"].get("message", "")
+        if response.status_code == 200:
+            data = response.json()
             expected_message = "If an account exists with this email, a reset code has been sent."
-            
-            print(f"✅ Forgot password request successful!")
-            print(f"   Message: {message}")
-            
-            if message == expected_message:
-                print("✅ Same security message returned (prevents email enumeration)")
+            if data.get("message") == expected_message:
+                print_result(True, f"Security test passed - same message for non-existent email")
+                print(f"   Response: {data['message']}")
                 return True
             else:
-                print(f"❌ Unexpected message. Expected: '{expected_message}'")
+                print_result(False, f"Security issue - different message for non-existent email: {data.get('message')}")
                 return False
         else:
-            print(f"❌ Forgot password failed: {response['status']} - {response['data']}")
+            print_result(False, f"Forgot password failed with status {response.status_code}: {response.text}")
             return False
+            
+    except Exception as e:
+        print_result(False, f"Forgot password request failed: {str(e)}")
+        return False
 
-    async def test_reset_password_invalid_code(self):
-        """Test POST /api/auth/reset-password with invalid code"""
-        print("\n🔑 Testing Reset Password - Invalid Code...")
+def check_backend_logs():
+    """Test 4: Check backend logs for SMTP email confirmation"""
+    print_test_header("Backend Logs Check for SMTP Email Delivery")
+    
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["tail", "-n", "50", "/var/log/supervisor/backend.err.log"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
         
-        response = await self.make_request("POST", "/auth/reset-password", {
+        if result.returncode == 0:
+            logs = result.stdout
+            print("Recent backend logs:")
+            print("-" * 40)
+            print(logs)
+            print("-" * 40)
+            
+            # Check for SMTP success message
+            smtp_success = f"Password reset email sent to {TEST_EMAIL}" in logs
+            smtp_fallback = f"PASSWORD RESET CODE for {TEST_EMAIL}:" in logs
+            
+            if smtp_success:
+                print_result(True, "SMTP email delivery confirmed - real email sent!")
+                print(f"   Found log: 'Password reset email sent to {TEST_EMAIL}'")
+                return True, "smtp_success"
+            elif smtp_fallback:
+                print_result(False, "SMTP not working - code logged to console instead")
+                print(f"   Found log: 'PASSWORD RESET CODE for {TEST_EMAIL}:'")
+                return False, "smtp_fallback"
+            else:
+                print_result(False, "No relevant log entries found for forgot password")
+                return False, "no_logs"
+        else:
+            print_result(False, f"Failed to read backend logs: {result.stderr}")
+            return False, "log_error"
+            
+    except Exception as e:
+        print_result(False, f"Error checking backend logs: {str(e)}")
+        return False, "exception"
+
+def get_reset_code_from_db():
+    """Test 5: Get reset code from database for testing reset flow"""
+    print_test_header("Database Reset Code Retrieval")
+    
+    try:
+        # Connect to MongoDB to get the reset code
+        from pymongo import MongoClient
+        import os
+        
+        # Load environment variables
+        from dotenv import load_dotenv
+        load_dotenv('/app/backend/.env')
+        
+        mongo_url = os.environ['MONGO_URL']
+        db_name = os.environ['DB_NAME']
+        
+        client = MongoClient(mongo_url)
+        db = client[db_name]
+        
+        # Find the most recent reset code for our test email
+        reset_record = db.password_resets.find_one(
+            {"email": TEST_EMAIL.lower().strip(), "used": False},
+            sort=[("expires_at", -1)]
+        )
+        
+        if reset_record:
+            code = reset_record["code"]
+            expires_at = reset_record["expires_at"]
+            print_result(True, f"Reset code retrieved from database: {code}")
+            print(f"   Email: {reset_record['email']}")
+            print(f"   Expires at: {expires_at}")
+            print(f"   Used: {reset_record['used']}")
+            return code
+        else:
+            print_result(False, "No reset code found in database")
+            return None
+            
+    except Exception as e:
+        print_result(False, f"Error retrieving reset code from database: {str(e)}")
+        return None
+
+def test_reset_password(reset_code):
+    """Test 6: Test the full reset flow with the code from database"""
+    print_test_header("Password Reset Flow Test")
+    
+    if not reset_code:
+        print_result(False, "No reset code available for testing")
+        return False
+    
+    try:
+        # Test with the actual reset code
+        response = requests.post(f"{BACKEND_URL}/auth/reset-password", json={
             "email": TEST_EMAIL,
-            "code": "000000",
+            "code": reset_code,
+            "new_password": TEST_PASSWORD  # Reset to same password for consistency
+        })
+        
+        if response.status_code == 200:
+            data = response.json()
+            expected_message = "Password has been reset successfully. You can now sign in."
+            if data.get("message") == expected_message:
+                print_result(True, f"Password reset successful with code {reset_code}")
+                print(f"   Response: {data['message']}")
+                return True
+            else:
+                print_result(False, f"Unexpected reset response: {data.get('message')}")
+                return False
+        else:
+            print_result(False, f"Password reset failed with status {response.status_code}: {response.text}")
+            return False
+            
+    except Exception as e:
+        print_result(False, f"Password reset request failed: {str(e)}")
+        return False
+
+def test_invalid_reset_code():
+    """Test 7: Test reset with invalid code"""
+    print_test_header("Invalid Reset Code Test")
+    
+    try:
+        response = requests.post(f"{BACKEND_URL}/auth/reset-password", json={
+            "email": TEST_EMAIL,
+            "code": "000000",  # Invalid code
             "new_password": "newpassword123"
-        }, headers={})  # No auth required
+        })
         
-        if response["status"] == 400:
-            error_detail = response["data"].get("detail", "")
-            expected_error = "Invalid or expired reset code"
-            
-            print(f"✅ Reset password correctly rejected!")
-            print(f"   Error: {error_detail}")
-            
-            if error_detail == expected_error:
-                print("✅ Correct error message returned")
+        if response.status_code == 400:
+            data = response.json()
+            if "Invalid or expired reset code" in data.get("detail", ""):
+                print_result(True, "Invalid reset code properly rejected")
+                print(f"   Response: {data['detail']}")
                 return True
             else:
-                print(f"❌ Unexpected error. Expected: '{expected_error}'")
+                print_result(False, f"Unexpected error message: {data.get('detail')}")
                 return False
         else:
-            print(f"❌ Reset password should have failed with 400, got: {response['status']} - {response['data']}")
+            print_result(False, f"Expected 400 error, got {response.status_code}: {response.text}")
             return False
-
-    async def test_login_still_works(self):
-        """Test that login still works after forgot password attempts"""
-        print("\n🔐 Testing Login Still Works...")
-        
-        # Clear any existing token
-        self.access_token = None
-        
-        response = await self.make_request("POST", "/auth/login", {
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        }, headers={})  # No auth required
-        
-        if response["status"] == 200:
-            access_token = response["data"].get("access_token")
-            user_info = response["data"].get("user", {})
             
-            print(f"✅ Login still working correctly!")
-            print(f"   User: {user_info.get('name')} ({user_info.get('email')})")
-            print(f"   Token received: {'Yes' if access_token else 'No'}")
-            
-            if access_token:
-                self.access_token = access_token  # Restore token for other tests
-                return True
-            else:
-                print("❌ No access token received")
-                return False
-        else:
-            print(f"❌ Login failed: {response['status']} - {response['data']}")
-            return False
+    except Exception as e:
+        print_result(False, f"Invalid reset code test failed: {str(e)}")
+        return False
 
-    async def run_all_tests(self):
-        """Run all backend tests in sequence"""
-        print("=" * 80)
-        print("🚀 DoneDash Backend API Testing - Forgot Password Flow")
-        print("=" * 80)
-        
-        results = {}
-        
-        # Test 1: Fresh Login (to establish baseline)
-        results["login"] = await self.test_login()
-        if not results["login"]:
-            print("\n❌ Cannot proceed without valid authentication")
-            return results
-        
-        # Test 2: Forgot Password - Existing Email
-        results["forgot_password_existing"] = await self.test_forgot_password_existing_email()
-        
-        # Test 3: Forgot Password - Non-existent Email
-        results["forgot_password_nonexistent"] = await self.test_forgot_password_nonexistent_email()
-        
-        # Test 4: Reset Password - Invalid Code
-        results["reset_password_invalid"] = await self.test_reset_password_invalid_code()
-        
-        # Test 5: Login Still Works
-        results["login_still_works"] = await self.test_login_still_works()
-        
-        # Summary
-        print("\n" + "=" * 80)
-        print("📊 TEST SUMMARY")
-        print("=" * 80)
-        
-        total_tests = len(results)
-        passed_tests = sum(1 for result in results.values() if result)
-        
-        for test_name, result in results.items():
-            status = "✅ PASS" if result else "❌ FAIL"
-            print(f"{status} {test_name.replace('_', ' ').title()}")
-        
-        print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
-        
-        if passed_tests == total_tests:
-            print("🎉 All tests passed! Forgot password flow is working correctly.")
-        else:
-            print("⚠️  Some tests failed. Check the details above.")
-        
-        return results
-
-async def main():
-    """Main test runner"""
-    async with DoneDashAPITester() as tester:
-        results = await tester.run_all_tests()
-        return results
+def main():
+    """Run all forgot password flow tests"""
+    print("DoneDash Backend - Forgot Password Flow with Real SMTP Email Testing")
+    print(f"Backend URL: {BACKEND_URL}")
+    print(f"Test Email: {TEST_EMAIL}")
+    print(f"Timestamp: {datetime.now().isoformat()}")
+    
+    results = []
+    
+    # Test 1: Login to confirm auth works
+    token = test_login()
+    results.append(("Login Authentication", token is not None))
+    
+    if not token:
+        print("\n❌ Cannot proceed without valid authentication")
+        return
+    
+    # Test 2: Forgot password with existing email
+    forgot_success = test_forgot_password_existing_email()
+    results.append(("Forgot Password - Existing Email", forgot_success))
+    
+    # Wait a moment for the email to be processed
+    time.sleep(2)
+    
+    # Test 3: Check backend logs for SMTP confirmation
+    smtp_success, log_type = check_backend_logs()
+    results.append(("SMTP Email Delivery", smtp_success))
+    
+    # Test 4: Forgot password with non-existent email (security)
+    security_test = test_forgot_password_non_existent_email()
+    results.append(("Security - Non-existent Email", security_test))
+    
+    # Test 5: Get reset code from database
+    reset_code = get_reset_code_from_db()
+    results.append(("Database Reset Code Retrieval", reset_code is not None))
+    
+    # Test 6: Test full reset flow
+    if reset_code:
+        reset_success = test_reset_password(reset_code)
+        results.append(("Password Reset Flow", reset_success))
+    
+    # Test 7: Test invalid reset code
+    invalid_test = test_invalid_reset_code()
+    results.append(("Invalid Reset Code Rejection", invalid_test))
+    
+    # Final summary
+    print(f"\n{'='*60}")
+    print("FINAL TEST SUMMARY")
+    print(f"{'='*60}")
+    
+    passed = 0
+    total = len(results)
+    
+    for test_name, success in results:
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name}")
+        if success:
+            passed += 1
+    
+    print(f"\nOverall Result: {passed}/{total} tests passed")
+    
+    # Key verification message
+    if smtp_success:
+        print("\n🎉 KEY VERIFICATION: SMTP email delivery is working!")
+        print("   Backend logs show 'Password reset email sent to...' confirming real email delivery")
+    else:
+        print("\n⚠️  KEY VERIFICATION: SMTP email delivery is NOT working")
+        print("   Backend logs show 'PASSWORD RESET CODE for...' indicating fallback to console logging")
+    
+    return passed == total
 
 if __name__ == "__main__":
-    # Run the tests
-    results = asyncio.run(main())
-    
-    # Exit with appropriate code
-    all_passed = all(results.values()) if results else False
-    exit(0 if all_passed else 1)
+    main()
