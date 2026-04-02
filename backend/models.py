@@ -212,5 +212,13 @@ class AITaskResponse(BaseModel):
     modes: TaskMode
 
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetConfirm(BaseModel):
+    email: str
+    code: str
+    new_password: str
+
 class AIThemeRequest(BaseModel):
     description: str  # User describes the theme they want

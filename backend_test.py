@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for DoneDash - Focus on AI Endpoints and Button Fixes
-Testing the 3 new AI endpoints and family GET endpoint verification
+Backend API Testing for DoneDash - Focus on Forgot Password Flow
+Testing the forgot password and reset password endpoints
 """
 
 import asyncio
@@ -193,72 +193,138 @@ class DoneDashAPITester:
             print(f"❌ AI Adjust Difficulty failed: {response['status']} - {response['data']}")
             return False
 
-    async def test_ai_suggest_rewards(self):
-        """Test POST /api/ai/suggest-rewards - Suggest dynamic rewards"""
-        print("\n🎁 Testing AI Suggest Rewards...")
-        print("   NOTE: This calls OpenAI via Emergent LLM - may take 10-15 seconds")
+    async def test_forgot_password_existing_email(self):
+        """Test POST /api/auth/forgot-password with existing email"""
+        print("\n🔑 Testing Forgot Password - Existing Email...")
         
-        response = await self.make_request("POST", "/ai/suggest-rewards", timeout=30)
+        response = await self.make_request("POST", "/auth/forgot-password", {
+            "email": TEST_EMAIL
+        }, headers={})  # No auth required
         
         if response["status"] == 200:
-            result = response["data"]
-            suggestions = result.get("suggestions", [])
+            message = response["data"].get("message", "")
+            expected_message = "If an account exists with this email, a reset code has been sent."
             
-            print(f"✅ AI Suggest Rewards successful!")
-            print(f"   Generated {len(suggestions)} reward suggestions")
+            print(f"✅ Forgot password request successful!")
+            print(f"   Message: {message}")
             
-            if suggestions:
-                print("   Sample rewards:")
-                for i, reward in enumerate(suggestions[:3]):
-                    title = reward.get("title", "")
-                    icon = reward.get("icon", "")
-                    cost = reward.get("cost", 0)
-                    reason = reward.get("reason", "")
-                    print(f"     {i+1}. {title} {icon} ({cost}pts) - {reason}")
-            
-            # Verify required fields
-            if "suggestions" not in result:
-                print("❌ Missing 'suggestions' field in response")
+            if message == expected_message:
+                print("✅ Correct security message returned (prevents email enumeration)")
+                return True
+            else:
+                print(f"❌ Unexpected message. Expected: '{expected_message}'")
                 return False
-            
-            # Verify suggestion structure
-            for reward in suggestions:
-                required_reward_fields = ["title", "icon", "cost", "reason"]
-                missing_reward_fields = [field for field in required_reward_fields if field not in reward]
-                if missing_reward_fields:
-                    print(f"❌ Reward suggestion missing fields: {missing_reward_fields}")
-                    return False
-            
-            return True
         else:
-            print(f"❌ AI Suggest Rewards failed: {response['status']} - {response['data']}")
+            print(f"❌ Forgot password failed: {response['status']} - {response['data']}")
+            return False
+
+    async def test_forgot_password_nonexistent_email(self):
+        """Test POST /api/auth/forgot-password with non-existent email"""
+        print("\n🔑 Testing Forgot Password - Non-existent Email...")
+        
+        response = await self.make_request("POST", "/auth/forgot-password", {
+            "email": "nobody@test.com"
+        }, headers={})  # No auth required
+        
+        if response["status"] == 200:
+            message = response["data"].get("message", "")
+            expected_message = "If an account exists with this email, a reset code has been sent."
+            
+            print(f"✅ Forgot password request successful!")
+            print(f"   Message: {message}")
+            
+            if message == expected_message:
+                print("✅ Same security message returned (prevents email enumeration)")
+                return True
+            else:
+                print(f"❌ Unexpected message. Expected: '{expected_message}'")
+                return False
+        else:
+            print(f"❌ Forgot password failed: {response['status']} - {response['data']}")
+            return False
+
+    async def test_reset_password_invalid_code(self):
+        """Test POST /api/auth/reset-password with invalid code"""
+        print("\n🔑 Testing Reset Password - Invalid Code...")
+        
+        response = await self.make_request("POST", "/auth/reset-password", {
+            "email": TEST_EMAIL,
+            "code": "000000",
+            "new_password": "newpassword123"
+        }, headers={})  # No auth required
+        
+        if response["status"] == 400:
+            error_detail = response["data"].get("detail", "")
+            expected_error = "Invalid or expired reset code"
+            
+            print(f"✅ Reset password correctly rejected!")
+            print(f"   Error: {error_detail}")
+            
+            if error_detail == expected_error:
+                print("✅ Correct error message returned")
+                return True
+            else:
+                print(f"❌ Unexpected error. Expected: '{expected_error}'")
+                return False
+        else:
+            print(f"❌ Reset password should have failed with 400, got: {response['status']} - {response['data']}")
+            return False
+
+    async def test_login_still_works(self):
+        """Test that login still works after forgot password attempts"""
+        print("\n🔐 Testing Login Still Works...")
+        
+        # Clear any existing token
+        self.access_token = None
+        
+        response = await self.make_request("POST", "/auth/login", {
+            "email": TEST_EMAIL,
+            "password": TEST_PASSWORD
+        }, headers={})  # No auth required
+        
+        if response["status"] == 200:
+            access_token = response["data"].get("access_token")
+            user_info = response["data"].get("user", {})
+            
+            print(f"✅ Login still working correctly!")
+            print(f"   User: {user_info.get('name')} ({user_info.get('email')})")
+            print(f"   Token received: {'Yes' if access_token else 'No'}")
+            
+            if access_token:
+                self.access_token = access_token  # Restore token for other tests
+                return True
+            else:
+                print("❌ No access token received")
+                return False
+        else:
+            print(f"❌ Login failed: {response['status']} - {response['data']}")
             return False
 
     async def run_all_tests(self):
         """Run all backend tests in sequence"""
         print("=" * 80)
-        print("🚀 DoneDash Backend API Testing - AI Endpoints & Button Fixes")
+        print("🚀 DoneDash Backend API Testing - Forgot Password Flow")
         print("=" * 80)
         
         results = {}
         
-        # Test 1: Fresh Login
+        # Test 1: Fresh Login (to establish baseline)
         results["login"] = await self.test_login()
         if not results["login"]:
             print("\n❌ Cannot proceed without valid authentication")
             return results
         
-        # Test 2: Family GET with Z suffix verification
-        results["family_get_z_suffix"] = await self.test_family_get_with_z_suffix()
+        # Test 2: Forgot Password - Existing Email
+        results["forgot_password_existing"] = await self.test_forgot_password_existing_email()
         
-        # Test 3: AI Auto-Generate Routines
-        results["ai_auto_routines"] = await self.test_ai_auto_routines()
+        # Test 3: Forgot Password - Non-existent Email
+        results["forgot_password_nonexistent"] = await self.test_forgot_password_nonexistent_email()
         
-        # Test 4: AI Adjust Difficulty
-        results["ai_adjust_difficulty"] = await self.test_ai_adjust_difficulty()
+        # Test 4: Reset Password - Invalid Code
+        results["reset_password_invalid"] = await self.test_reset_password_invalid_code()
         
-        # Test 5: AI Suggest Rewards
-        results["ai_suggest_rewards"] = await self.test_ai_suggest_rewards()
+        # Test 5: Login Still Works
+        results["login_still_works"] = await self.test_login_still_works()
         
         # Summary
         print("\n" + "=" * 80)
@@ -275,7 +341,7 @@ class DoneDashAPITester:
         print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
         
         if passed_tests == total_tests:
-            print("🎉 All tests passed! Backend AI endpoints are working correctly.")
+            print("🎉 All tests passed! Forgot password flow is working correctly.")
         else:
             print("⚠️  Some tests failed. Check the details above.")
         

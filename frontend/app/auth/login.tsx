@@ -77,6 +77,10 @@ export default function Login() {
             )}
           </TouchableOpacity>
 
+          <TouchableOpacity onPress={() => router.push('/auth/forgot-password')}>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={() => router.push('/auth/signup')}>
             <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
           </TouchableOpacity>
@@ -130,5 +134,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginTop: 8,
+  },
+  forgotText: {
+    color: '#D4845C',
+    textAlign: 'center',
+    fontSize: 15,
+    marginTop: 4,
   },
 });

@@ -16,7 +16,8 @@ from models import (
     Reward, RewardCreate, RewardUpdate,
     Progress, CheerMessage, CheerCreate,
     AITaskSuggestion, AITaskResponse, TaskMode,
-    AIThemeRequest, CustomTheme
+    AIThemeRequest, CustomTheme,
+    PasswordResetRequest, PasswordResetConfirm
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -134,6 +135,113 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "family_id": current_user.family_id
     }
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: PasswordResetRequest):
+    """Send a 6-digit reset code to parent's email"""
+    import random
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    user = await db.users.find_one({"email": data.email.lower().strip()})
+    
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"message": "If an account exists with this email, a reset code has been sent."}
+    
+    # Generate 6-digit code
+    code = str(random.randint(100000, 999999))
+    expires_at = datetime.utcnow() + timedelta(minutes=15)
+    
+    # Store reset code in DB
+    await db.password_resets.delete_many({"email": data.email.lower().strip()})
+    await db.password_resets.insert_one({
+        "email": data.email.lower().strip(),
+        "code": code,
+        "expires_at": expires_at,
+        "used": False
+    })
+    
+    # Try to send email via SMTP
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    smtp_from = os.getenv("SMTP_FROM", smtp_user)
+    
+    if smtp_host and smtp_user and smtp_pass:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = "DoneDash - Password Reset Code"
+            msg["From"] = smtp_from
+            msg["To"] = data.email
+            
+            html_body = f"""
+            <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #D4845C;">DoneDash Password Reset</h2>
+                <p>Your password reset code is:</p>
+                <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 12px; margin: 20px 0;">
+                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">{code}</span>
+                </div>
+                <p style="color: #888; font-size: 14px;">This code expires in 15 minutes. If you didn't request this, ignore this email.</p>
+            </div>
+            """
+            msg.attach(MIMEText(html_body, "html"))
+            
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            
+            logging.info(f"Password reset email sent to {data.email}")
+        except Exception as e:
+            logging.error(f"Failed to send email: {str(e)}")
+            # Still log the code as fallback
+            logging.info(f"PASSWORD RESET CODE for {data.email}: {code}")
+    else:
+        # No SMTP configured - log to console for dev/testing
+        logging.info(f"PASSWORD RESET CODE for {data.email}: {code}")
+    
+    return {"message": "If an account exists with this email, a reset code has been sent."}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: PasswordResetConfirm):
+    """Verify reset code and update password"""
+    reset_record = await db.password_resets.find_one({
+        "email": data.email.lower().strip(),
+        "code": data.code,
+        "used": False
+    })
+    
+    if not reset_record:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+    
+    # Check expiry
+    expires_at = reset_record["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    
+    if datetime.utcnow() > expires_at:
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+    
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Update password
+    hashed_password = get_password_hash(data.new_password)
+    await db.users.update_one(
+        {"email": data.email.lower().strip()},
+        {"$set": {"hashed_password": hashed_password}}
+    )
+    
+    # Mark code as used
+    await db.password_resets.update_one(
+        {"_id": reset_record["_id"]},
+        {"$set": {"used": True}}
+    )
+    
+    return {"message": "Password has been reset successfully. You can now sign in."}
 
 # ============ FAMILY ROUTES ============
 
