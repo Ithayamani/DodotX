@@ -82,6 +82,12 @@ export default function Index() {
         >
           <Text style={styles.joinButtonText}>Join Your Family</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.visitorButton}
+          onPress={() => router.push('/visitor')}
+        >
+          <Text style={styles.visitorButtonText}>View as Visitor</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Features Section */}
@@ -450,6 +456,20 @@ const styles = StyleSheet.create({
   joinButtonText: {
     color: '#ffffff',
     fontSize: 17,
+    fontWeight: '600',
+  },
+  visitorButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#5A8FA8',
+    marginTop: 12,
+  },
+  visitorButtonText: {
+    color: '#7EB8DA',
+    fontSize: 15,
     fontWeight: '600',
   },
   ctaTitle: {

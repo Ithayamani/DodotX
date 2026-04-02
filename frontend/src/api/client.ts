@@ -236,4 +236,12 @@ export const aiAPI = {
   },
 };
 
+// Visitor API (no auth required)
+export const visitorAPI = {
+  getView: async (familyCode: string): Promise<any> => {
+    const response = await api.get(`/visitor/${familyCode}`);
+    return response.data;
+  },
+};
+
 export default api;

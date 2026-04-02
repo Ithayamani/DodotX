@@ -129,7 +129,35 @@ backend:
           agent: "testing"
           comment: "User signup working correctly. Successfully created user with email parent@test.com and returned access token. Note: Email validation rejects .test domains, using .com domains works fine."
 
-  - task: "User Authentication - Forgot Password Flow with Real SMTP Email"
+  - task: "Backend Route Refactoring (server.py modularization)"
+    implemented: true
+    working: true
+    file: "server.py, routes/*.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Completed P0 refactoring. server.py reduced from 1223 to ~60 lines. All routes moved to routes/ directory (auth.py, family.py, children.py, tasks.py, rewards.py, progress.py, ai.py, visitor.py). Fixed routes/__init__.py env path bug. Backend restarts and manual curl tests confirm auth/login, health, visitor endpoints all working. Version bumped to 2.0.0."
+        - working: true
+          agent: "testing"
+          comment: "COMPREHENSIVE POST-REFACTORING VERIFICATION COMPLETE: All 9 critical endpoint groups tested successfully after major refactoring. ✅ Health & Root (GET /api/, /api/health), ✅ Authentication (POST /api/auth/login, GET /api/auth/me), ✅ Family (GET /api/family, PUT /api/family, POST /api/family/regenerate-code), ✅ Children (GET /api/children, POST /api/children, GET /api/children/{id}), ✅ Tasks (GET /api/tasks, POST /api/tasks), ✅ Rewards (GET /api/rewards), ✅ Progress (GET /api/progress/{child_id}), ✅ Visitor (GET /api/visitor/{code} with valid/invalid codes), ✅ Forgot Password with SMTP. Created test child 'Visitor_Test' age 7, created test task 'Test Refactoring Task', regenerated family code, verified all CRUD operations. The modularization from monolithic server.py to 8 route modules is 100% successful - all functionality preserved during refactoring."
+
+  - task: "Visitor Module (read-only view)"
+    implemented: true
+    working: true
+    file: "routes/visitor.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "GET /api/visitor/{family_code} endpoint returns read-only family data: family_name, theme, vacation_mode, children array with progress/level/trophies, total_tasks/rewards counts. No auth required. Code expiry enforced. Manual curl test returned valid JSON with child data."
+        - working: true
+          agent: "testing"
+          comment: "VISITOR ENDPOINT VERIFICATION COMPLETE: ✅ GET /api/visitor/{valid_code} returns proper JSON with family_name, children array (with level/points/streak), total_tasks, total_rewards. Tested with fresh family code '5LL3NE' - returned family 'DoneDash Test Family Updated' with 2 children, 17 tasks, 5 rewards. ✅ GET /api/visitor/{invalid_code} properly returns 404 for invalid codes. All required fields present, no authentication required as expected. Visitor module working perfectly after refactoring."
     implemented: true
     working: true
     file: "server.py"
@@ -575,3 +603,5 @@ agent_communication:
       message: "Completed DoneDash backend forgot password flow testing. All 5 test scenarios passed with 100% success rate: ✅ Forgot password with existing email (parent@test.com) returns security message 'If an account exists with this email, a reset code has been sent.' ✅ Forgot password with non-existent email (nobody@test.com) returns same security message (prevents email enumeration) ✅ Reset password with invalid code (000000) returns 400 'Invalid or expired reset code' ✅ Login still works after forgot password attempts ✅ Reset code properly logged to backend console (690422 for parent@test.com). Implementation includes 15-minute code expiry, secure code storage in password_resets collection, and proper error handling. No SMTP configured so codes logged to console for testing. Forgot password flow is production-ready."
     - agent: "testing"
       message: "Completed DoneDash backend forgot password flow with REAL SMTP EMAIL DELIVERY testing. All 7 comprehensive tests passed with 100% success rate: ✅ Login Authentication (parent@test.com/parent123), ✅ Forgot Password API (returns security message), ✅ SMTP Email Delivery (backend logs show 'Password reset email sent to parent@test.com' confirming real email sent), ✅ Security Test (non-existent email returns same message), ✅ Database Code Retrieval (code 494062 stored correctly), ✅ Password Reset Flow (successful reset with valid code), ✅ Invalid Code Rejection (400 error for invalid codes). KEY VERIFICATION: Backend logs confirm real SMTP email delivery instead of console fallback. The forgot-password endpoint successfully sends HTML emails via Gmail SMTP (donedashadmin@gmail.com) with proper styling and 15-minute expiry. Full forgot-password flow with real email delivery is production-ready and working perfectly."
+    - agent: "testing"
+      message: "MAJOR REFACTORING VERIFICATION COMPLETE: Comprehensive testing of all critical endpoints after server.py modularization into 8 route modules. All 9 endpoint groups tested successfully: ✅ Health & Root (GET /api/, /api/health), ✅ Authentication (POST /api/auth/login, GET /api/auth/me with parent@test.com/parent123), ✅ Family (GET /api/family, PUT /api/family update name, POST /api/family/regenerate-code), ✅ Children (GET /api/children, POST /api/children create 'Visitor_Test' age 7, GET /api/children/{id}), ✅ Tasks (GET /api/tasks, POST /api/tasks create test task), ✅ Rewards (GET /api/rewards), ✅ Progress (GET /api/progress/{child_id}), ✅ Visitor (GET /api/visitor/{code} valid/invalid codes), ✅ Forgot Password with SMTP (confirmed email delivery). The refactoring from monolithic server.py (1223 lines) to modular routes/ structure is 100% successful - all functionality preserved, no breaking changes detected. Backend API v2.0.0 is production-ready."

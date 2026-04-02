@@ -9,7 +9,7 @@ import os
 from models import User
 from auth import decode_access_token
 
-ROOT_DIR = Path(__file__).parent
+ROOT_DIR = Path(__file__).parent.parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
