@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { useAppStore } from '../../src/stores';
 import { tasksAPI, progressAPI, familyAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
+import { hapticSuccess, hapticLight, hapticMedium } from '../../src/utils/haptics';
+import { AnimatedProgress, AnimatedCheckmark } from '../../src/utils/animations';
 import type { Task } from '../../src/types';
 
 export default function ChildTasks() {
@@ -65,12 +67,13 @@ export default function ChildTasks() {
       if (isCompleted) {
         setCompletedToday(prev => prev.filter(id => id !== task.id));
         setPoints(prev => prev - task.pts);
+        hapticLight();
       } else {
         setCompletedToday(prev => [...prev, task.id]);
         setPoints(prev => prev + task.pts);
         
         // Haptic feedback
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        hapticSuccess();
         
         // Show confetti
         setShowConfetti(true);
@@ -155,44 +158,49 @@ export default function ChildTasks() {
 
           {/* Tasks */}
           <View style={styles.tasksList}>
-            {tasks.map((task) => {
+            {tasks.map((task, index) => {
               const isCompleted = completedToday.includes(task.id);
               
               return (
-                <TouchableOpacity
+                <Animated.View
                   key={task.id}
-                  style={[
-                    styles.taskCard,
-                    { backgroundColor: colors.card },
-                    isCompleted && styles.taskCardCompleted,
-                  ]}
-                  onPress={() => handleTaskToggle(task)}
-                  activeOpacity={0.7}
+                  entering={FadeInDown.delay(index * 60).duration(300).springify()}
+                  layout={Layout.springify()}
                 >
-                  <View style={[
-                    styles.checkbox,
-                    { borderColor: colors.primary },
-                    isCompleted && { backgroundColor: colors.primary },
-                  ]}>
-                    {isCompleted && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  
-                  <Text style={styles.taskIcon}>{task.icon}</Text>
-                  
-                  <View style={styles.taskInfo}>
-                    <Text style={[
-                      styles.taskTitle,
-                      isCompleted && styles.taskTitleCompleted,
+                  <TouchableOpacity
+                    style={[
+                      styles.taskCard,
+                      { backgroundColor: colors.card },
+                      isCompleted && styles.taskCardCompleted,
+                    ]}
+                    onPress={() => handleTaskToggle(task)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      { borderColor: colors.primary },
+                      isCompleted && { backgroundColor: colors.primary },
                     ]}>
-                      {task.title}
-                    </Text>
-                    <Text style={styles.taskCategory}>{task.cat}</Text>
-                  </View>
-                  
-                  <View style={[styles.pointsBadgeSmall, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.pointsBadgeText}>{task.pts}</Text>
-                  </View>
-                </TouchableOpacity>
+                      <AnimatedCheckmark visible={isCompleted} />
+                    </View>
+                    
+                    <Text style={styles.taskIcon}>{task.icon}</Text>
+                    
+                    <View style={styles.taskInfo}>
+                      <Text style={[
+                        styles.taskTitle,
+                        isCompleted && styles.taskTitleCompleted,
+                      ]}>
+                        {task.title}
+                      </Text>
+                      <Text style={styles.taskCategory}>{task.cat}</Text>
+                    </View>
+                    
+                    <View style={[styles.pointsBadgeSmall, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.pointsBadgeText}>{task.pts}</Text>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
               );
             })}
           </View>

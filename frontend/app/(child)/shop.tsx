@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAppStore } from '../../src/stores';
 import { progressAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
+import { AnimatedProgress } from '../../src/utils/animations';
 import type { RewardStatus } from '../../src/types';
 
 export default function ChildShop() {
@@ -67,15 +69,18 @@ export default function ChildShop() {
         </View>
 
         <View style={styles.rewardsList}>
-          {rewards.map((reward) => (
-            <View
+          {rewards.map((reward, index) => (
+            <Animated.View
               key={reward.id}
-              style={[
-                styles.rewardCard,
-                { backgroundColor: colors.card },
-                !reward.unlocked && styles.rewardCardLocked,
-              ]}
+              entering={FadeInDown.delay(index * 80).duration(300).springify()}
             >
+              <View
+                style={[
+                  styles.rewardCard,
+                  { backgroundColor: colors.card },
+                  !reward.unlocked && styles.rewardCardLocked,
+                ]}
+              >
               <View style={styles.rewardHeader}>
                 <Text style={styles.rewardIcon}>{reward.icon}</Text>
                 {reward.unlocked && (
@@ -100,20 +105,18 @@ export default function ChildShop() {
                 <Text style={styles.rewardDesc}>{reward.desc}</Text>
                 
                 <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { backgroundColor: colors.primary, width: `${Math.min(reward.progress, 100)}%` },
-                      ]}
-                    />
-                  </View>
+                  <AnimatedProgress
+                    progress={Math.min(reward.progress, 100)}
+                    color={colors.primary}
+                    height={8}
+                  />
                   <Text style={styles.progressText}>
                     {points} / {reward.pts} pts
                   </Text>
                 </View>
               </View>
             </View>
+            </Animated.View>
           ))}
         </View>
 

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Switch } from 'react-native';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
 import { tasksAPI, aiAPI, childrenAPI } from '../../src/api/client';
 import { getThemeColors, TASK_CATEGORIES } from '../../src/constants';
+import { hapticLight, hapticMedium, hapticSuccess, hapticHeavy, hapticSelection } from '../../src/utils/haptics';
 import type { Task, TaskCategory } from '../../src/types';
 
 export default function ParentTasks() {
@@ -63,6 +65,7 @@ export default function ParentTasks() {
   };
 
   const handleAutoRoutines = async () => {
+    hapticMedium();
     setAutoRoutineLoading(true);
     try {
       const result = await aiAPI.autoGenerateRoutines();
@@ -111,11 +114,13 @@ export default function ParentTasks() {
   };
 
   const handleAdd = () => {
+    hapticLight();
     resetForm();
     setShowAddModal(true);
   };
 
   const handleEdit = (task: Task) => {
+    hapticLight();
     setEditingTask(task);
     setTitle(task.title);
     setIcon(task.icon);
@@ -151,9 +156,11 @@ export default function ParentTasks() {
 
       if (editingTask) {
         await tasksAPI.update(editingTask.id, taskData);
+        hapticSuccess();
         Alert.alert('Success', 'Task updated!');
       } else {
         await tasksAPI.create(taskData);
+        hapticSuccess();
         Alert.alert('Success', 'Task created!');
       }
 
@@ -166,6 +173,7 @@ export default function ParentTasks() {
   };
 
   const handleDelete = (task: Task) => {
+    hapticHeavy();
     Alert.alert(
       'Delete Task',
       `Are you sure you want to delete "${task.title}"?`,
@@ -366,8 +374,13 @@ export default function ParentTasks() {
           )}
 
           <View style={styles.tasksList}>
-            {tasks.map((task) => (
-              <View key={task.id} style={[styles.taskCard, { backgroundColor: colors.card }]}>
+            {tasks.map((task, index) => (
+              <Animated.View
+                key={task.id}
+                entering={FadeInDown.delay(index * 50).duration(250).springify()}
+                layout={Layout.springify()}
+              >
+                <View style={[styles.taskCard, { backgroundColor: colors.card }]}>
                 <Text style={styles.taskIcon}>{task.icon}</Text>
                 
                 <View style={styles.taskInfo}>
@@ -394,6 +407,7 @@ export default function ParentTasks() {
                   </TouchableOpacity>
                 </View>
               </View>
+              </Animated.View>
             ))}
           </View>
 
@@ -466,7 +480,7 @@ export default function ParentTasks() {
                       styles.categoryButton,
                       category === cat.value && { backgroundColor: colors.primary },
                     ]}
-                    onPress={() => setCategory(cat.value as TaskCategory)}
+                    onPress={() => { hapticSelection(); setCategory(cat.value as TaskCategory); }}
                   >
                     <Text style={styles.categoryIcon}>{cat.icon}</Text>
                     <Text style={styles.categoryLabel}>{cat.label}</Text>

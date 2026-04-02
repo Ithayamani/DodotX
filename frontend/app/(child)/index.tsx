@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI, cheersAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
+import { hapticLight } from '../../src/utils/haptics';
+import { AnimatedProgress } from '../../src/utils/animations';
 import type { Progress, CheerMessage } from '../../src/types';
 
 export default function ChildHome() {
@@ -64,46 +67,43 @@ export default function ChildHome() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>Hi, {currentChild?.name}! 👋</Text>
-          <TouchableOpacity onPress={() => router.push('/role-select')}>
+          <TouchableOpacity onPress={() => { hapticLight(); router.push('/role-select'); }}>
             <Text style={styles.switchProfile}>Switch Profile</Text>
           </TouchableOpacity>
         </View>
 
         {/* Level Card */}
-        <View style={[styles.levelCard, { backgroundColor: colors.card }]}>
+        <Animated.View entering={FadeInDown.duration(400).springify()} style={[styles.levelCard, { backgroundColor: colors.card }]}>
           <Text style={styles.avatar}>{currentChild?.avatar}</Text>
           <View style={styles.levelInfo}>
             <Text style={styles.levelName}>{progress?.level.name}</Text>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { backgroundColor: colors.primary, width: `${progress?.level.progress || 0}%` },
-                ]}
-              />
-            </View>
-            <Text style={styles.points}>{progress?.points || 0} points</Text>
+            <AnimatedProgress
+              progress={progress?.level.progress || 0}
+              color={colors.primary}
+              height={8}
+            />
+            <Text style={[styles.points, { marginTop: 8 }]}>{progress?.points || 0} points</Text>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+          <Animated.View entering={FadeInDown.delay(80).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={styles.statValue}>{progress?.today_tasks_count || 0}</Text>
             <Text style={styles.statLabel}>Tasks Today</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(140).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={styles.statValue}>{progress?.streak || 0} 🔥</Text>
             <Text style={styles.statLabel}>Day Streak</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(200).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={styles.statValue}>{earnedTrophies}/8 🏆</Text>
             <Text style={styles.statLabel}>Trophies</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(260).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={styles.statValue}>{progress?.rewards.filter(r => r.unlocked).length || 0}</Text>
             <Text style={styles.statLabel}>Rewards Won</Text>
-          </View>
+          </Animated.View>
         </View>
 
         {/* Next Reward */}

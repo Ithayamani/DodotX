@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { useAppStore } from '../../src/stores';
 import { progressAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
@@ -59,9 +60,10 @@ export default function ChildTrophies() {
         </View>
 
         <View style={styles.grid}>
-          {trophies.map((trophy) => (
-            <View
+          {trophies.map((trophy, index) => (
+            <Animated.View
               key={trophy.id}
+              entering={ZoomIn.delay(index * 80).duration(400).springify()}
               style={[
                 styles.trophyCard,
                 { backgroundColor: colors.card },
@@ -98,7 +100,7 @@ export default function ChildTrophies() {
                   <Text style={styles.lockEmoji}>🔒</Text>
                 </View>
               )}
-            </View>
+            </Animated.View>
           ))}
         </View>
       </View>
