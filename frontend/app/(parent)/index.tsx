@@ -383,7 +383,11 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   deleteButton: {
-    padding: 8,
+    padding: 12,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',

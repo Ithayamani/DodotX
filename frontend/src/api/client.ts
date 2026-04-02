@@ -209,6 +209,21 @@ export const aiAPI = {
     const response = await api.post('/ai/generate-theme', { description });
     return response.data;
   },
+  
+  autoGenerateRoutines: async (): Promise<any> => {
+    const response = await api.post('/ai/auto-routines');
+    return response.data;
+  },
+  
+  adjustDifficulty: async (): Promise<any> => {
+    const response = await api.post('/ai/adjust-difficulty');
+    return response.data;
+  },
+  
+  suggestRewards: async (): Promise<any> => {
+    const response = await api.post('/ai/suggest-rewards');
+    return response.data;
+  },
 };
 
 export default api;

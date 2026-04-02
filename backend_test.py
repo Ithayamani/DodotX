@@ -1,359 +1,296 @@
 #!/usr/bin/env python3
 """
-KidQuest Backend API Security Features Test
-Testing specific security features: JWT authentication, family code regeneration, and expiry logic
+Backend API Testing for DoneDash - Focus on AI Endpoints and Button Fixes
+Testing the 3 new AI endpoints and family GET endpoint verification
 """
 
-import requests
+import asyncio
+import aiohttp
 import json
-import time
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
 
-# Configuration
-BASE_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
+# Get backend URL from environment
+BACKEND_URL = "https://app-store-setup-2.preview.emergentagent.com"
 
 # Test credentials from review request
 TEST_EMAIL = "parent@test.com"
 TEST_PASSWORD = "parent123"
 
-class KidQuestAPITester:
+class DoneDashAPITester:
     def __init__(self):
-        self.base_url = BASE_URL
+        self.session = None
         self.access_token = None
-        self.family_id = None
-        self.test_results = []
+        self.base_url = BACKEND_URL
         
-    def log_result(self, test_name, success, details="", response_data=None):
-        """Log test result"""
-        result = {
-            "test": test_name,
-            "success": success,
-            "details": details,
-            "timestamp": datetime.now().isoformat()
-        }
-        if response_data:
-            result["response_data"] = response_data
-        self.test_results.append(result)
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession()
+        return self
         
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} {test_name}: {details}")
-        
-    def make_request(self, method, endpoint, data=None, headers=None):
-        """Make HTTP request with error handling"""
-        url = f"{self.base_url}{endpoint}"
-        
-        if headers is None:
-            headers = {"Content-Type": "application/json"}
-            
-        if self.access_token and "Authorization" not in headers:
-            headers["Authorization"] = f"Bearer {self.access_token}"
-            
-        try:
-            if method.upper() == "GET":
-                response = requests.get(url, headers=headers)
-            elif method.upper() == "POST":
-                response = requests.post(url, json=data, headers=headers)
-            elif method.upper() == "PUT":
-                response = requests.put(url, json=data, headers=headers)
-            else:
-                raise ValueError(f"Unsupported method: {method}")
-                
-            return response
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-            return None
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            await self.session.close()
     
-    def test_fresh_login(self):
-        """Test 1: Fresh login with new JWT secret"""
-        print("\n=== Test 1: Fresh Login ===")
+    async def make_request(self, method, endpoint, data=None, headers=None, timeout=30):
+        """Make HTTP request with proper error handling"""
+        url = f"{self.base_url}/api{endpoint}"
         
-        login_data = {
+        default_headers = {"Content-Type": "application/json"}
+        if headers:
+            default_headers.update(headers)
+            
+        if self.access_token and "Authorization" not in default_headers:
+            default_headers["Authorization"] = f"Bearer {self.access_token}"
+        
+        try:
+            timeout_obj = aiohttp.ClientTimeout(total=timeout)
+            async with self.session.request(
+                method, url, 
+                json=data if data else None,
+                headers=default_headers,
+                timeout=timeout_obj
+            ) as response:
+                response_text = await response.text()
+                
+                try:
+                    response_data = json.loads(response_text) if response_text else {}
+                except json.JSONDecodeError:
+                    response_data = {"raw_response": response_text}
+                
+                return {
+                    "status": response.status,
+                    "data": response_data,
+                    "headers": dict(response.headers)
+                }
+        except asyncio.TimeoutError:
+            return {"status": 408, "data": {"error": "Request timeout"}}
+        except Exception as e:
+            return {"status": 500, "data": {"error": str(e)}}
+
+    async def test_login(self):
+        """Test fresh login with new JWT secret"""
+        print("🔐 Testing Login (Fresh JWT Token)...")
+        
+        response = await self.make_request("POST", "/auth/login", {
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
-        }
+        })
         
-        response = self.make_request("POST", "/auth/login", login_data)
-        
-        if response is None:
-            self.log_result("Fresh Login", False, "Request failed")
+        if response["status"] == 200:
+            self.access_token = response["data"]["access_token"]
+            user_info = response["data"]["user"]
+            print(f"✅ Login successful! User: {user_info['name']} ({user_info['email']})")
+            print(f"   Family ID: {user_info.get('family_id', 'None')}")
+            return True
+        else:
+            print(f"❌ Login failed: {response['status']} - {response['data']}")
             return False
+
+    async def test_family_get_with_z_suffix(self):
+        """Test GET /api/family and verify code_generated_at has Z suffix"""
+        print("\n📋 Testing Family GET (Z suffix verification)...")
+        
+        response = await self.make_request("GET", "/family")
+        
+        if response["status"] == 200:
+            family_data = response["data"]
+            code_generated_at = family_data.get("code_generated_at")
             
-        if response.status_code == 200:
-            data = response.json()
-            if "access_token" in data and "user" in data:
-                self.access_token = data["access_token"]
-                self.family_id = data["user"].get("family_id")
-                self.log_result("Fresh Login", True, 
-                               f"Successfully logged in. User ID: {data['user']['id']}, Family ID: {self.family_id}",
-                               {"user_info": data["user"]})
+            print(f"✅ Family GET successful!")
+            print(f"   Family: {family_data.get('name')}")
+            print(f"   Code: {family_data.get('code')}")
+            print(f"   code_generated_at: {code_generated_at}")
+            
+            if code_generated_at and code_generated_at.endswith('Z'):
+                print("✅ code_generated_at has Z suffix - VERIFIED")
                 return True
             else:
-                self.log_result("Fresh Login", False, "Missing access_token or user in response", data)
+                print(f"❌ code_generated_at missing Z suffix: {code_generated_at}")
                 return False
         else:
-            self.log_result("Fresh Login", False, 
-                           f"Login failed with status {response.status_code}: {response.text}")
+            print(f"❌ Family GET failed: {response['status']} - {response['data']}")
             return False
-    
-    def test_family_code_regeneration(self):
-        """Test 2: Family code regeneration"""
-        print("\n=== Test 2: Family Code Regeneration ===")
+
+    async def test_ai_auto_routines(self):
+        """Test POST /api/ai/auto-routines - Auto-generate routines"""
+        print("\n🤖 Testing AI Auto-Generate Routines...")
+        print("   NOTE: This calls OpenAI via Emergent LLM - may take 10-15 seconds")
         
-        if not self.access_token:
-            self.log_result("Family Code Regeneration", False, "No access token available")
-            return None
-            
-        response = self.make_request("POST", "/family/regenerate-code")
+        # Use longer timeout for LLM calls
+        response = await self.make_request("POST", "/ai/auto-routines", timeout=30)
         
-        if response is None:
-            self.log_result("Family Code Regeneration", False, "Request failed")
-            return None
+        if response["status"] == 200:
+            result = response["data"]
+            message = result.get("message", "")
+            tasks = result.get("tasks", [])
             
-        if response.status_code == 200:
-            data = response.json()
-            required_fields = ["code", "generated_at", "expires_at"]
+            print(f"✅ AI Auto-Routines successful!")
+            print(f"   Message: {message}")
+            print(f"   Generated {len(tasks)} tasks")
             
-            if all(field in data for field in required_fields):
-                # Verify timestamps are valid
-                try:
-                    generated_at = datetime.fromisoformat(data["generated_at"].replace('Z', '+00:00'))
-                    expires_at = datetime.fromisoformat(data["expires_at"].replace('Z', '+00:00'))
-                    
-                    # Check if expiry is approximately 60 minutes from generation
-                    expected_expiry = generated_at + timedelta(minutes=60)
-                    time_diff = abs((expires_at - expected_expiry).total_seconds())
-                    
-                    if time_diff < 5:  # Allow 5 seconds tolerance
-                        self.log_result("Family Code Regeneration", True,
-                                       f"New code generated: {data['code']}, expires in 60 minutes",
-                                       data)
-                        return data["code"]
-                    else:
-                        self.log_result("Family Code Regeneration", False,
-                                       f"Expiry time incorrect. Expected ~60 min, got {time_diff}s difference")
-                        return None
-                        
-                except ValueError as e:
-                    self.log_result("Family Code Regeneration", False, f"Invalid timestamp format: {e}")
-                    return None
-            else:
-                missing = [f for f in required_fields if f not in data]
-                self.log_result("Family Code Regeneration", False, 
-                               f"Missing required fields: {missing}", data)
-                return None
-        else:
-            self.log_result("Family Code Regeneration", False,
-                           f"Request failed with status {response.status_code}: {response.text}")
-            return None
-    
-    def test_verify_new_code(self, family_code):
-        """Test 3: Verify the new family code works"""
-        print("\n=== Test 3: Verify New Code ===")
-        
-        if not family_code:
-            self.log_result("Verify New Code", False, "No family code to test")
-            return False
+            if tasks:
+                print("   Sample tasks:")
+                for i, task in enumerate(tasks[:3]):
+                    print(f"     {i+1}. {task.get('title')} {task.get('icon')} ({task.get('stars')}pts)")
             
-        verify_data = {"code": family_code}
-        
-        # Don't use authorization header for code verification (public endpoint)
-        response = self.make_request("POST", "/family/verify-code", verify_data, 
-                                   headers={"Content-Type": "application/json"})
-        
-        if response is None:
-            self.log_result("Verify New Code", False, "Request failed")
-            return False
-            
-        if response.status_code == 200:
-            data = response.json()
-            required_fields = ["family_id", "family_name", "theme"]
-            
-            if all(field in data for field in required_fields):
-                self.log_result("Verify New Code", True,
-                               f"Code verified successfully. Family: {data['family_name']}, Theme: {data['theme']}",
-                               data)
+            # Verify tasks are saved by calling GET /api/tasks
+            print("\n   Verifying tasks saved in database...")
+            tasks_response = await self.make_request("GET", "/tasks")
+            if tasks_response["status"] == 200:
+                all_tasks = tasks_response["data"]
+                print(f"✅ Database verification: {len(all_tasks)} total tasks found")
                 return True
             else:
-                missing = [f for f in required_fields if f not in data]
-                self.log_result("Verify New Code", False,
-                               f"Missing required fields: {missing}", data)
+                print(f"❌ Database verification failed: {tasks_response['status']}")
                 return False
         else:
-            self.log_result("Verify New Code", False,
-                           f"Code verification failed with status {response.status_code}: {response.text}")
+            print(f"❌ AI Auto-Routines failed: {response['status']} - {response['data']}")
             return False
-    
-    def test_get_family_with_code_generated_at(self):
-        """Test 4: Get family and verify code_generated_at field"""
-        print("\n=== Test 4: Get Family (verify code_generated_at) ===")
+
+    async def test_ai_adjust_difficulty(self):
+        """Test POST /api/ai/adjust-difficulty - Analyze and adjust task difficulty"""
+        print("\n🎯 Testing AI Adjust Difficulty...")
+        print("   NOTE: This calls OpenAI via Emergent LLM - may take 10-15 seconds")
         
-        if not self.access_token:
-            self.log_result("Get Family", False, "No access token available")
-            return False
-            
-        response = self.make_request("GET", "/family")
+        response = await self.make_request("POST", "/ai/adjust-difficulty", timeout=30)
         
-        if response is None:
-            self.log_result("Get Family", False, "Request failed")
-            return False
+        if response["status"] == 200:
+            result = response["data"]
+            analysis = result.get("analysis", "")
+            suggestions = result.get("suggestions", [])
             
-        if response.status_code == 200:
-            data = response.json()
+            print(f"✅ AI Adjust Difficulty successful!")
+            print(f"   Analysis: {analysis}")
+            print(f"   Suggestions: {len(suggestions)} recommendations")
             
-            if "code_generated_at" in data:
-                try:
-                    # Verify the timestamp is valid and recent
-                    code_generated_at = datetime.fromisoformat(data["code_generated_at"].replace('Z', '+00:00'))
-                    now = datetime.utcnow()
-                    time_diff = abs((now - code_generated_at).total_seconds())
-                    
-                    # Should be recent (within last few minutes)
-                    if time_diff < 300:  # 5 minutes tolerance
-                        self.log_result("Get Family", True,
-                                       f"Family data includes code_generated_at: {data['code_generated_at']}",
-                                       {"code_generated_at": data["code_generated_at"], 
-                                        "family_name": data.get("name", "Unknown")})
-                        return True
-                    else:
-                        self.log_result("Get Family", False,
-                                       f"code_generated_at is too old: {time_diff}s ago")
-                        return False
-                        
-                except ValueError as e:
-                    self.log_result("Get Family", False, f"Invalid code_generated_at format: {e}")
+            if suggestions:
+                print("   Sample suggestions:")
+                for i, suggestion in enumerate(suggestions[:3]):
+                    action = suggestion.get("action", "")
+                    title = suggestion.get("title", "")
+                    icon = suggestion.get("icon", "")
+                    pts = suggestion.get("pts", 0)
+                    reason = suggestion.get("reason", "")
+                    print(f"     {i+1}. {action.upper()}: {title} {icon} ({pts}pts) - {reason}")
+            
+            # Verify required fields
+            required_fields = ["analysis", "suggestions"]
+            missing_fields = [field for field in required_fields if field not in result]
+            if missing_fields:
+                print(f"❌ Missing required fields: {missing_fields}")
+                return False
+            
+            # Verify suggestion structure
+            for suggestion in suggestions:
+                required_suggestion_fields = ["action", "title", "icon", "pts", "reason"]
+                missing_suggestion_fields = [field for field in required_suggestion_fields if field not in suggestion]
+                if missing_suggestion_fields:
+                    print(f"❌ Suggestion missing fields: {missing_suggestion_fields}")
                     return False
-            else:
-                self.log_result("Get Family", False, "Missing code_generated_at field", data)
-                return False
-        else:
-            self.log_result("Get Family", False,
-                           f"Get family failed with status {response.status_code}: {response.text}")
-            return False
-    
-    def test_vacation_mode_toggle(self):
-        """Test 5: Full family update (vacation mode toggle)"""
-        print("\n=== Test 5: Vacation Mode Toggle ===")
-        
-        if not self.access_token:
-            self.log_result("Vacation Mode Toggle", False, "No access token available")
-            return False
-        
-        # Test 5a: Enable vacation mode
-        print("5a: Enabling vacation mode...")
-        enable_data = {
-            "vacation_mode": True,
-            "vacation_start_date": "2025-07-01",
-            "vacation_end_date": "2025-07-10"
-        }
-        
-        response = self.make_request("PUT", "/family", enable_data)
-        
-        if response is None:
-            self.log_result("Vacation Mode Enable", False, "Request failed")
-            return False
             
-        if response.status_code == 200:
-            data = response.json()
-            if (data.get("vacation_mode") == True and 
-                data.get("vacation_start_date") == "2025-07-01" and
-                data.get("vacation_end_date") == "2025-07-10"):
-                self.log_result("Vacation Mode Enable", True,
-                               "Vacation mode enabled successfully with dates")
-            else:
-                self.log_result("Vacation Mode Enable", False,
-                               "Vacation mode data not updated correctly", data)
-                return False
+            return True
         else:
-            self.log_result("Vacation Mode Enable", False,
-                           f"Enable failed with status {response.status_code}: {response.text}")
+            print(f"❌ AI Adjust Difficulty failed: {response['status']} - {response['data']}")
             return False
+
+    async def test_ai_suggest_rewards(self):
+        """Test POST /api/ai/suggest-rewards - Suggest dynamic rewards"""
+        print("\n🎁 Testing AI Suggest Rewards...")
+        print("   NOTE: This calls OpenAI via Emergent LLM - may take 10-15 seconds")
         
-        # Test 5b: Disable vacation mode
-        print("5b: Disabling vacation mode...")
-        disable_data = {
-            "vacation_mode": False,
-            "vacation_start_date": None,
-            "vacation_end_date": None
-        }
+        response = await self.make_request("POST", "/ai/suggest-rewards", timeout=30)
         
-        response = self.make_request("PUT", "/family", disable_data)
-        
-        if response is None:
-            self.log_result("Vacation Mode Disable", False, "Request failed")
-            return False
+        if response["status"] == 200:
+            result = response["data"]
+            suggestions = result.get("suggestions", [])
             
-        if response.status_code == 200:
-            data = response.json()
-            if (data.get("vacation_mode") == False and 
-                data.get("vacation_start_date") is None and
-                data.get("vacation_end_date") is None):
-                self.log_result("Vacation Mode Disable", True,
-                               "Vacation mode disabled successfully with null dates")
-                return True
-            else:
-                self.log_result("Vacation Mode Disable", False,
-                               "Vacation mode disable data not updated correctly", data)
+            print(f"✅ AI Suggest Rewards successful!")
+            print(f"   Generated {len(suggestions)} reward suggestions")
+            
+            if suggestions:
+                print("   Sample rewards:")
+                for i, reward in enumerate(suggestions[:3]):
+                    title = reward.get("title", "")
+                    icon = reward.get("icon", "")
+                    cost = reward.get("cost", 0)
+                    reason = reward.get("reason", "")
+                    print(f"     {i+1}. {title} {icon} ({cost}pts) - {reason}")
+            
+            # Verify required fields
+            if "suggestions" not in result:
+                print("❌ Missing 'suggestions' field in response")
                 return False
+            
+            # Verify suggestion structure
+            for reward in suggestions:
+                required_reward_fields = ["title", "icon", "cost", "reason"]
+                missing_reward_fields = [field for field in required_reward_fields if field not in reward]
+                if missing_reward_fields:
+                    print(f"❌ Reward suggestion missing fields: {missing_reward_fields}")
+                    return False
+            
+            return True
         else:
-            self.log_result("Vacation Mode Disable", False,
-                           f"Disable failed with status {response.status_code}: {response.text}")
+            print(f"❌ AI Suggest Rewards failed: {response['status']} - {response['data']}")
             return False
-    
-    def run_all_tests(self):
-        """Run all security feature tests"""
-        print("🚀 Starting KidQuest Backend Security Features Test")
-        print(f"Testing against: {self.base_url}")
-        print("=" * 60)
+
+    async def run_all_tests(self):
+        """Run all backend tests in sequence"""
+        print("=" * 80)
+        print("🚀 DoneDash Backend API Testing - AI Endpoints & Button Fixes")
+        print("=" * 80)
         
-        # Test 1: Fresh login
-        if not self.test_fresh_login():
-            print("\n❌ Login failed - cannot proceed with other tests")
-            return self.generate_summary()
+        results = {}
         
-        # Test 2: Family code regeneration
-        new_code = self.test_family_code_regeneration()
+        # Test 1: Fresh Login
+        results["login"] = await self.test_login()
+        if not results["login"]:
+            print("\n❌ Cannot proceed without valid authentication")
+            return results
         
-        # Test 3: Verify new code works
-        self.test_verify_new_code(new_code)
+        # Test 2: Family GET with Z suffix verification
+        results["family_get_z_suffix"] = await self.test_family_get_with_z_suffix()
         
-        # Test 4: Get family with code_generated_at
-        self.test_get_family_with_code_generated_at()
+        # Test 3: AI Auto-Generate Routines
+        results["ai_auto_routines"] = await self.test_ai_auto_routines()
         
-        # Test 5: Vacation mode toggle
-        self.test_vacation_mode_toggle()
+        # Test 4: AI Adjust Difficulty
+        results["ai_adjust_difficulty"] = await self.test_ai_adjust_difficulty()
         
-        return self.generate_summary()
-    
-    def generate_summary(self):
-        """Generate test summary"""
-        print("\n" + "=" * 60)
+        # Test 5: AI Suggest Rewards
+        results["ai_suggest_rewards"] = await self.test_ai_suggest_rewards()
+        
+        # Summary
+        print("\n" + "=" * 80)
         print("📊 TEST SUMMARY")
-        print("=" * 60)
+        print("=" * 80)
         
-        passed = sum(1 for result in self.test_results if result["success"])
-        total = len(self.test_results)
+        total_tests = len(results)
+        passed_tests = sum(1 for result in results.values() if result)
         
-        print(f"Total Tests: {total}")
-        print(f"Passed: {passed}")
-        print(f"Failed: {total - passed}")
-        print(f"Success Rate: {(passed/total*100):.1f}%" if total > 0 else "0%")
+        for test_name, result in results.items():
+            status = "✅ PASS" if result else "❌ FAIL"
+            print(f"{status} {test_name.replace('_', ' ').title()}")
         
-        print("\nDetailed Results:")
-        for result in self.test_results:
-            status = "✅" if result["success"] else "❌"
-            print(f"{status} {result['test']}: {result['details']}")
+        print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
         
-        return {
-            "total_tests": total,
-            "passed": passed,
-            "failed": total - passed,
-            "success_rate": (passed/total*100) if total > 0 else 0,
-            "results": self.test_results
-        }
+        if passed_tests == total_tests:
+            print("🎉 All tests passed! Backend AI endpoints are working correctly.")
+        else:
+            print("⚠️  Some tests failed. Check the details above.")
+        
+        return results
+
+async def main():
+    """Main test runner"""
+    async with DoneDashAPITester() as tester:
+        results = await tester.run_all_tests()
+        return results
 
 if __name__ == "__main__":
-    tester = KidQuestAPITester()
-    summary = tester.run_all_tests()
+    # Run the tests
+    results = asyncio.run(main())
     
     # Exit with appropriate code
-    exit(0 if summary["failed"] == 0 else 1)
+    all_passed = all(results.values()) if results else False
+    exit(0 if all_passed else 1)

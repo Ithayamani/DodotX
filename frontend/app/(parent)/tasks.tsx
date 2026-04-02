@@ -31,6 +31,14 @@ export default function ParentTasks() {
   const [goals, setGoals] = useState('');
   const [aiSuggestions, setAISuggestions] = useState<any[]>([]);
   
+  // Smart AI Panel state
+  const [autoRoutineLoading, setAutoRoutineLoading] = useState(false);
+  const [difficultyLoading, setDifficultyLoading] = useState(false);
+  const [rewardSugLoading, setRewardSugLoading] = useState(false);
+  const [difficultyResult, setDifficultyResult] = useState<any>(null);
+  const [rewardSuggestions, setRewardSuggestions] = useState<any[]>([]);
+  const [showSmartPanel, setShowSmartPanel] = useState(false);
+  
   const colors = getThemeColors(theme);
 
   useEffect(() => {
@@ -52,6 +60,43 @@ export default function ParentTasks() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleAutoRoutines = async () => {
+    setAutoRoutineLoading(true);
+    try {
+      const result = await aiAPI.autoGenerateRoutines();
+      await loadData();
+      Alert.alert('Routines Created!', result.message || `${result.tasks?.length || 0} AI-generated routines added.`);
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to auto-generate routines');
+    } finally {
+      setAutoRoutineLoading(false);
+    }
+  };
+
+  const handleAdjustDifficulty = async () => {
+    setDifficultyLoading(true);
+    try {
+      const result = await aiAPI.adjustDifficulty();
+      setDifficultyResult(result);
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to analyze difficulty');
+    } finally {
+      setDifficultyLoading(false);
+    }
+  };
+
+  const handleSuggestRewards = async () => {
+    setRewardSugLoading(true);
+    try {
+      const result = await aiAPI.suggestRewards();
+      setRewardSuggestions(result.suggestions || []);
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to suggest rewards');
+    } finally {
+      setRewardSugLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -221,6 +266,105 @@ export default function ParentTasks() {
             </View>
           </View>
 
+          {/* AI Smart Panel */}
+          <TouchableOpacity
+            style={[styles.smartPanelToggle, { backgroundColor: colors.card }]}
+            onPress={() => setShowSmartPanel(!showSmartPanel)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.smartPanelHeader}>
+              <Ionicons name="sparkles" size={18} color={colors.primary} />
+              <Text style={styles.smartPanelTitle}>AI Smart Assistant</Text>
+            </View>
+            <Ionicons name={showSmartPanel ? 'chevron-up' : 'chevron-down'} size={18} color="#aaa" />
+          </TouchableOpacity>
+
+          {showSmartPanel && (
+            <View style={[styles.smartPanelContent, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.smartBtn, { borderColor: colors.primary }]}
+                onPress={handleAutoRoutines}
+                disabled={autoRoutineLoading}
+                activeOpacity={0.7}
+              >
+                {autoRoutineLoading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="flash" size={20} color={colors.primary} />
+                )}
+                <View style={styles.smartBtnText}>
+                  <Text style={styles.smartBtnLabel}>Auto-Generate Routines</Text>
+                  <Text style={styles.smartBtnDesc}>AI creates daily routines for your family</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.smartBtn, { borderColor: '#9B6DAE' }]}
+                onPress={handleAdjustDifficulty}
+                disabled={difficultyLoading}
+                activeOpacity={0.7}
+              >
+                {difficultyLoading ? (
+                  <ActivityIndicator size="small" color="#9B6DAE" />
+                ) : (
+                  <Ionicons name="trending-up" size={20} color="#9B6DAE" />
+                )}
+                <View style={styles.smartBtnText}>
+                  <Text style={styles.smartBtnLabel}>Adjust Difficulty</Text>
+                  <Text style={styles.smartBtnDesc}>Adapts tasks based on completion behavior</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.smartBtn, { borderColor: '#D4924A' }]}
+                onPress={handleSuggestRewards}
+                disabled={rewardSugLoading}
+                activeOpacity={0.7}
+              >
+                {rewardSugLoading ? (
+                  <ActivityIndicator size="small" color="#D4924A" />
+                ) : (
+                  <Ionicons name="gift" size={20} color="#D4924A" />
+                )}
+                <View style={styles.smartBtnText}>
+                  <Text style={styles.smartBtnLabel}>Suggest Rewards</Text>
+                  <Text style={styles.smartBtnDesc}>AI picks rewards your kids will love</Text>
+                </View>
+              </TouchableOpacity>
+
+              {difficultyResult && (
+                <View style={styles.resultBox}>
+                  <Text style={styles.resultTitle}>Behavior Analysis</Text>
+                  <Text style={styles.resultText}>{difficultyResult.analysis}</Text>
+                  {difficultyResult.suggestions?.map((s: any, i: number) => (
+                    <View key={i} style={styles.suggestionRow}>
+                      <Text style={styles.suggestionIcon}>{s.icon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.suggestionTitle}>{s.action}: {s.title} ({s.pts} pts)</Text>
+                        <Text style={styles.suggestionReason}>{s.reason}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {rewardSuggestions.length > 0 && (
+                <View style={styles.resultBox}>
+                  <Text style={styles.resultTitle}>Reward Ideas</Text>
+                  {rewardSuggestions.map((r: any, i: number) => (
+                    <View key={i} style={styles.suggestionRow}>
+                      <Text style={styles.suggestionIcon}>{r.icon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.suggestionTitle}>{r.title} — {r.cost} pts</Text>
+                        <Text style={styles.suggestionReason}>{r.reason}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={styles.tasksList}>
             {tasks.map((task) => (
               <View key={task.id} style={[styles.taskCard, { backgroundColor: colors.card }]}>
@@ -242,10 +386,10 @@ export default function ParentTasks() {
                 </View>
 
                 <View style={styles.taskActions}>
-                  <TouchableOpacity onPress={() => handleEdit(task)}>
-                    <Ionicons name="pencil" size={20} color="#4a90e2" />
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleEdit(task)} activeOpacity={0.6}>
+                    <Ionicons name="pencil" size={20} color="#5A9FCF" />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(task)}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(task)} activeOpacity={0.6}>
                     <Ionicons name="trash-outline" size={20} color="#C47070" />
                   </TouchableOpacity>
                 </View>
@@ -538,7 +682,100 @@ const styles = StyleSheet.create({
   },
   taskActions: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 8,
+  },
+  actionBtn: {
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Smart Panel Styles
+  smartPanelToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  smartPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  smartPanelTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  smartPanelContent: {
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    marginTop: 4,
+    gap: 10,
+  },
+  smartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  smartBtnText: {
+    flex: 1,
+  },
+  smartBtnLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  smartBtnDesc: {
+    fontSize: 12,
+    color: '#888',
+  },
+  resultBox: {
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginTop: 8,
+    gap: 8,
+  },
+  resultTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  resultText: {
+    fontSize: 13,
+    color: '#bbb',
+    lineHeight: 18,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+  },
+  suggestionIcon: {
+    fontSize: 20,
+    marginTop: 2,
+  },
+  suggestionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ddd',
+  },
+  suggestionReason: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
   emptyState: {
     alignItems: 'center',

@@ -840,6 +840,247 @@ Make it professional, modern, and suitable for a gamified family app."""
         logging.error(f"AI theme generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate theme: {str(e)}")
 
+
+@api_router.post("/ai/auto-routines")
+async def ai_auto_generate_routines(current_user: User = Depends(get_current_user)):
+    """Auto-generate complete daily routines for all children - minimal parent setup"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json
+    
+    if not current_user.family_id:
+        raise HTTPException(status_code=404, detail="User has no family")
+    
+    children = await db.children.find({"family_id": current_user.family_id}).to_list(100)
+    if not children:
+        raise HTTPException(status_code=404, detail="No children found. Add a child first.")
+    
+    existing_tasks = await db.tasks.find({"family_id": current_user.family_id}).to_list(100)
+    existing_titles = [t["title"] for t in existing_tasks]
+    
+    child_descriptions = []
+    for c in children:
+        age = c.get("age", "school-age")
+        name = c.get("name", "child")
+        child_descriptions.append(f"{name} (age {age})")
+    
+    prompt = f"""You are a smart family routine planner. Create a complete set of daily routines for this family.
+
+Children: {', '.join(child_descriptions)}
+Already existing tasks (DO NOT duplicate these): {', '.join(existing_titles[:20]) if existing_titles else 'None'}
+
+Generate 8 age-appropriate tasks covering these categories evenly:
+- Morning routine (wake up, hygiene, breakfast)
+- Learning/homework  
+- Active/outdoor play
+- Creative activities
+- Chores/responsibility
+- Health/bedtime
+
+For each task provide:
+1. Short clear title (3-5 words)
+2. Appropriate emoji icon
+3. Points (5=easy, 10=medium, 15=hard, 20=challenging)
+4. Category: learning, active, creative, chores, health, or social
+5. Modes: daily and/or vacation
+
+Return ONLY valid JSON array:
+[{{"title":"...", "icon":"🎯", "pts":10, "cat":"health", "modes":{{"daily":true, "vacation":false}}}}]
+
+Make routines practical, fun, and buildable into lasting habits."""
+
+    try:
+        api_key = os.getenv("EMERGENT_LLM_KEY")
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"auto_routine_{current_user.id}",
+            system_message="You are a family routine planner. Always return valid JSON arrays."
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        clean_response = clean_response.strip()
+        
+        routines = json.loads(clean_response)
+        
+        # Auto-save to database
+        saved_tasks = []
+        for task_data in routines:
+            task_id = generate_id()
+            task = Task(
+                id=task_id,
+                title=task_data["title"],
+                icon=task_data.get("icon", "📋"),
+                pts=task_data.get("pts", 10),
+                cat=task_data.get("cat", "chores"),
+                modes=TaskMode(
+                    daily=task_data.get("modes", {}).get("daily", True),
+                    vacation=task_data.get("modes", {}).get("vacation", False)
+                ),
+                family_id=current_user.family_id
+            )
+            await db.tasks.insert_one(task.dict())
+            saved_tasks.append(task.dict())
+        
+        return {"message": f"Generated {len(saved_tasks)} routines!", "tasks": saved_tasks}
+    
+    except Exception as e:
+        logging.error(f"AI auto-routine error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate routines: {str(e)}")
+
+
+@api_router.post("/ai/adjust-difficulty")
+async def ai_adjust_difficulty(current_user: User = Depends(get_current_user)):
+    """Analyze child behavior and adjust task difficulty dynamically"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json
+    
+    if not current_user.family_id:
+        raise HTTPException(status_code=404, detail="User has no family")
+    
+    children = await db.children.find({"family_id": current_user.family_id}).to_list(100)
+    tasks = await db.tasks.find({"family_id": current_user.family_id}).to_list(100)
+    
+    # Gather completion data per child
+    behavior_data = []
+    for child in children:
+        progress = await db.progress.find_one({"child_id": child["id"]})
+        completed_today = progress.get("completed_today", []) if progress else []
+        total_points = progress.get("points", 0) if progress else 0
+        streak = progress.get("streak", 0) if progress else 0
+        
+        completion_rate = len(completed_today) / max(len(tasks), 1) * 100
+        
+        behavior_data.append({
+            "name": child.get("name"),
+            "age": child.get("age", "unknown"),
+            "completed_today": len(completed_today),
+            "total_tasks": len(tasks),
+            "completion_rate": round(completion_rate),
+            "total_points": total_points,
+            "streak": streak
+        })
+    
+    current_tasks_summary = [{"title": t["title"], "pts": t["pts"]} for t in tasks[:15]]
+    
+    prompt = f"""You are a child behavior analyst for a family task app. Analyze this data and suggest adjustments.
+
+Children behavior data: {json.dumps(behavior_data)}
+Current tasks: {json.dumps(current_tasks_summary)}
+
+Rules:
+- If completion rate > 85%: suggest harder tasks (more stars) or new challenging ones
+- If completion rate < 40%: suggest easier tasks or breaking hard ones into smaller steps  
+- If streak > 5: suggest a bonus challenge task
+- If streak = 0: suggest a very easy "quick win" task to rebuild momentum
+
+Return ONLY valid JSON:
+{{
+  "analysis": "brief 1-2 sentence summary of behavior patterns",
+  "suggestions": [
+    {{
+      "action": "add|modify|remove",
+      "title": "task title",
+      "icon": "emoji",
+      "pts": 10,
+      "reason": "why this change"
+    }}
+  ]
+}}"""
+
+    try:
+        api_key = os.getenv("EMERGENT_LLM_KEY")
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"difficulty_{current_user.id}",
+            system_message="You are a child behavior analyst. Always return valid JSON."
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        clean_response = clean_response.strip()
+        
+        return json.loads(clean_response)
+    
+    except Exception as e:
+        logging.error(f"AI difficulty adjustment error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze difficulty: {str(e)}")
+
+
+@api_router.post("/ai/suggest-rewards")
+async def ai_suggest_rewards(current_user: User = Depends(get_current_user)):
+    """Dynamically suggest rewards based on child behavior and existing rewards"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json
+    
+    if not current_user.family_id:
+        raise HTTPException(status_code=404, detail="User has no family")
+    
+    children = await db.children.find({"family_id": current_user.family_id}).to_list(100)
+    existing_rewards = await db.rewards.find({"family_id": current_user.family_id}).to_list(100)
+    
+    existing_titles = [r["name"] for r in existing_rewards]
+    
+    child_info = []
+    for c in children:
+        progress = await db.progress.find_one({"child_id": c["id"]})
+        child_info.append({
+            "name": c.get("name"),
+            "age": c.get("age", "school-age"),
+            "points": progress.get("points", 0) if progress else 0
+        })
+    
+    prompt = f"""You are a family rewards designer. Suggest 5 creative, motivating rewards.
+
+Children: {json.dumps(child_info)}
+Existing rewards (don't duplicate): {', '.join(existing_titles) if existing_titles else 'None'}
+
+Design rewards that:
+- Range from cheap (20-30 pts) to premium (100+ pts) 
+- Include both experiences and privileges (not just material items)
+- Are age-appropriate and exciting
+- Motivate continued good behavior
+
+Return ONLY valid JSON array:
+[{{"title":"...", "icon":"🎁", "cost": 50, "reason":"why kids will love this"}}]"""
+
+    try:
+        api_key = os.getenv("EMERGENT_LLM_KEY")
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"rewards_{current_user.id}",
+            system_message="You are a family rewards designer. Always return valid JSON arrays."
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        clean_response = clean_response.strip()
+        
+        suggestions = json.loads(clean_response)
+        return {"suggestions": suggestions}
+    
+    except Exception as e:
+        logging.error(f"AI reward suggestion error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to suggest rewards: {str(e)}")
+
+
 # ============ ROOT ROUTES ============
 
 @api_router.get("/")
