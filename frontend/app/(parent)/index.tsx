@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { childrenAPI, progressAPI } from '../../src/api/client';
 import { getThemeColors, AVATARS } from '../../src/constants';
+import { hapticHeavy, hapticLight } from '../../src/utils/haptics';
 import type { Child } from '../../src/types';
 
 export default function ParentChildren() {
@@ -195,12 +196,19 @@ export default function ParentChildren() {
                     )}
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteChild(child)}
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.deleteButton,
+                      pressed && styles.deleteButtonPressed,
+                    ]}
+                    onPress={() => {
+                      hapticHeavy();
+                      handleDeleteChild(child);
+                    }}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#C47070" />
-                  </TouchableOpacity>
+                    <Ionicons name="trash-outline" size={22} color="#C47070" />
+                  </Pressable>
                 </View>
               );
             })}
@@ -383,11 +391,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   deleteButton: {
-    padding: 12,
-    minWidth: 44,
-    minHeight: 44,
+    padding: 14,
+    minWidth: 48,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(196, 112, 112, 0.1)',
+  },
+  deleteButtonPressed: {
+    backgroundColor: 'rgba(196, 112, 112, 0.3)',
+    transform: [{ scale: 0.92 }],
   },
   emptyState: {
     alignItems: 'center',
