@@ -19,7 +19,7 @@ from routes.ai import router as ai_router
 from routes.visitor import router as visitor_router
 
 # Create the main app
-app = FastAPI(title="DoneDash API")
+app = FastAPI(title="DodotX API")
 
 # CORS middleware
 app.add_middleware(
@@ -43,7 +43,7 @@ app.include_router(visitor_router, prefix="/api")
 # Root routes
 @app.get("/api/")
 async def root():
-    return {"message": "DoneDash API", "version": "2.0.0"}
+    return {"message": "DodotX API", "version": "2.0.0"}
 
 @app.get("/api/health")
 async def health_check():

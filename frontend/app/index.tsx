@@ -6,7 +6,7 @@ import { useAuthStore } from '../src/stores';
 
 const { width } = Dimensions.get('window');
 
-const LOGO_URL = 'https://customer-assets.emergentagent.com/job_app-store-setup-2/artifacts/qx0pyx58_image.png';
+const LOGO_URL = ''; // Brand updated to DodotX
 
 export default function Index() {
   const router = useRouter();
@@ -40,7 +40,9 @@ export default function Index() {
         style={styles.hero}
       >
         <View style={styles.heroContent}>
-          <Image source={{ uri: LOGO_URL }} style={styles.logoImage} resizeMode="contain" />
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>Dodot<Text style={styles.logoAccent}>X</Text></Text>
+          </View>
           <Text style={styles.heroTitle}>
             Make Everyday Things{'\n'}a Game
           </Text>
@@ -92,7 +94,7 @@ export default function Index() {
 
       {/* Features Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Why Parents Love DoneDash</Text>
+        <Text style={styles.sectionTitle}>Why Parents Love DodotX</Text>
         
         <View style={styles.features}>
           <View style={styles.feature}>
@@ -221,7 +223,7 @@ export default function Index() {
           Made with ❤️ for families
         </Text>
         <Text style={styles.footerCopy}>
-          © 2026 DoneDash • Privacy-first • COPPA compliant
+          © 2026 DodotX • Privacy-first • COPPA compliant
         </Text>
       </View>
     </ScrollView>
@@ -250,6 +252,25 @@ const styles = StyleSheet.create({
     width: 280,
     height: 80,
     marginBottom: 24,
+  },
+  logoContainer: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(212,132,92,0.2)',
+  },
+  logoText: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  logoAccent: {
+    color: '#D4845C',
+    fontWeight: '900',
   },
   aiLine: {
     fontSize: 14,

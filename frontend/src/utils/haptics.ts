@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
 /**
- * Centralized haptics utility for DoneDash
+ * Centralized haptics utility for DodotX
  * Provides consistent tactile feedback across the app
  */
 

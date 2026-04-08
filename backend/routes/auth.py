@@ -53,10 +53,10 @@ async def forgot_password(data: PasswordResetRequest):
     if smtp_host and smtp_user and smtp_pass:
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = "DoneDash - Password Reset Code"
+            msg["Subject"] = "DodotX - Password Reset Code"
             msg["From"] = smtp_from
             msg["To"] = data.email
-            html_body = f'<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#D4845C;">DoneDash Password Reset</h2><p>Your code is:</p><div style="background:#f5f5f5;padding:20px;text-align:center;border-radius:12px;margin:20px 0;"><span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#333;">{code}</span></div><p style="color:#888;font-size:14px;">Expires in 15 minutes.</p></div>'
+            html_body = f'<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#D4845C;">DodotX Password Reset</h2><p>Your code is:</p><div style="background:#f5f5f5;padding:20px;text-align:center;border-radius:12px;margin:20px 0;"><span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#333;">{code}</span></div><p style="color:#888;font-size:14px;">Expires in 15 minutes.</p></div>'
             msg.attach(MIMEText(html_body, "html"))
             with smtplib.SMTP(smtp_host, smtp_port) as server:
                 server.starttls()

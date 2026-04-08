@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "DoneDash",
-    "slug": "donedash",
+    "name": "DodotX",
+    "slug": "dodotx",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "donedash",
+    "scheme": "dodotx",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.donedash.app",
+      "bundleIdentifier": "com.dodotx.app",
       "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos for child avatars",
@@ -24,7 +24,7 @@
       }
     },
     "android": {
-      "package": "com.donedash.app",
+      "package": "com.dodotx.app",
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
