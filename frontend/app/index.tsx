@@ -6,7 +6,7 @@ import { useAuthStore } from '../src/stores';
 
 const { width } = Dimensions.get('window');
 
-const LOGO_URL = ''; // Brand updated to DodotX
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_app-store-setup-2/artifacts/anbdobms_image.png';
 
 export default function Index() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function Index() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#D4845C" />
+        <ActivityIndicator size="large" color="#00E5A0" />
       </View>
     );
   }
@@ -40,8 +40,12 @@ export default function Index() {
         style={styles.hero}
       >
         <View style={styles.heroContent}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>Dodot<Text style={styles.logoAccent}>X</Text></Text>
+          <View style={styles.logoArea}>
+            <Image source={{ uri: LOGO_URL }} style={styles.logoImage} resizeMode="contain" />
+            <View style={styles.logoTextRow}>
+              <Text style={styles.logoText}>Dodot</Text>
+              <Text style={styles.logoX}>X</Text>
+            </View>
           </View>
           <Text style={styles.heroTitle}>
             Make Everyday Things{'\n'}a Game
@@ -249,9 +253,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoImage: {
-    width: 280,
+    width: 80,
     height: 80,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  logoArea: {
+    alignItems: 'center',
     marginBottom: 24,
+  },
+  logoTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   logoContainer: {
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -263,18 +276,24 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(212,132,92,0.2)',
   },
   logoText: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
+  },
+  logoX: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#00E5A0',
+    letterSpacing: 0.5,
   },
   logoAccent: {
-    color: '#D4845C',
+    color: '#00E5A0',
     fontWeight: '900',
   },
   aiLine: {
     fontSize: 14,
-    color: '#D4845C',
+    color: '#00E5A0',
     fontWeight: '600',
     fontStyle: 'italic',
     marginTop: 12,
