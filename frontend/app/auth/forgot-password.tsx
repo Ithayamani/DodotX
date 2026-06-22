@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator, SafeAreaView
@@ -7,17 +7,32 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
+import { hapticSuccess, hapticError, hapticLight } from '../../src/utils/haptics';
+
+// Password validation rules
+function validatePassword(pw: string) {
+  return {
+    length: pw.length >= 8,
+    number: /\d/.test(pw),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw),
+  };
+}
 
 export default function ForgotPassword() {
   const router = useRouter();
   const colors = getThemeColors('gaming');
 
-  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [step, setStep] = useState<'email' | 'code' | 'done'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const pwRules = useMemo(() => validatePassword(newPassword), [newPassword]);
+  const allValid = pwRules.length && pwRules.number && pwRules.special;
+  const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
 
   const handleSendCode = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -25,16 +40,14 @@ export default function ForgotPassword() {
       Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
-
     setLoading(true);
     try {
       await authAPI.forgotPassword(trimmedEmail);
+      hapticSuccess();
       setStep('code');
-      Alert.alert(
-        'Code Sent',
-        'If an account exists with this email, a 6-digit reset code has been sent. Check your inbox.'
-      );
+      Alert.alert('Code Sent', 'Check your email inbox for a 6-digit reset code.');
     } catch (error: any) {
+      hapticError();
       Alert.alert('Error', error.response?.data?.detail || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -46,29 +59,52 @@ export default function ForgotPassword() {
       Alert.alert('Error', 'Please enter the 6-digit code');
       return;
     }
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (!allValid) {
+      Alert.alert('Error', 'Password does not meet all requirements');
       return;
     }
-    if (newPassword !== confirmPassword) {
+    if (!passwordsMatch) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await authAPI.resetPassword(email.trim().toLowerCase(), code, newPassword);
-      Alert.alert(
-        'Password Reset!',
-        result.message,
-        [{ text: 'Sign In', onPress: () => router.replace('/auth/login') }]
-      );
+      await authAPI.resetPassword(email.trim().toLowerCase(), code, newPassword);
+      hapticSuccess();
+      setStep('done');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to reset password');
+      hapticError();
+      const detail = error.response?.data?.detail || 'Failed to reset password';
+      Alert.alert('Error', detail);
     } finally {
       setLoading(false);
     }
   };
+
+  // Success screen after reset
+  if (step === 'done') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.doneContent}>
+          <View style={[styles.iconCircle, { backgroundColor: 'rgba(0,229,160,0.12)' }]}>  
+            <Ionicons name="checkmark-circle" size={48} color="#00E5A0" />
+          </View>
+          <Text style={styles.title}>Password Reset!</Text>
+          <Text style={styles.subtitle}>
+            Your password has been updated.{'\n'}You can now sign in with your new password.
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.primary }]}
+            onPress={() => { hapticLight(); router.replace('/auth/login'); }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonText}>Go to Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,6 +115,7 @@ export default function ForgotPassword() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
+            hapticLight();
             if (step === 'code') setStep('email');
             else router.back();
           }}
@@ -143,28 +180,46 @@ export default function ForgotPassword() {
               autoFocus
             />
 
-            <TextInput
-              style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="New password (min 6 chars)"
-              placeholderTextColor="#666"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-            />
+            {/* Password input with toggle */}
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[styles.passwordInput, { borderColor: colors.primary }]}
+                placeholder="New password"
+                placeholderTextColor="#666"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#888" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Password strength rules */}
+            {newPassword.length > 0 && (
+              <View style={styles.rulesBox}>
+                <RuleItem label="At least 8 characters" met={pwRules.length} />
+                <RuleItem label="At least 1 number" met={pwRules.number} />
+                <RuleItem label="At least 1 special character (!@#$...)" met={pwRules.special} />
+              </View>
+            )}
 
             <TextInput
-              style={[styles.input, { borderColor: colors.primary }]}
+              style={[styles.input, { borderColor: passwordsMatch ? '#00E5A0' : (confirmPassword.length > 0 ? '#C47070' : colors.primary) }]}
               placeholder="Confirm new password"
               placeholderTextColor="#666"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
             />
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }, loading && styles.disabled]}
+              style={[styles.button, { backgroundColor: colors.primary }, (loading || !allValid || !passwordsMatch || code.length !== 6) && styles.disabled]}
               onPress={handleResetPassword}
-              disabled={loading}
+              disabled={loading || !allValid || !passwordsMatch || code.length !== 6}
               activeOpacity={0.7}
             >
               {loading ? (
@@ -174,13 +229,26 @@ export default function ForgotPassword() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => handleSendCode()}>
+            <TouchableOpacity onPress={() => { hapticLight(); handleSendCode(); }}>
               <Text style={styles.resendText}>Didn't get the code? Resend</Text>
             </TouchableOpacity>
           </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function RuleItem({ label, met }: { label: string; met: boolean }) {
+  return (
+    <View style={styles.ruleRow}>
+      <Ionicons
+        name={met ? 'checkmark-circle' : 'ellipse-outline'}
+        size={18}
+        color={met ? '#00E5A0' : '#555'}
+      />
+      <Text style={[styles.ruleText, met && styles.ruleTextMet]}>{label}</Text>
+    </View>
   );
 }
 
@@ -203,7 +271,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 60,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  doneContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
     gap: 16,
   },
   iconCircle: {
@@ -254,6 +329,46 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     letterSpacing: 8,
+  },
+  passwordRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    backgroundColor: '#1c2128',
+    borderWidth: 2,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    paddingRight: 50,
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 14,
+    padding: 8,
+  },
+  rulesBox: {
+    width: '100%',
+    backgroundColor: '#1c2128',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  ruleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ruleText: {
+    fontSize: 13,
+    color: '#888',
+  },
+  ruleTextMet: {
+    color: '#00E5A0',
   },
   button: {
     width: '100%',

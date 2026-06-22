@@ -6,10 +6,25 @@ from utils import generate_id
 from datetime import datetime, timedelta
 import os, logging, random
 
+import re
+
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+def validate_password(password: str) -> str | None:
+    """Returns error message if password is weak, None if valid"""
+    if len(password) < 8:
+        return "Password must be at least 8 characters"
+    if not re.search(r'\d', password):
+        return "Password must contain at least 1 number"
+    if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]', password):
+        return "Password must contain at least 1 special character (!@#$%^&*...)"
+    return None
 
 @router.post("/signup", response_model=Token)
 async def signup(user_data: UserSignup):
+    pwd_error = validate_password(user_data.password)
+    if pwd_error:
+        raise HTTPException(status_code=400, detail=pwd_error)
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -82,6 +97,9 @@ async def reset_password(data: PasswordResetConfirm):
         raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
     if len(data.new_password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    pwd_error = validate_password(data.new_password)
+    if pwd_error:
+        raise HTTPException(status_code=400, detail=pwd_error)
     hashed_password = get_password_hash(data.new_password)
     await db.users.update_one({"email": data.email.lower().strip()}, {"$set": {"hashed_password": hashed_password}})
     await db.password_resets.update_one({"_id": reset_record["_id"]}, {"$set": {"used": True}})

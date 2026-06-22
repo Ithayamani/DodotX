@@ -1,9 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../src/api/client';
 import { useAuthStore } from '../../src/stores';
 import { getThemeColors } from '../../src/constants';
+
+function validatePassword(pw: string) {
+  return {
+    length: pw.length >= 8,
+    number: /\d/.test(pw),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw),
+  };
+}
+
+function RuleItem({ label, met }: { label: string; met: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+      <Ionicons name={met ? 'checkmark-circle' : 'ellipse-outline'} size={16} color={met ? '#00E5A0' : '#555'} />
+      <Text style={{ fontSize: 12, color: met ? '#00E5A0' : '#888' }}>{label}</Text>
+    </View>
+  );
+}
 
 export default function Signup() {
   const router = useRouter();
@@ -14,14 +32,16 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const colors = getThemeColors('football');
 
+  const pwRules = useMemo(() => validatePassword(password), [password]);
+  const allValid = pwRules.length && pwRules.number && pwRules.special;
+
   const handleSignup = async () => {
     if (!name || !email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (!allValid) {
+      Alert.alert('Error', 'Password does not meet all requirements');
       return;
     }
 
@@ -68,12 +88,20 @@ export default function Signup() {
 
             <TextInput
               style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="Password (min 6 characters)"
+              placeholder="Password"
               placeholderTextColor="#999"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
             />
+
+            {password.length > 0 && (
+              <View style={{ width: '100%', paddingLeft: 4 }}>
+                <RuleItem label="At least 8 characters" met={pwRules.length} />
+                <RuleItem label="At least 1 number" met={pwRules.number} />
+                <RuleItem label="At least 1 special character (!@#$...)" met={pwRules.special} />
+              </View>
+            )}
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.primary }]}
