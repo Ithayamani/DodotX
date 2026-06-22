@@ -19,7 +19,7 @@ from routes.ai import router as ai_router
 from routes.visitor import router as visitor_router
 
 # Create the main app
-app = FastAPI(title="DodotX API")
+app = FastAPI(title="DodotX API", docs_url=None, redoc_url=None)
 
 # CORS middleware
 app.add_middleware(

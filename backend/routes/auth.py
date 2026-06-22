@@ -1,14 +1,28 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from routes import db, get_current_user
 from models import User, UserSignup, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm
 from auth import get_password_hash, verify_password, create_access_token
 from utils import generate_id
 from datetime import datetime, timedelta
-import os, logging, random
-
-import re
+from collections import defaultdict
+import os, logging, random, re, time
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
+
+# Simple in-memory rate limiter for auth endpoints
+_rate_limits: dict = defaultdict(list)
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 10     # max attempts per window
+
+def check_rate_limit(ip: str, action: str = "auth"):
+    key = f"{ip}:{action}"
+    now = time.time()
+    # Clean old entries
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < RATE_LIMIT_WINDOW]
+    if len(_rate_limits[key]) >= RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Too many attempts. Please wait a minute and try again.")
+    _rate_limits[key].append(now)
 
 def validate_password(password: str) -> str | None:
     """Returns error message if password is weak, None if valid"""
@@ -21,7 +35,8 @@ def validate_password(password: str) -> str | None:
     return None
 
 @router.post("/signup", response_model=Token)
-async def signup(user_data: UserSignup):
+async def signup(user_data: UserSignup, request: Request):
+    check_rate_limit(request.client.host, "signup")
     pwd_error = validate_password(user_data.password)
     if pwd_error:
         raise HTTPException(status_code=400, detail=pwd_error)
@@ -36,7 +51,8 @@ async def signup(user_data: UserSignup):
     return Token(access_token=access_token, user={"id": user.id, "email": user.email, "name": user.name, "role": user.role, "family_id": user.family_id})
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin):
+async def login(credentials: UserLogin, request: Request):
+    check_rate_limit(request.client.host, "login")
     user = await db.users.find_one({"email": credentials.email})
     if not user or not verify_password(credentials.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -49,7 +65,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return {"id": current_user.id, "email": current_user.email, "name": current_user.name, "role": current_user.role, "family_id": current_user.family_id}
 
 @router.post("/forgot-password")
-async def forgot_password(data: PasswordResetRequest):
+async def forgot_password(data: PasswordResetRequest, request: Request):
+    check_rate_limit(request.client.host, "forgot-password")
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
