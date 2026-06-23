@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -39,6 +40,9 @@ app.include_router(rewards_router, prefix="/api")
 app.include_router(progress_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
 app.include_router(visitor_router, prefix="/api")
+
+# Serve static screenshots for App Store submission
+app.mount("/api/static", StaticFiles(directory=str(ROOT_DIR / "static")), name="static")
 
 # Root routes
 @app.get("/api/")
