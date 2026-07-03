@@ -33,7 +33,7 @@
       "ios": {
         "appleId": "chakra07@gmail.com",
         "ascAppId": "6761813059",
-        "appleTeamId": "REPLACE_WITH_TEAM_ID"
+        "appleTeamId": "8W6A7M8YY9"
       },
       "android": {
         "serviceAccountKeyPath": "./google-services.json",
