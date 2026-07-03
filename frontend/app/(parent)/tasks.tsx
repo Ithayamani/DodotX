@@ -52,7 +52,7 @@ export default function ParentTasks() {
       const tasksData = await tasksAPI.getAll();
       setTasks(tasksData);
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -45,7 +45,7 @@ export default function ParentChildren() {
       });
       setChildrenProgress(progressMap);
     } catch (error) {
-      console.error('Failed to load children:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
       setRefreshing(false);

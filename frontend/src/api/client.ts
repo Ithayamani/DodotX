@@ -67,6 +67,11 @@ export const authAPI = {
     const response = await api.get('/auth/me');
     return response.data;
   },
+
+  deleteAccount: async (): Promise<{ message: string }> => {
+    const response = await api.delete('/auth/delete-account');
+    return response.data;
+  },
 };
 
 // Family API

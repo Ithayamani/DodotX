@@ -28,7 +28,7 @@ export default function RoleSelect() {
       setChildrenList(childrenData);
       setChildren(childrenData);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
     }

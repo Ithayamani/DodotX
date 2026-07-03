@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal, Share, Image, ActivityIndicator, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal, Share, Image, ActivityIndicator, Switch, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useAppStore } from '../../src/stores';
-import { familyAPI, aiAPI } from '../../src/api/client';
+import { familyAPI, aiAPI, authAPI } from '../../src/api/client';
 import { getThemeColors, THEMES } from '../../src/constants';
 import type { Theme, Family } from '../../src/types';
+
+const APP_VERSION = '2.0.0';
+const PRIVACY_URL = 'https://dodotx.com/privacy';
+const TERMS_URL = 'https://dodotx.com/terms';
+const SUPPORT_URL = 'https://dodotx.com/support';
 
 export default function ParentSettings() {
   const router = useRouter();
@@ -40,7 +45,7 @@ export default function ParentSettings() {
         setParentProfilePic(familyData.parent_profile_picture);
       }
     } catch (error) {
-      console.error('Failed to load family:', error);
+      // Error handled silently
     }
   };
 
@@ -237,7 +242,7 @@ export default function ParentSettings() {
         message: `Join our DodotX family! \n\nFamily: ${localFamily.name}\nCode: ${localFamily.code}\n\nDownload DodotX and enter this code to join!`,
       });
     } catch (error) {
-      console.log('Share error:', error);
+      // Share cancelled
     }
   };
 
@@ -253,6 +258,43 @@ export default function ParentSettings() {
           onPress: async () => {
             await clearAuth();
             router.replace('/');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account, family, and all associated data (children, tasks, rewards, progress). This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Forever',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'All data will be permanently lost. Type your email to confirm.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await authAPI.deleteAccount();
+                      await clearAuth();
+                      Alert.alert('Account Deleted', 'Your account and all data have been removed.');
+                      router.replace('/');
+                    } catch (error: any) {
+                      Alert.alert('Error', error.response?.data?.detail || 'Failed to delete account');
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -495,6 +537,57 @@ export default function ParentSettings() {
               <Ionicons name="log-out-outline" size={20} color="#C47070" />
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingButton}
+            onPress={handleDeleteAccount}
+          >
+            <View style={styles.settingButtonContent}>
+              <Text style={[styles.settingButtonText, { color: '#C47070' }]}>
+                Delete Account
+              </Text>
+              <Ionicons name="trash-outline" size={20} color="#C47070" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Legal & Support Section */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={styles.sectionTitle}>Legal & Support</Text>
+          
+          <TouchableOpacity
+            style={styles.settingButton}
+            onPress={() => Linking.openURL(PRIVACY_URL)}
+          >
+            <View style={styles.settingButtonContent}>
+              <Text style={styles.settingButtonText}>Privacy Policy</Text>
+              <Ionicons name="open-outline" size={18} color="#ccc" />
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.settingButton}
+            onPress={() => Linking.openURL(TERMS_URL)}
+          >
+            <View style={styles.settingButtonContent}>
+              <Text style={styles.settingButtonText}>Terms of Service</Text>
+              <Ionicons name="open-outline" size={18} color="#ccc" />
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.settingButton}
+            onPress={() => Linking.openURL(SUPPORT_URL)}
+          >
+            <View style={styles.settingButtonContent}>
+              <Text style={styles.settingButtonText}>Contact Support</Text>
+              <Ionicons name="mail-outline" size={18} color="#ccc" />
+            </View>
+          </TouchableOpacity>
+          
+          <View style={styles.versionRow}>
+            <Text style={styles.versionText}>DodotX v{APP_VERSION}</Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -998,5 +1091,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  versionRow: {
+    paddingTop: 12,
+    alignItems: 'center',
+  },
+  versionText: {
+    fontSize: 13,
+    color: '#666',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, Image, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../src/stores';
@@ -226,8 +226,21 @@ export default function Index() {
         <Text style={styles.footerText}>
           Made with ❤️ for families
         </Text>
+        <View style={styles.footerLinks}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://dodotx.com/privacy')}>
+            <Text style={styles.footerLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerDivider}>•</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://dodotx.com/terms')}>
+            <Text style={styles.footerLink}>Terms</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerDivider}>•</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://dodotx.com/support')}>
+            <Text style={styles.footerLink}>Support</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.footerCopy}>
-          © 2026 DodotX • Privacy-first • COPPA compliant
+          © 2026 DodotX • COPPA compliant
         </Text>
       </View>
     </ScrollView>
@@ -547,6 +560,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#b0b8c1',
     marginBottom: 8,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  footerLink: {
+    fontSize: 14,
+    color: '#D4845C',
+    textDecorationLine: 'underline',
+  },
+  footerDivider: {
+    fontSize: 14,
+    color: '#6b7280',
   },
   footerCopy: {
     fontSize: 14,

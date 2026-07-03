@@ -24,7 +24,7 @@ export default function ChildTrophies() {
       const progressData = await progressAPI.get(currentChild.id);
       setTrophies(progressData.trophies);
     } catch (error) {
-      console.error('Failed to load trophies:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
       setRefreshing(false);

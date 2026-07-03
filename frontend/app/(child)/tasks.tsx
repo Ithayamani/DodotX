@@ -44,7 +44,7 @@ export default function ChildTasks() {
       setCompletedToday(progressData.today_completions);
       setPoints(progressData.points);
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      // Error handled silently
       Alert.alert('Error', 'Failed to load tasks');
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export default function ChildTasks() {
       setPoints(result.points);
       
     } catch (error) {
-      console.error('Failed to toggle task:', error);
+      // Error handled silently
       // Revert optimistic update
       if (isCompleted) {
         setCompletedToday(prev => [...prev, task.id]);

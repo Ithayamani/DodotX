@@ -112,8 +112,6 @@ async def reset_password(data: PasswordResetConfirm):
         expires_at = datetime.fromisoformat(expires_at)
     if datetime.utcnow() > expires_at:
         raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
-    if len(data.new_password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     pwd_error = validate_password(data.new_password)
     if pwd_error:
         raise HTTPException(status_code=400, detail=pwd_error)
@@ -121,3 +119,39 @@ async def reset_password(data: PasswordResetConfirm):
     await db.users.update_one({"email": data.email.lower().strip()}, {"$set": {"hashed_password": hashed_password}})
     await db.password_resets.update_one({"_id": reset_record["_id"]}, {"$set": {"used": True}})
     return {"message": "Password has been reset successfully. You can now sign in."}
+
+@router.delete("/delete-account")
+async def delete_account(current_user: User = Depends(get_current_user)):
+    """Delete user account and all associated family data. Required by Apple App Store guidelines."""
+    user_id = current_user.id
+    family_id = current_user.family_id
+    
+    # Delete all family-related data if user has a family
+    if family_id:
+        # Get all children in the family
+        children = await db.children.find({"family_id": family_id}).to_list(100)
+        child_ids = [c["id"] for c in children]
+        
+        # Delete progress records for all children
+        for child_id in child_ids:
+            await db.progress.delete_many({"child_id": child_id})
+            await db.task_completions.delete_many({"child_id": child_id})
+            await db.cheers.delete_many({"child_id": child_id})
+        
+        # Delete family data
+        await db.children.delete_many({"family_id": family_id})
+        await db.tasks.delete_many({"family_id": family_id})
+        await db.rewards.delete_many({"family_id": family_id})
+        await db.families.delete_one({"id": family_id})
+        
+        # Delete child user accounts linked to this family
+        await db.users.delete_many({"family_id": family_id, "role": "child"})
+    
+    # Delete the user's password reset records
+    await db.password_resets.delete_many({"email": current_user.email})
+    
+    # Delete the user account
+    await db.users.delete_one({"id": user_id})
+    
+    logger.info(f"Account deleted: {current_user.email}")
+    return {"message": "Your account and all associated data have been permanently deleted."}

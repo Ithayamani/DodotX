@@ -27,7 +27,7 @@ export default function ChildShop() {
       setRewards(progressData.rewards);
       setPoints(progressData.points);
     } catch (error) {
-      console.error('Failed to load rewards:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
       setRefreshing(false);

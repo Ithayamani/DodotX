@@ -33,7 +33,7 @@ export default function ChildHome() {
       setProgress(progressData);
       setCheers(cheersData.slice(0, 3));
     } catch (error) {
-      console.error('Failed to load data:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
       setRefreshing(false);

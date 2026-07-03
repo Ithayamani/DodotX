@@ -30,7 +30,7 @@ export default function Onboarding() {
           setFamily(family);
           router.replace('/role-select');
         } catch (error) {
-          console.log('No existing family found, continue onboarding');
+          // No existing family - continue
         }
       }
     };
@@ -69,12 +69,12 @@ export default function Onboarding() {
         await childrenAPI.create({ name: childName, avatar: childAvatar });
       } catch (childError: any) {
         // Child might already exist, that's okay
-        console.log('Child creation skipped:', childError);
+        // Child creation skipped
       }
 
       router.replace('/role-select');
     } catch (error: any) {
-      console.error('Setup error:', error);
+      // Error handled silently
       Alert.alert('Setup Failed', error.response?.data?.detail || 'Could not complete setup');
     } finally {
       setLoading(false);

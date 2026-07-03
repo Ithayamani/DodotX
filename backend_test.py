@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-DodotX Backend API Testing - Critical Bug Fixes Verification
-Tests the child join-family flow with JWT token issuance and parent PIN flow
+DodotX Backend API Testing - Apple App Store Readiness
+Tests account deletion, child join-family flow, and parent PIN flow
 """
 
 import requests
 import json
 import sys
+import time
 from typing import Dict, Any, Optional
 
 # Backend URL from frontend/.env
@@ -17,6 +18,7 @@ PARENT_EMAIL = "parent@test.com"
 PARENT_PASSWORD = "Parent123!"
 PARENT_PIN = "1234"
 FAMILY_CODE = "TEST01"
+REVIEW_CODE = "REVIEW"
 
 # Colors for output
 GREEN = '\033[92m'
@@ -67,6 +69,8 @@ def make_request(method: str, endpoint: str, data: Optional[Dict] = None,
             response = requests.post(url, json=data, headers=headers, params=params, timeout=10)
         elif method == "PUT":
             response = requests.put(url, json=data, headers=headers, params=params, timeout=10)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers, params=params, timeout=10)
         else:
             return False, {"error": f"Unsupported method: {method}"}, 0
         
@@ -275,13 +279,124 @@ def test_seed_data(result: TestResult, parent_token: str):
     else:
         result.add_pass("Seed Data: Children (at least 1 child)")
 
+def test_account_deletion_flow(result: TestResult):
+    """Test 12-16: Account Deletion (Apple App Store Requirement)"""
+    print(f"\n{BLUE}Test 12-16: Account Deletion Flow (Apple Requirement){RESET}")
+    
+    # Test 12: Create a new test account
+    test_email = f"deltest_{int(time.time())}@test.com"
+    test_password = "DelTest123!@"
+    
+    success, data, status = make_request("POST", "/auth/signup", {
+        "name": "Delete Test User",
+        "email": test_email,
+        "password": test_password
+    })
+    
+    if not success or "access_token" not in data:
+        result.add_fail("Account Deletion: Create Test Account", 
+                       f"Status {status}: {data.get('detail', data)}")
+        return
+    
+    test_token = data["access_token"]
+    result.add_pass("Account Deletion: Create Test Account")
+    
+    # Test 13: Verify account exists with GET /api/auth/me
+    success, data, status = make_request("GET", "/auth/me", token=test_token)
+    if not success or data.get("email") != test_email:
+        result.add_fail("Account Deletion: Verify Account Exists", 
+                       f"Status {status}: {data.get('detail', data)}")
+        return
+    
+    result.add_pass("Account Deletion: Verify Account Exists")
+    
+    # Test 14: Delete the account
+    success, data, status = make_request("DELETE", "/auth/delete-account", token=test_token)
+    if not success:
+        result.add_fail("Account Deletion: DELETE /auth/delete-account", 
+                       f"Status {status}: {data.get('detail', data)}")
+        return
+    
+    if "message" not in data or "deleted" not in data["message"].lower():
+        result.add_fail("Account Deletion: DELETE /auth/delete-account", 
+                       f"Missing or invalid deletion message: {data}")
+        return
+    
+    result.add_pass("Account Deletion: DELETE /auth/delete-account")
+    
+    # Test 15: Verify account is deleted - GET /api/auth/me should return 401
+    success, data, status = make_request("GET", "/auth/me", token=test_token)
+    if status == 401:
+        result.add_pass("Account Deletion: Verify Account Deleted (401)")
+    else:
+        result.add_fail("Account Deletion: Verify Account Deleted (401)", 
+                       f"Expected 401, got {status}")
+    
+    # Test 16: Verify login fails with deleted account
+    success, data, status = make_request("POST", "/auth/login", {
+        "email": test_email,
+        "password": test_password
+    })
+    
+    if status == 401:
+        result.add_pass("Account Deletion: Login Fails After Deletion")
+    else:
+        result.add_fail("Account Deletion: Login Fails After Deletion", 
+                       f"Expected 401, got {status}")
+
+def test_review_family_code(result: TestResult):
+    """Test 17: Review Family Code Verification (for Apple reviewer)"""
+    print(f"\n{BLUE}Test 17: Review Family Code Verification{RESET}")
+    success, data, status = make_request("POST", "/family/verify-code", {
+        "code": REVIEW_CODE
+    })
+    
+    if not success:
+        result.add_fail("Review Family Code", f"Status {status}: {data.get('detail', data)}")
+        return
+    
+    required_fields = ["family_id", "family_name", "theme"]
+    missing = [f for f in required_fields if f not in data]
+    
+    if missing:
+        result.add_fail("Review Family Code", f"Missing fields: {missing}")
+    else:
+        result.add_pass("Review Family Code (REVIEW)")
+
+def test_review_child_join(result: TestResult):
+    """Test 18: Review Child Join (for Apple reviewer)"""
+    print(f"\n{BLUE}Test 18: Review Child Join Flow{RESET}")
+    
+    child_name = f"ReviewKid_{int(time.time())}"
+    
+    success, data, status = make_request("POST", "/family/join-child", {
+        "family_code": REVIEW_CODE,
+        "child_name": child_name
+    })
+    
+    if not success:
+        result.add_fail("Review Child Join", f"Status {status}: {data.get('detail', data)}")
+        return
+    
+    # Check all required fields
+    required_fields = ["child_id", "family_id", "message", "access_token", "token_type"]
+    missing = [f for f in required_fields if f not in data]
+    
+    if missing:
+        result.add_fail("Review Child Join", f"Missing fields: {missing}")
+    elif data.get("token_type") != "bearer":
+        result.add_fail("Review Child Join", f"Invalid token_type: {data.get('token_type')}")
+    else:
+        result.add_pass("Review Child Join (REVIEW code with JWT)")
+
 def main():
     print(f"\n{BLUE}{'='*60}{RESET}")
-    print(f"{BLUE}DodotX Backend API Testing - Critical Bug Fixes{RESET}")
+    print(f"{BLUE}DodotX Backend API Testing - Apple App Store Readiness{RESET}")
     print(f"{BLUE}{'='*60}{RESET}")
     print(f"Backend URL: {BASE_URL}")
     print(f"Test Account: {PARENT_EMAIL}")
     print(f"Family Code: {FAMILY_CODE}")
+    print(f"Review Code: {REVIEW_CODE}")
     
     result = TestResult()
     
@@ -308,6 +423,15 @@ def main():
     
     # Test 9-11: Seed Data Verification
     test_seed_data(result, parent_token)
+    
+    # Test 12-16: Account Deletion (Apple App Store Requirement)
+    test_account_deletion_flow(result)
+    
+    # Test 17: Review Family Code
+    test_review_family_code(result)
+    
+    # Test 18: Review Child Join
+    test_review_child_join(result)
     
     # Summary
     success = result.summary()
