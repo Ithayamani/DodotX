@@ -1,328 +1,317 @@
 #!/usr/bin/env python3
 """
-DoneDash Backend API Testing - Forgot Password Flow with Real SMTP Email
-Test the forgot-password endpoint to verify real email delivery via SMTP
+DodotX Backend API Testing - Critical Bug Fixes Verification
+Tests the child join-family flow with JWT token issuance and parent PIN flow
 """
 
 import requests
 import json
-import time
-from datetime import datetime
+import sys
+from typing import Dict, Any, Optional
 
-# Configuration
-BACKEND_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
-TEST_EMAIL = "parent@test.com"
-TEST_PASSWORD = "parent123"
-NON_EXISTENT_EMAIL = "nobody@test.com"
+# Backend URL from frontend/.env
+BASE_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
 
-def print_test_header(test_name):
-    print(f"\n{'='*60}")
-    print(f"TEST: {test_name}")
-    print(f"{'='*60}")
+# Test credentials from memory/test_credentials.md
+PARENT_EMAIL = "parent@test.com"
+PARENT_PASSWORD = "Parent123!"
+PARENT_PIN = "1234"
+FAMILY_CODE = "TEST01"
 
-def print_result(success, message):
-    status = "✅ PASS" if success else "❌ FAIL"
-    print(f"{status}: {message}")
+# Colors for output
+GREEN = '\033[92m'
+RED = '\033[91m'
+YELLOW = '\033[93m'
+BLUE = '\033[94m'
+RESET = '\033[0m'
 
-def test_login():
-    """Test 1: Login with parent@test.com / parent123 to confirm auth works"""
-    print_test_header("Login Authentication Test")
+class TestResult:
+    def __init__(self):
+        self.passed = 0
+        self.failed = 0
+        self.errors = []
+    
+    def add_pass(self, test_name: str):
+        self.passed += 1
+        print(f"{GREEN}✓{RESET} {test_name}")
+    
+    def add_fail(self, test_name: str, error: str):
+        self.failed += 1
+        self.errors.append(f"{test_name}: {error}")
+        print(f"{RED}✗{RESET} {test_name}")
+        print(f"  {RED}Error: {error}{RESET}")
+    
+    def summary(self):
+        total = self.passed + self.failed
+        print(f"\n{'='*60}")
+        print(f"Test Summary: {self.passed}/{total} passed")
+        if self.failed > 0:
+            print(f"{RED}Failed tests:{RESET}")
+            for error in self.errors:
+                print(f"  - {error}")
+        print(f"{'='*60}\n")
+        return self.failed == 0
+
+def make_request(method: str, endpoint: str, data: Optional[Dict] = None, 
+                 token: Optional[str] = None, params: Optional[Dict] = None) -> tuple:
+    """Make HTTP request and return (success, response_data, status_code)"""
+    url = f"{BASE_URL}{endpoint}"
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     
     try:
-        response = requests.post(f"{BACKEND_URL}/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        
-        if response.status_code == 200:
-            data = response.json()
-            if "access_token" in data and "user" in data:
-                print_result(True, f"Login successful for {TEST_EMAIL}")
-                print(f"   User ID: {data['user']['id']}")
-                print(f"   User Name: {data['user']['name']}")
-                print(f"   Family ID: {data['user'].get('family_id', 'None')}")
-                return data["access_token"]
-            else:
-                print_result(False, "Login response missing required fields")
-                return None
+        if method == "GET":
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+        elif method == "POST":
+            response = requests.post(url, json=data, headers=headers, params=params, timeout=10)
+        elif method == "PUT":
+            response = requests.put(url, json=data, headers=headers, params=params, timeout=10)
         else:
-            print_result(False, f"Login failed with status {response.status_code}: {response.text}")
-            return None
-            
+            return False, {"error": f"Unsupported method: {method}"}, 0
+        
+        try:
+            response_data = response.json()
+        except:
+            response_data = {"text": response.text}
+        
+        return response.status_code < 400, response_data, response.status_code
     except Exception as e:
-        print_result(False, f"Login request failed: {str(e)}")
+        return False, {"error": str(e)}, 0
+
+def test_parent_login(result: TestResult) -> Optional[str]:
+    """Test 1: Parent Login"""
+    print(f"\n{BLUE}Test 1: Parent Login{RESET}")
+    success, data, status = make_request("POST", "/auth/login", {
+        "email": PARENT_EMAIL,
+        "password": PARENT_PASSWORD
+    })
+    
+    if not success:
+        result.add_fail("Parent Login", f"Status {status}: {data.get('detail', data)}")
         return None
-
-def test_forgot_password_existing_email():
-    """Test 2: Call forgot-password with existing email"""
-    print_test_header("Forgot Password - Existing Email Test")
     
-    try:
-        response = requests.post(f"{BACKEND_URL}/auth/forgot-password", json={
-            "email": TEST_EMAIL
-        })
-        
-        if response.status_code == 200:
-            data = response.json()
-            expected_message = "If an account exists with this email, a reset code has been sent."
-            if data.get("message") == expected_message:
-                print_result(True, f"Forgot password request successful for {TEST_EMAIL}")
-                print(f"   Response: {data['message']}")
-                return True
-            else:
-                print_result(False, f"Unexpected response message: {data.get('message')}")
-                return False
-        else:
-            print_result(False, f"Forgot password failed with status {response.status_code}: {response.text}")
-            return False
-            
-    except Exception as e:
-        print_result(False, f"Forgot password request failed: {str(e)}")
-        return False
-
-def test_forgot_password_non_existent_email():
-    """Test 3: Call forgot-password with non-existent email (security test)"""
-    print_test_header("Forgot Password - Non-existent Email Test")
-    
-    try:
-        response = requests.post(f"{BACKEND_URL}/auth/forgot-password", json={
-            "email": NON_EXISTENT_EMAIL
-        })
-        
-        if response.status_code == 200:
-            data = response.json()
-            expected_message = "If an account exists with this email, a reset code has been sent."
-            if data.get("message") == expected_message:
-                print_result(True, f"Security test passed - same message for non-existent email")
-                print(f"   Response: {data['message']}")
-                return True
-            else:
-                print_result(False, f"Security issue - different message for non-existent email: {data.get('message')}")
-                return False
-        else:
-            print_result(False, f"Forgot password failed with status {response.status_code}: {response.text}")
-            return False
-            
-    except Exception as e:
-        print_result(False, f"Forgot password request failed: {str(e)}")
-        return False
-
-def check_backend_logs():
-    """Test 4: Check backend logs for SMTP email confirmation"""
-    print_test_header("Backend Logs Check for SMTP Email Delivery")
-    
-    try:
-        import subprocess
-        result = subprocess.run(
-            ["tail", "-n", "50", "/var/log/supervisor/backend.err.log"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        if result.returncode == 0:
-            logs = result.stdout
-            print("Recent backend logs:")
-            print("-" * 40)
-            print(logs)
-            print("-" * 40)
-            
-            # Check for SMTP success message
-            smtp_success = f"Password reset email sent to {TEST_EMAIL}" in logs
-            smtp_fallback = f"PASSWORD RESET CODE for {TEST_EMAIL}:" in logs
-            
-            if smtp_success:
-                print_result(True, "SMTP email delivery confirmed - real email sent!")
-                print(f"   Found log: 'Password reset email sent to {TEST_EMAIL}'")
-                return True, "smtp_success"
-            elif smtp_fallback:
-                print_result(False, "SMTP not working - code logged to console instead")
-                print(f"   Found log: 'PASSWORD RESET CODE for {TEST_EMAIL}:'")
-                return False, "smtp_fallback"
-            else:
-                print_result(False, "No relevant log entries found for forgot password")
-                return False, "no_logs"
-        else:
-            print_result(False, f"Failed to read backend logs: {result.stderr}")
-            return False, "log_error"
-            
-    except Exception as e:
-        print_result(False, f"Error checking backend logs: {str(e)}")
-        return False, "exception"
-
-def get_reset_code_from_db():
-    """Test 5: Get reset code from database for testing reset flow"""
-    print_test_header("Database Reset Code Retrieval")
-    
-    try:
-        # Connect to MongoDB to get the reset code
-        from pymongo import MongoClient
-        import os
-        
-        # Load environment variables
-        from dotenv import load_dotenv
-        load_dotenv('/app/backend/.env')
-        
-        mongo_url = os.environ['MONGO_URL']
-        db_name = os.environ['DB_NAME']
-        
-        client = MongoClient(mongo_url)
-        db = client[db_name]
-        
-        # Find the most recent reset code for our test email
-        reset_record = db.password_resets.find_one(
-            {"email": TEST_EMAIL.lower().strip(), "used": False},
-            sort=[("expires_at", -1)]
-        )
-        
-        if reset_record:
-            code = reset_record["code"]
-            expires_at = reset_record["expires_at"]
-            print_result(True, f"Reset code retrieved from database: {code}")
-            print(f"   Email: {reset_record['email']}")
-            print(f"   Expires at: {expires_at}")
-            print(f"   Used: {reset_record['used']}")
-            return code
-        else:
-            print_result(False, "No reset code found in database")
-            return None
-            
-    except Exception as e:
-        print_result(False, f"Error retrieving reset code from database: {str(e)}")
+    if "access_token" not in data:
+        result.add_fail("Parent Login", "No access_token in response")
         return None
+    
+    if "user" not in data or data["user"].get("email") != PARENT_EMAIL:
+        result.add_fail("Parent Login", "Invalid user data in response")
+        return None
+    
+    result.add_pass("Parent Login")
+    return data["access_token"]
 
-def test_reset_password(reset_code):
-    """Test 6: Test the full reset flow with the code from database"""
-    print_test_header("Password Reset Flow Test")
+def test_parent_pin_verification(result: TestResult, parent_token: str):
+    """Test 2: Parent PIN Verification"""
+    print(f"\n{BLUE}Test 2: Parent PIN Verification{RESET}")
     
-    if not reset_code:
-        print_result(False, "No reset code available for testing")
-        return False
+    # Test correct PIN
+    success, data, status = make_request("POST", "/family/verify-pin", 
+                                        token=parent_token, params={"pin": PARENT_PIN})
     
-    try:
-        # Test with the actual reset code
-        response = requests.post(f"{BACKEND_URL}/auth/reset-password", json={
-            "email": TEST_EMAIL,
-            "code": reset_code,
-            "new_password": TEST_PASSWORD  # Reset to same password for consistency
-        })
-        
-        if response.status_code == 200:
-            data = response.json()
-            expected_message = "Password has been reset successfully. You can now sign in."
-            if data.get("message") == expected_message:
-                print_result(True, f"Password reset successful with code {reset_code}")
-                print(f"   Response: {data['message']}")
-                return True
-            else:
-                print_result(False, f"Unexpected reset response: {data.get('message')}")
-                return False
-        else:
-            print_result(False, f"Password reset failed with status {response.status_code}: {response.text}")
-            return False
-            
-    except Exception as e:
-        print_result(False, f"Password reset request failed: {str(e)}")
-        return False
+    if not success or not data.get("success"):
+        result.add_fail("Parent PIN Verification (correct PIN)", 
+                       f"Status {status}: {data.get('detail', data)}")
+    else:
+        result.add_pass("Parent PIN Verification (correct PIN)")
+    
+    # Test wrong PIN
+    success, data, status = make_request("POST", "/family/verify-pin", 
+                                        token=parent_token, params={"pin": "9999"})
+    
+    if status == 401:
+        result.add_pass("Parent PIN Verification (wrong PIN rejected)")
+    else:
+        result.add_fail("Parent PIN Verification (wrong PIN rejected)", 
+                       f"Expected 401, got {status}")
 
-def test_invalid_reset_code():
-    """Test 7: Test reset with invalid code"""
-    print_test_header("Invalid Reset Code Test")
+def test_family_code_verification(result: TestResult):
+    """Test 3: Family Code Verification"""
+    print(f"\n{BLUE}Test 3: Family Code Verification{RESET}")
+    success, data, status = make_request("POST", "/family/verify-code", {
+        "code": FAMILY_CODE
+    })
     
-    try:
-        response = requests.post(f"{BACKEND_URL}/auth/reset-password", json={
-            "email": TEST_EMAIL,
-            "code": "000000",  # Invalid code
-            "new_password": "newpassword123"
-        })
-        
-        if response.status_code == 400:
-            data = response.json()
-            if "Invalid or expired reset code" in data.get("detail", ""):
-                print_result(True, "Invalid reset code properly rejected")
-                print(f"   Response: {data['detail']}")
-                return True
-            else:
-                print_result(False, f"Unexpected error message: {data.get('detail')}")
-                return False
-        else:
-            print_result(False, f"Expected 400 error, got {response.status_code}: {response.text}")
-            return False
-            
-    except Exception as e:
-        print_result(False, f"Invalid reset code test failed: {str(e)}")
-        return False
-
-def main():
-    """Run all forgot password flow tests"""
-    print("DoneDash Backend - Forgot Password Flow with Real SMTP Email Testing")
-    print(f"Backend URL: {BACKEND_URL}")
-    print(f"Test Email: {TEST_EMAIL}")
-    print(f"Timestamp: {datetime.now().isoformat()}")
-    
-    results = []
-    
-    # Test 1: Login to confirm auth works
-    token = test_login()
-    results.append(("Login Authentication", token is not None))
-    
-    if not token:
-        print("\n❌ Cannot proceed without valid authentication")
+    if not success:
+        result.add_fail("Family Code Verification", f"Status {status}: {data.get('detail', data)}")
         return
     
-    # Test 2: Forgot password with existing email
-    forgot_success = test_forgot_password_existing_email()
-    results.append(("Forgot Password - Existing Email", forgot_success))
+    required_fields = ["family_id", "family_name", "theme"]
+    missing = [f for f in required_fields if f not in data]
     
-    # Wait a moment for the email to be processed
-    time.sleep(2)
-    
-    # Test 3: Check backend logs for SMTP confirmation
-    smtp_success, log_type = check_backend_logs()
-    results.append(("SMTP Email Delivery", smtp_success))
-    
-    # Test 4: Forgot password with non-existent email (security)
-    security_test = test_forgot_password_non_existent_email()
-    results.append(("Security - Non-existent Email", security_test))
-    
-    # Test 5: Get reset code from database
-    reset_code = get_reset_code_from_db()
-    results.append(("Database Reset Code Retrieval", reset_code is not None))
-    
-    # Test 6: Test full reset flow
-    if reset_code:
-        reset_success = test_reset_password(reset_code)
-        results.append(("Password Reset Flow", reset_success))
-    
-    # Test 7: Test invalid reset code
-    invalid_test = test_invalid_reset_code()
-    results.append(("Invalid Reset Code Rejection", invalid_test))
-    
-    # Final summary
-    print(f"\n{'='*60}")
-    print("FINAL TEST SUMMARY")
-    print(f"{'='*60}")
-    
-    passed = 0
-    total = len(results)
-    
-    for test_name, success in results:
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status}: {test_name}")
-        if success:
-            passed += 1
-    
-    print(f"\nOverall Result: {passed}/{total} tests passed")
-    
-    # Key verification message
-    if smtp_success:
-        print("\n🎉 KEY VERIFICATION: SMTP email delivery is working!")
-        print("   Backend logs show 'Password reset email sent to...' confirming real email delivery")
+    if missing:
+        result.add_fail("Family Code Verification", f"Missing fields: {missing}")
     else:
-        print("\n⚠️  KEY VERIFICATION: SMTP email delivery is NOT working")
-        print("   Backend logs show 'PASSWORD RESET CODE for...' indicating fallback to console logging")
+        result.add_pass("Family Code Verification")
+
+def test_child_join_family(result: TestResult) -> tuple:
+    """Test 4: Child Join Family via Code (MOST IMPORTANT - JWT Token)"""
+    print(f"\n{BLUE}Test 4: Child Join Family via Code (JWT Token){RESET}")
     
-    return passed == total
+    import time
+    child_name = f"TestKid_{int(time.time())}"
+    
+    success, data, status = make_request("POST", "/family/join-child", {
+        "family_code": FAMILY_CODE,
+        "child_name": child_name
+    })
+    
+    if not success:
+        result.add_fail("Child Join Family", f"Status {status}: {data.get('detail', data)}")
+        return None, None
+    
+    # Check all required fields
+    required_fields = ["child_id", "family_id", "message", "access_token", "token_type", "user"]
+    missing = [f for f in required_fields if f not in data]
+    
+    if missing:
+        result.add_fail("Child Join Family", f"Missing fields: {missing}")
+        return None, None
+    
+    if data.get("token_type") != "bearer":
+        result.add_fail("Child Join Family", f"Invalid token_type: {data.get('token_type')}")
+        return None, None
+    
+    if not data.get("user", {}).get("role") == "child":
+        result.add_fail("Child Join Family", f"Invalid user role: {data.get('user', {}).get('role')}")
+        return None, None
+    
+    result.add_pass("Child Join Family (JWT Token Issued)")
+    return data["access_token"], data["child_id"]
+
+def test_child_api_access(result: TestResult, child_token: str, child_id: str):
+    """Test 5-8: Child API Access with JWT Token"""
+    print(f"\n{BLUE}Test 5-8: Child API Access with JWT Token{RESET}")
+    
+    # Test 5: GET /api/family
+    success, data, status = make_request("GET", "/family", token=child_token)
+    if success and "id" in data and "name" in data:
+        result.add_pass("Child Access: GET /family")
+    else:
+        result.add_fail("Child Access: GET /family", f"Status {status}: {data.get('detail', data)}")
+    
+    # Test 6: GET /api/tasks
+    success, data, status = make_request("GET", "/tasks", token=child_token)
+    if success and isinstance(data, list):
+        result.add_pass("Child Access: GET /tasks")
+        # Store first task for toggle test
+        task_id = data[0]["id"] if data else None
+    else:
+        result.add_fail("Child Access: GET /tasks", f"Status {status}: {data.get('detail', data)}")
+        task_id = None
+    
+    # Test 7: GET /api/progress/{child_id}
+    success, data, status = make_request("GET", f"/progress/{child_id}", token=child_token)
+    if success and "points" in data and "child" in data:
+        result.add_pass("Child Access: GET /progress/{child_id}")
+    else:
+        result.add_fail("Child Access: GET /progress/{child_id}", f"Status {status}: {data.get('detail', data)}")
+    
+    # Test 8: POST /api/tasks/{task_id}/toggle
+    if task_id:
+        success, data, status = make_request("POST", f"/tasks/{task_id}/toggle", 
+                                            token=child_token, params={"child_id": child_id})
+        if success and "success" in data and "points" in data:
+            result.add_pass("Child Access: POST /tasks/{task_id}/toggle")
+        else:
+            result.add_fail("Child Access: POST /tasks/{task_id}/toggle", 
+                           f"Status {status}: {data.get('detail', data)}")
+    else:
+        result.add_fail("Child Access: POST /tasks/{task_id}/toggle", "No task_id available")
+
+def test_seed_data(result: TestResult, parent_token: str):
+    """Test 9-11: Seed Data Verification"""
+    print(f"\n{BLUE}Test 9-11: Seed Data Verification{RESET}")
+    
+    # Test 9: GET /api/tasks (8 tasks with correct fields)
+    success, data, status = make_request("GET", "/tasks", token=parent_token)
+    if not success:
+        result.add_fail("Seed Data: Tasks", f"Status {status}: {data.get('detail', data)}")
+    elif not isinstance(data, list):
+        result.add_fail("Seed Data: Tasks", "Response is not a list")
+    elif len(data) < 8:
+        result.add_fail("Seed Data: Tasks", f"Expected 8 tasks, got {len(data)}")
+    else:
+        # Check task structure
+        task = data[0]
+        required_fields = ["title", "icon", "pts", "cat", "modes"]
+        missing = [f for f in required_fields if f not in task]
+        if missing:
+            result.add_fail("Seed Data: Tasks", f"Missing fields in task: {missing}")
+        elif not isinstance(task.get("modes"), dict):
+            result.add_fail("Seed Data: Tasks", f"Invalid modes format: {type(task.get('modes'))}")
+        elif "daily" not in task["modes"] or "vacation" not in task["modes"]:
+            result.add_fail("Seed Data: Tasks", f"Missing daily/vacation in modes: {task['modes']}")
+        else:
+            result.add_pass("Seed Data: Tasks (8 tasks with correct fields)")
+    
+    # Test 10: GET /api/rewards (5 rewards with correct fields)
+    success, data, status = make_request("GET", "/rewards", token=parent_token)
+    if not success:
+        result.add_fail("Seed Data: Rewards", f"Status {status}: {data.get('detail', data)}")
+    elif not isinstance(data, list):
+        result.add_fail("Seed Data: Rewards", "Response is not a list")
+    elif len(data) < 5:
+        result.add_fail("Seed Data: Rewards", f"Expected 5 rewards, got {len(data)}")
+    else:
+        # Check reward structure
+        reward = data[0]
+        required_fields = ["name", "icon", "pts", "desc"]
+        missing = [f for f in required_fields if f not in reward]
+        if missing:
+            result.add_fail("Seed Data: Rewards", f"Missing fields in reward: {missing}")
+        else:
+            result.add_pass("Seed Data: Rewards (5 rewards with correct fields)")
+    
+    # Test 11: GET /api/children (at least 1 child - Alex)
+    success, data, status = make_request("GET", "/children", token=parent_token)
+    if not success:
+        result.add_fail("Seed Data: Children", f"Status {status}: {data.get('detail', data)}")
+    elif not isinstance(data, list):
+        result.add_fail("Seed Data: Children", "Response is not a list")
+    elif len(data) < 1:
+        result.add_fail("Seed Data: Children", "Expected at least 1 child (Alex)")
+    else:
+        result.add_pass("Seed Data: Children (at least 1 child)")
+
+def main():
+    print(f"\n{BLUE}{'='*60}{RESET}")
+    print(f"{BLUE}DodotX Backend API Testing - Critical Bug Fixes{RESET}")
+    print(f"{BLUE}{'='*60}{RESET}")
+    print(f"Backend URL: {BASE_URL}")
+    print(f"Test Account: {PARENT_EMAIL}")
+    print(f"Family Code: {FAMILY_CODE}")
+    
+    result = TestResult()
+    
+    # Test 1: Parent Login
+    parent_token = test_parent_login(result)
+    if not parent_token:
+        print(f"\n{RED}Cannot continue without parent token{RESET}")
+        result.summary()
+        return 1
+    
+    # Test 2: Parent PIN Verification
+    test_parent_pin_verification(result, parent_token)
+    
+    # Test 3: Family Code Verification
+    test_family_code_verification(result)
+    
+    # Test 4: Child Join Family (MOST IMPORTANT)
+    child_token, child_id = test_child_join_family(result)
+    if not child_token or not child_id:
+        print(f"\n{YELLOW}Warning: Child token not available, skipping child API tests{RESET}")
+    else:
+        # Test 5-8: Child API Access
+        test_child_api_access(result, child_token, child_id)
+    
+    # Test 9-11: Seed Data Verification
+    test_seed_data(result, parent_token)
+    
+    # Summary
+    success = result.summary()
+    return 0 if success else 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

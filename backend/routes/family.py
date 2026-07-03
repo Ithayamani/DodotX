@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from routes import db, get_current_user, FAMILY_CODE_EXPIRY_MINUTES
 from models import User, Family, FamilyCreate, FamilyUpdate, FamilyCodeVerify, ChildInvite, Child, Task, Reward, Progress
-from auth import get_pin_hash, verify_pin
+from auth import get_pin_hash, verify_pin, create_access_token
 from utils import generate_id, generate_family_code, DEFAULT_TASKS, DEFAULT_REWARDS
 from datetime import datetime, timedelta
 
@@ -99,11 +99,38 @@ async def join_child(invite_data: ChildInvite):
         if datetime.utcnow() > expiry_time:
             raise HTTPException(status_code=410, detail="Family code has expired. Ask the parent to generate a new one.")
     child_id = generate_id()
-    child = Child(id=child_id, name=invite_data.child_name, avatar="\ud83d\udc66", family_id=family["id"])
+    child = Child(id=child_id, name=invite_data.child_name, avatar="👦", family_id=family["id"])
     await db.children.insert_one(child.dict())
     progress = Progress(child_id=child_id)
     await db.progress.insert_one(progress.dict())
-    return {"child_id": child_id, "family_id": family["id"], "message": f"{invite_data.child_name} joined the family!"}
+
+    # Create a child user so they get a JWT token for API access
+    child_user_id = generate_id()
+    child_user_doc = {
+        "id": child_user_id,
+        "email": f"child_{child_id}@dodotx.com",
+        "hashed_password": "",
+        "name": invite_data.child_name,
+        "role": "child",
+        "family_id": family["id"],
+        "created_at": datetime.utcnow(),
+    }
+    await db.users.insert_one(child_user_doc)
+    access_token = create_access_token(data={"sub": child_user_id})
+
+    return {
+        "child_id": child_id,
+        "family_id": family["id"],
+        "message": f"{invite_data.child_name} joined the family!",
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": child_user_id,
+            "name": invite_data.child_name,
+            "role": "child",
+            "family_id": family["id"],
+        },
+    }
 
 @router.post("/regenerate-code", response_model=dict)
 async def regenerate_family_code_endpoint(current_user: User = Depends(get_current_user)):

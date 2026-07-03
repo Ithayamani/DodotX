@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { familyAPI } from '../src/api/client';
 import { useAppStore } from '../src/stores';
+import { useAuthStore } from '../src/stores';
 import { getThemeColors } from '../src/constants';
 import type { Theme } from '../src/types';
 
@@ -51,6 +53,14 @@ export default function JoinFamily() {
     setLoading(true);
     try {
       const result = await familyAPI.joinChild(familyCode.trim().toUpperCase(), petName.trim());
+
+      // Store the JWT token so child API calls are authenticated
+      if (result.access_token) {
+        await AsyncStorage.setItem('auth_token', result.access_token);
+        if (result.user) {
+          await AsyncStorage.setItem('user_data', JSON.stringify(result.user));
+        }
+      }
 
       // Set the child in the app store
       setCurrentChild({

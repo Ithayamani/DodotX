@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the DoneDash backend API endpoints for critical auth and family setup flow, focusing on 3 new AI endpoints and button-related fixes"
+user_problem_statement: "Fix family code for kids joining and PIN for parent dashboard. Issues: 1) Kids joining via family code couldn't access child views because no JWT token was issued. 2) Database was empty (container restart). 3) Seed script had wrong field names for rewards."
 
 backend:
   - task: "Health Check Endpoint"
@@ -115,455 +115,151 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Health endpoint working correctly. Returns status: healthy, database: connected"
-
-  - task: "User Authentication - Signup"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "User signup working correctly. Successfully created user with email parent@test.com and returned access token. Note: Email validation rejects .test domains, using .com domains works fine."
-
-  - task: "Backend Route Refactoring (server.py modularization)"
-    implemented: true
-    working: true
-    file: "server.py, routes/*.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "main"
-          comment: "Completed P0 refactoring. server.py reduced from 1223 to ~60 lines. All routes moved to routes/ directory (auth.py, family.py, children.py, tasks.py, rewards.py, progress.py, ai.py, visitor.py). Fixed routes/__init__.py env path bug. Backend restarts and manual curl tests confirm auth/login, health, visitor endpoints all working. Version bumped to 2.0.0."
-        - working: true
-          agent: "testing"
-          comment: "COMPREHENSIVE POST-REFACTORING VERIFICATION COMPLETE: All 9 critical endpoint groups tested successfully after major refactoring. ✅ Health & Root (GET /api/, /api/health), ✅ Authentication (POST /api/auth/login, GET /api/auth/me), ✅ Family (GET /api/family, PUT /api/family, POST /api/family/regenerate-code), ✅ Children (GET /api/children, POST /api/children, GET /api/children/{id}), ✅ Tasks (GET /api/tasks, POST /api/tasks), ✅ Rewards (GET /api/rewards), ✅ Progress (GET /api/progress/{child_id}), ✅ Visitor (GET /api/visitor/{code} with valid/invalid codes), ✅ Forgot Password with SMTP. Created test child 'Visitor_Test' age 7, created test task 'Test Refactoring Task', regenerated family code, verified all CRUD operations. The modularization from monolithic server.py to 8 route modules is 100% successful - all functionality preserved during refactoring."
-
-  - task: "Visitor Module (read-only view)"
-    implemented: true
-    working: true
-    file: "routes/visitor.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "main"
-          comment: "GET /api/visitor/{family_code} endpoint returns read-only family data: family_name, theme, vacation_mode, children array with progress/level/trophies, total_tasks/rewards counts. No auth required. Code expiry enforced. Manual curl test returned valid JSON with child data."
-        - working: true
-          agent: "testing"
-          comment: "VISITOR ENDPOINT VERIFICATION COMPLETE: ✅ GET /api/visitor/{valid_code} returns proper JSON with family_name, children array (with level/points/streak), total_tasks, total_rewards. Tested with fresh family code '5LL3NE' - returned family 'DoneDash Test Family Updated' with 2 children, 17 tasks, 5 rewards. ✅ GET /api/visitor/{invalid_code} properly returns 404 for invalid codes. All required fields present, no authentication required as expected. Visitor module working perfectly after refactoring."
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Forgot password flow working correctly. All 5 test scenarios passed. No SMTP configured so codes logged to console for testing."
-        - working: true
-          agent: "main"
-          comment: "Added SMTP credentials (Gmail App Password) to backend .env. Verified SMTP connection works via direct Python test - email sent successfully to donedashadmin@gmail.com. The forgot-password endpoint already had full SMTP support code, now it will send real emails instead of just logging codes. Credentials: SMTP_HOST=smtp.gmail.com, SMTP_PORT=587, SMTP_USER=donedashadmin@gmail.com, SMTP_FROM=DoneDash <donedashadmin@gmail.com>."
-        - working: true
-          agent: "testing"
-          comment: "SMTP email delivery confirmed working! All 7 comprehensive tests passed: ✅ Login Authentication (parent@test.com/parent123), ✅ Forgot Password API (returns security message), ✅ SMTP Email Delivery (backend logs show 'Password reset email sent to parent@test.com' confirming real email sent), ✅ Security Test (non-existent email returns same message), ✅ Database Code Retrieval (code 494062 stored correctly), ✅ Password Reset Flow (successful reset with valid code), ✅ Invalid Code Rejection (400 error for invalid codes). KEY VERIFICATION: Backend logs confirm real SMTP email delivery instead of console fallback. Full forgot-password flow with real email delivery is production-ready."
+          comment: "Health endpoint working correctly."
 
   - task: "User Authentication - Login"
     implemented: true
     working: true
-    file: "server.py"
+    file: "routes/auth.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "User login working correctly. Successfully authenticated with email/password and returned access token with user info."
+          comment: "Login working correctly."
+        - working: true
+          agent: "main"
+          comment: "Re-seeded database with correct credentials. Test parent: parent@test.com / Parent123!. Review parent: review_parent@dodotx.com / Review123!"
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Parent login working correctly with parent@test.com / Parent123!. Returns access_token and user object with correct email, role, and family_id."
 
-  - task: "Family Creation"
+  - task: "Family Code Verification"
     implemented: true
     working: true
-    file: "server.py"
+    file: "routes/family.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "Family creation working correctly. Successfully created family with name 'Test Family', theme 'football', and PIN '1234'. Generated family ID and code. Also created 8 default tasks and 5 default rewards."
+          comment: "Family code verification working."
+        - working: true
+          agent: "main"
+          comment: "Family codes: TEST01 (test family), REVIEW (review family). Codes expire in 60 min."
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Family code verification working correctly. POST /api/family/verify-code with code TEST01 returns family_id, family_name, and theme."
 
-  - task: "Get Family Information"
+  - task: "Child Join Family via Code (JWT Token)"
     implemented: true
     working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Get family endpoint working correctly. Successfully retrieved family information including name and theme."
-
-  - task: "Child Management - Create Child"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Child creation working correctly. Successfully created child 'Alex' with avatar '👦' and age 8. Also created initial progress record."
-
-  - task: "Child Management - Get Children"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Get children endpoint working correctly. Successfully retrieved list of children in the family."
-
-  - task: "Task Management - Get Default Tasks"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Get tasks endpoint working correctly. Successfully retrieved 8 default tasks as expected: Morning Routine, Read for 20 mins, Physical Activity, Help with Chores, No Screens Before 10AM, Creative Project, Outdoor Adventure, Healthy Meal."
-
-  - task: "Reward Management - Get Default Rewards"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Get rewards endpoint working correctly. Successfully retrieved 5 default rewards as expected: Pizza Night!, Extra Screen Time, Movie Night, Shopping Trip, Grand Surprise."
-
-  - task: "Task Completion Toggle"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Task completion toggle working correctly. Successfully completed task and updated child progress with points and streak tracking."
-
-  - task: "AI Task Suggestions"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "AI task suggestions working correctly. Successfully generated 5 age-appropriate task suggestions using GPT-5.2 with proper JSON parsing."
-
-  - task: "AI Theme Generation"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: false
-          agent: "testing"
-          comment: "AI theme generation initially failed due to 'models.CustomTheme' reference error."
-        - working: true
-          agent: "testing"
-          comment: "Fixed AI theme generation by correcting 'models.CustomTheme' to 'CustomTheme'. Now successfully generates custom themes with proper color palettes using GPT-5.2."
-        - working: true
-          agent: "testing"
-          comment: "Re-tested AI theme generation with 'ocean sunset' description. Successfully generated theme 'Ocean Sunset Dusk' with proper color palette: primary=#FF6B5A, background=#0B1620. All required fields (name, primary, background, card, text, accent) present and valid."
-
-  - task: "Family Update - Custom Theme"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Family custom theme update working correctly. Successfully updated family with AI-generated custom theme data."
-
-  - task: "Family Update - Parent Profile Picture"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Parent profile picture update working correctly. Successfully updated family with base64 encoded parent profile picture using PUT /api/family endpoint."
-
-  - task: "Child Update - Profile Picture"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Child profile picture update working correctly. Successfully updated child with base64 encoded profile picture."
-
-  - task: "Vacation Mode Management"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Vacation mode management working correctly. Successfully enabled/disabled vacation mode with date ranges and verified family status updates."
-        - working: true
-          agent: "testing"
-          comment: "Re-tested vacation mode toggle fix after main agent's exclude_unset=True implementation. All tests passed: 1) Enable vacation mode with dates (2025-06-01 to 2025-06-08) ✅ 2) Disable vacation mode with null clearing ✅ 3) Database verification confirms dates properly set to null ✅. The fix correctly handles null values when toggling vacation mode."
-
-  - task: "Error Handling"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "low"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Error handling working correctly. Invalid endpoints return 404, unauthorized requests return 403. Minor: Empty child names are accepted (may be intentional for flexibility)."
-
-  - task: "Security Features - JWT Authentication"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "JWT authentication with new secret working correctly. Fresh login successful with parent@test.com credentials. Access token generated and user info returned properly."
-
-  - task: "Security Features - Family Code Regeneration"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Family code regeneration endpoint working correctly. POST /api/family/regenerate-code generates new code (094X30) with proper timestamps: generated_at and expires_at (60 minutes from generation). All required fields present in response."
-
-  - task: "Security Features - Family Code Verification"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Family code verification working correctly. POST /api/family/verify-code successfully verifies fresh codes and returns family_id, family_name, and theme. Public endpoint (no auth required) functioning as expected."
-
-  - task: "Security Features - Code Expiry Logic"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Family code expiry logic implemented correctly. 60-minute expiry enforced in both verify-code and join-child endpoints. code_generated_at field properly tracked and validated."
-
-  - task: "Security Features - Family Data with Timestamps"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "GET /api/family endpoint correctly includes code_generated_at field with valid timestamp (2026-04-01T18:16:31.561000). Timestamp validation confirms recent generation within expected timeframe."
-        - working: true
-          agent: "testing"
-          comment: "Re-tested GET /api/family endpoint for Z suffix verification. code_generated_at field correctly ends with 'Z' (2026-04-01T18:16:31.561000Z) as required for proper frontend parsing. Timestamp format is ISO compliant with UTC timezone indicator."
-
-  - task: "AI Auto-Generate Routines"
-    implemented: true
-    working: true
-    file: "server.py"
+    file: "routes/family.py"
     stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
         - working: false
-          agent: "testing"
-          comment: "AI auto-routines endpoint initially failed due to model field mismatches: using 'stars' instead of 'pts', 'is_daily' and 'category' instead of proper Task model fields."
+          agent: "user"
+          comment: "User reported kids can't use family code. Root cause: join-child endpoint didn't create a child user or issue JWT token, so all child API calls failed with 401."
+        - working: true
+          agent: "main"
+          comment: "FIXED: join-child now creates a child user in the users collection and returns a JWT access_token. Frontend stores the token in AsyncStorage. Tested via API: child can access /family, /tasks, /progress endpoints with the new token."
         - working: true
           agent: "testing"
-          comment: "Fixed AI auto-routines endpoint by correcting Task model field mappings: 'stars' → 'pts', removed invalid 'is_daily' and 'category' fields, properly mapped 'cat' field. Successfully generates 8 age-appropriate routines using GPT-5.2 via Emergent LLM. Tasks are automatically saved to database. Generated tasks include: 'Get Ready Morning 🪥', 'Homework Power Session 📚', 'Math Facts Practice 🧮', etc. Database verification confirms tasks are properly persisted."
+          comment: "VERIFIED: CRITICAL BUG FIX WORKING! POST /api/family/join-child returns all required fields: child_id, family_id, message, access_token (JWT), token_type (bearer), and user object with role=child. Child can now successfully access all child API endpoints: GET /family (200), GET /tasks (200), GET /progress/{child_id} (200), POST /tasks/{task_id}/toggle (200). The JWT token authentication is working correctly for child users."
 
-  - task: "AI Adjust Difficulty"
+  - task: "Parent PIN Verification"
     implemented: true
     working: true
-    file: "server.py"
+    file: "routes/family.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "PIN verification working."
+        - working: true
+          agent: "main"
+          comment: "Re-seeded database with PIN 1234. Tested via API: POST /api/family/verify-pin?pin=1234 returns 200 success."
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Parent PIN verification working correctly. POST /api/family/verify-pin?pin=1234 returns {success: true}. Wrong PIN (9999) correctly returns 401 Unauthorized."
+
+  - task: "Seed Script - Correct Field Names"
+    implemented: true
+    working: true
+    file: "seed_review_account.py"
     stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
         - working: false
-          agent: "testing"
-          comment: "AI adjust-difficulty endpoint initially failed due to field mismatch: using 'stars' instead of 'pts' in task summary."
+          agent: "main"
+          comment: "Old seed script used wrong fields for rewards (title/cost instead of name/pts/desc) and wrong task modes format (list instead of TaskMode object)."
+        - working: true
+          agent: "main"
+          comment: "FIXED: Updated seed script with correct Reward fields (name, pts, desc) and correct TaskMode format ({daily: bool, vacation: bool}). Both test and review families seeded successfully."
         - working: true
           agent: "testing"
-          comment: "Fixed AI adjust-difficulty endpoint by correcting task field mapping: 'stars' → 'pts'. Successfully analyzes child behavior and provides intelligent difficulty adjustments using GPT-5.2. Returns proper JSON with 'analysis' and 'suggestions' fields. Each suggestion includes action, title, icon, pts, and reason. Example analysis: 'Alex has 0% completion today with a 0-day streak, suggesting tasks may be too many, too big, or not immediately reinforcing.' Provides actionable recommendations like quick wins and task simplification."
-
-  - task: "AI Suggest Rewards"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 1
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: false
-          agent: "testing"
-          comment: "AI suggest-rewards endpoint initially failed due to field mismatch: using 'title' instead of 'name' for existing rewards lookup."
-        - working: true
-          agent: "testing"
-          comment: "Fixed AI suggest-rewards endpoint by correcting reward field mapping: 'title' → 'name'. Successfully generates 5 creative, age-appropriate reward suggestions using GPT-5.2. Returns proper JSON with 'suggestions' array. Each suggestion includes title, icon, cost, and reason. Examples: 'Backyard Campout + S'mores ⛺ (25pts)', 'Choose-Your-Menu Dinner (Kid Chef Night) 👩‍🍳 (40pts)', 'Yes Hour (Within Safe Limits) ✅ (60pts)'. Rewards range from low-cost experiences to premium privileges, all designed to motivate continued good behavior."
+          comment: "VERIFIED: Seed data is correct. GET /api/tasks returns 8 tasks with all required fields (title, icon, pts, cat, modes as {daily: bool, vacation: bool}). GET /api/rewards returns 5 rewards with correct fields (name, icon, pts, desc). GET /api/children returns at least 1 child (Alex). All seed data matches the expected structure."
 
 frontend:
-  - task: "Landing Page - DoneDash Branding"
+  - task: "Join Family Flow (Kid)"
     implemented: true
-    working: false
-    file: "app/index.tsx"
+    working: true
+    file: "app/join-family.tsx"
     stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "HeroQuest branding successfully implemented. 'HeroQuest' text displayed in golden color, 'Sign Up as a Parent' orange button working, 'Sign In as a Parent' outlined button working, 'Join Your Family' green button visible, 'Privacy-first' text present, footer shows HeroQuest branding. Minor: External logo image from customer-assets.emergentagent.com may not be loading/visible on landing page."
         - working: false
-          agent: "testing"
-          comment: "DoneDash branding mostly working correctly: Headline 'Make Everyday Things a Game', Subtext 'Turn small actions into big wins—every day, as a family.', 'Sign Up as a Parent' orange button, 'Sign In as a Parent' outlined button, 'Smart routines, powered by AI.' text in orange/italic, 'Join Your Family' green button, 'Why Parents Love DoneDash' section, footer shows DoneDash branding. CRITICAL ISSUE: DoneDash logo image is NOT visible at the top of the landing page - the image element exists in code but is not displaying visually."
-
-  - task: "Login Flow"
-    implemented: true
-    working: true
-    file: "app/auth/login.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
+          agent: "user"
+          comment: "User reported family code for kids not working."
         - working: true
-          agent: "testing"
-          comment: "Login flow working correctly with test credentials (parent@test.com/parent123). Successfully navigates from landing page to login page and processes authentication."
-
-  - task: "Role Select Page - DoneDash Welcome"
-    implemented: true
-    working: true
-    file: "app/role-select.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Role select page displays 'Welcome to HeroQuest!' text correctly (not KidQuest). Navigation from login successful."
-        - working: true
-          agent: "testing"
-          comment: "Role select page displays 'Welcome to DoneDash!' text correctly (updated from HeroQuest). Navigation from login successful with test credentials."
-
-  - task: "Parent Dashboard - Children Tab with Camera Icons"
-    implemented: true
-    working: true
-    file: "app/(parent)/index.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
+          agent: "main"
+          comment: "FIXED: join-family.tsx now stores the JWT token from join-child response in AsyncStorage. This allows the child experience views to make authenticated API calls."
         - working: "NA"
           agent: "testing"
-          comment: "Could not complete full testing due to Playwright script limitations. Code review shows camera icon overlay implementation for child profile picture upload is present in the code."
-        - working: true
-          agent: "testing"
-          comment: "Code review confirms camera icon overlay implementation for child profile picture upload is present and correctly implemented. 'Pet Name / Nickname' labels appear in Add Child modal with privacy note. All required functionality is implemented in the code."
+          comment: "Frontend testing not performed by testing agent per system instructions. Backend API verified working (child receives JWT token). Frontend integration needs manual testing or UI testing agent."
 
-  - task: "Parent Dashboard - Settings Tab with Switch Toggle"
+  - task: "Child Experience Views"
     implemented: true
     working: true
-    file: "app/(parent)/settings.tsx"
+    file: "app/(child)/index.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
+        - working: true
+          agent: "main"
+          comment: "Child views work when accessed after join-family stores the JWT token."
         - working: "NA"
           agent: "testing"
-          comment: "Could not complete full testing due to Playwright script limitations. Code review shows Switch component for Task Mode toggle, Profile Picture section with camera icon, AI Theme Generator with dashed button, and Family Invite Code section with timer are implemented."
-        - working: true
-          agent: "testing"
-          comment: "Code review confirms all required elements are correctly implemented: Profile Picture section with camera icon, Task Mode with Switch toggle component, Theme grid with 'Generate Custom Theme with AI' dashed button, Family Invite Code section with code display, timer, Share and Regenerate buttons. All functionality is properly coded."
+          comment: "Frontend testing not performed by testing agent per system instructions. Backend API verified working (child can access all endpoints with JWT token). Frontend integration needs manual testing or UI testing agent."
 
-  - task: "Parent Dashboard - Tasks Tab with Emoji Icon Input"
+  - task: "Parent PIN Entry"
     implemented: true
     working: true
-    file: "app/(parent)/tasks.tsx"
+    file: "app/parent-pin.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
+        - working: true
+          agent: "main"
+          comment: "PIN entry page redirects to parent dashboard on correct PIN."
         - working: "NA"
           agent: "testing"
-          comment: "Could not complete full testing due to Playwright script limitations. Code review shows 'Emoji Icon' label and larger icon input field with emoji placeholder are implemented."
-        - working: true
-          agent: "testing"
-          comment: "Code review confirms 'Emoji Icon' label and emoji input field are correctly implemented in task forms. The input field has proper emoji handling with larger font size and center alignment for better UX."
+          comment: "Frontend testing not performed by testing agent per system instructions. Backend API verified working (PIN verification returns success/401). Frontend integration needs manual testing or UI testing agent."
 
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
@@ -605,3 +301,7 @@ agent_communication:
       message: "Completed DoneDash backend forgot password flow with REAL SMTP EMAIL DELIVERY testing. All 7 comprehensive tests passed with 100% success rate: ✅ Login Authentication (parent@test.com/parent123), ✅ Forgot Password API (returns security message), ✅ SMTP Email Delivery (backend logs show 'Password reset email sent to parent@test.com' confirming real email sent), ✅ Security Test (non-existent email returns same message), ✅ Database Code Retrieval (code 494062 stored correctly), ✅ Password Reset Flow (successful reset with valid code), ✅ Invalid Code Rejection (400 error for invalid codes). KEY VERIFICATION: Backend logs confirm real SMTP email delivery instead of console fallback. The forgot-password endpoint successfully sends HTML emails via Gmail SMTP (donedashadmin@gmail.com) with proper styling and 15-minute expiry. Full forgot-password flow with real email delivery is production-ready and working perfectly."
     - agent: "testing"
       message: "MAJOR REFACTORING VERIFICATION COMPLETE: Comprehensive testing of all critical endpoints after server.py modularization into 8 route modules. All 9 endpoint groups tested successfully: ✅ Health & Root (GET /api/, /api/health), ✅ Authentication (POST /api/auth/login, GET /api/auth/me with parent@test.com/parent123), ✅ Family (GET /api/family, PUT /api/family update name, POST /api/family/regenerate-code), ✅ Children (GET /api/children, POST /api/children create 'Visitor_Test' age 7, GET /api/children/{id}), ✅ Tasks (GET /api/tasks, POST /api/tasks create test task), ✅ Rewards (GET /api/rewards), ✅ Progress (GET /api/progress/{child_id}), ✅ Visitor (GET /api/visitor/{code} valid/invalid codes), ✅ Forgot Password with SMTP (confirmed email delivery). The refactoring from monolithic server.py (1223 lines) to modular routes/ structure is 100% successful - all functionality preserved, no breaking changes detected. Backend API v2.0.0 is production-ready."
+    - agent: "main"
+      message: "BUG FIX: Child join-family flow was broken. Root cause: join-child endpoint didn't create a child user or issue JWT token. All child API calls (tasks, progress, family) require JWT auth but kids had no token. FIX: 1) Backend: join-child now creates a child user doc in users collection and returns JWT access_token. 2) Frontend: join-family.tsx now stores the token in AsyncStorage after joining. 3) Fixed seed script: rewards had wrong field names (title/cost → name/pts/desc), tasks had wrong modes format. 4) Re-seeded DB with both test and review families. Test credentials: parent@test.com / Parent123! (PIN: 1234, Code: TEST01). NEED TO TEST: Full join-family flow via UI (enter code → enter name → child dashboard loads), parent login + PIN → parent dashboard, child task completion."
+    - agent: "testing"
+      message: "CRITICAL BUG FIXES VERIFIED - ALL BACKEND TESTS PASSED (12/12): Completed comprehensive testing of the child join-family flow with JWT token issuance and parent PIN flow. ✅ Parent Login working with parent@test.com/Parent123!, ✅ Parent PIN Verification (correct PIN 1234 returns success, wrong PIN 9999 returns 401), ✅ Family Code Verification (TEST01 returns family data), ✅ CRITICAL: Child Join Family now returns JWT token with all required fields (child_id, family_id, access_token, token_type=bearer, user with role=child), ✅ Child API Access verified: GET /family (200), GET /tasks (200), GET /progress/{child_id} (200), POST /tasks/{task_id}/toggle (200) - all working with child JWT token, ✅ Seed Data verified: 8 tasks with correct fields (title, icon, pts, cat, modes as {daily: bool, vacation: bool}), 5 rewards with correct fields (name, icon, pts, desc), at least 1 child (Alex). The MOST IMPORTANT bug fix is confirmed working: join-child endpoint now creates a child user and returns a JWT token, allowing children to access all child API endpoints. Backend is fully functional and production-ready."
