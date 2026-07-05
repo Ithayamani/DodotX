@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dodotx.app",
+      "bundleIdentifier": "app.emergent.appstoresetup2b51d4557",
       "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos for child avatars",
