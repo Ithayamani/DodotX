@@ -1,0 +1,130 @@
+================================================================================
+COMPREHENSIVE BACKEND API TEST SUITE FOR DODOTX
+================================================================================
+
+
+### A. AUTHENTICATION (7 tests)
+--------------------------------------------------------------------------------
+TEST 1 | POST /api/auth/signup | PASS | New account created, token received
+TEST 2 | POST /api/auth/login (parent) | PASS | Login successful, token received
+TEST 3 | POST /api/auth/login (reviewer) | PASS | Apple reviewer login successful
+TEST 4 | POST /api/auth/login (wrong pwd) | PASS | Correctly rejected with 401
+TEST 5 | GET /api/auth/me (valid token) | PASS | User data returned correctly
+TEST 6 | GET /api/auth/me (invalid token) | PASS | Correctly rejected with 401
+TEST 7 | DELETE /api/auth/delete-account | PASS | Account deleted, GET /me returns 401
+
+### B. FORGOT PASSWORD (3 tests)
+--------------------------------------------------------------------------------
+TEST 8 | POST /api/auth/forgot-password (existing) | PASS | Security message returned
+TEST 9 | POST /api/auth/forgot-password (non-exist) | PASS | Same security message (prevents enumeration)
+TEST 10 | POST /api/auth/reset-password (invalid) | PASS | Invalid code rejected with 400
+
+### C. FAMILY MANAGEMENT (6 tests)
+--------------------------------------------------------------------------------
+TEST 11 | GET /api/family | PASS | Family data returned: Test Family, code: TEST01
+TEST 12 | PUT /api/family (name) | PASS | Family name updated successfully
+TEST 13 | PUT /api/family (theme) | PASS | Family theme updated successfully
+TEST 14 | PUT /api/family (vacation on) | PASS | Vacation mode enabled with dates
+TEST 15 | PUT /api/family (vacation off) | PASS | Vacation mode disabled
+TEST 16 | POST /api/family/regenerate-code | PASS | New code generated: WCVE9V
+
+### D. PIN VERIFICATION (3 tests)
+--------------------------------------------------------------------------------
+TEST 17 | POST /api/family/verify-pin (correct) | PASS | Correct PIN accepted
+TEST 18 | POST /api/family/verify-pin (wrong) | PASS | Wrong PIN rejected with 401
+TEST 19 | POST /api/family/verify-pin (no token) | PASS | No token rejected with 403
+
+### E. FAMILY CODE & CHILD JOIN (5 tests)
+--------------------------------------------------------------------------------
+TEST 20 | POST /api/family/verify-code (TEST01) | FAIL | Status 404, response: {'detail': 'Invalid family code'}
+TEST 21 | POST /api/family/verify-code (REVIEW) | PASS | REVIEW code verified (never expires)
+TEST 22 | POST /api/family/verify-code (invalid) | PASS | Invalid code rejected with 404
+TEST 23 | POST /api/family/join-child | FAIL | Status 404, response: {'detail': 'Invalid family code'}
+TEST 24 | Child API access | FAIL | No child token available
+
+### F. CHILDREN MANAGEMENT (5 tests)
+--------------------------------------------------------------------------------
+TEST 25 | POST /api/children | PASS | Child created: NewKid, id: cv0bzym
+TEST 26 | GET /api/children | PASS | Children list returned: 2 children
+TEST 27 | GET /api/children/{id} | PASS | Single child returned: NewKid
+TEST 28 | PUT /api/children/{id} | PASS | Child updated successfully
+TEST 29 | DELETE /api/children/{id} | PASS | Child deleted successfully
+
+### G. TASK MANAGEMENT (5 tests)
+--------------------------------------------------------------------------------
+TEST 30 | POST /api/tasks | PASS | Task created: Test Task, pts: 15
+TEST 31 | GET /api/tasks | PASS | Tasks returned: 9 tasks with correct fields
+TEST 32 | PUT /api/tasks/{id} | PASS | Task updated successfully
+TEST 33 | DELETE /api/tasks/{id} | PASS | Task deleted successfully
+TEST 34 | GET /api/tasks (verify delete) | PASS | Deleted task not in list
+
+### H. TASK COMPLETION/TOGGLE (3 tests)
+--------------------------------------------------------------------------------
+TEST 35 | POST /api/tasks/{id}/toggle (ON) | PASS | Task toggled, completed: True, points: 10
+TEST 36 | POST /api/tasks/{id}/toggle (OFF) | PASS | Task toggled again, completed: False
+TEST 37 | GET /api/progress/{id} | PASS | Progress returned: 0 points, 1 streak
+
+### I. REWARD MANAGEMENT (4 tests)
+--------------------------------------------------------------------------------
+TEST 38 | POST /api/rewards | PASS | Reward created: Test Reward, pts: 50
+TEST 39 | GET /api/rewards | PASS | Rewards returned: 6 rewards with correct fields
+TEST 40 | PUT /api/rewards/{id} | PASS | Reward updated successfully
+TEST 41 | DELETE /api/rewards/{id} | PASS | Reward deleted successfully
+
+### J. PROGRESS & CHEERS (4 tests)
+--------------------------------------------------------------------------------
+TEST 42 | GET /api/progress/{id} | PASS | Progress: 0 pts, 0 tasks, 1 streak, 0 perfect days
+TEST 43 | POST /api/cheers | PASS | Cheer sent: Great job!
+TEST 44 | GET /api/cheers/{id} | PASS | Cheers returned: 1 messages
+TEST 45 | GET /api/progress/{nonexistent} | PASS | Handled gracefully with status 404
+
+### K. AI FEATURES (5 tests)
+--------------------------------------------------------------------------------
+TEST 46 | POST /api/ai/suggest-tasks | FAIL | Status 500, response: {'detail': "Failed to generate suggestions: 1 validation error for AITaskResponse\ncat\n  Input should be 'learning', 'active', 'creative', 'chores', 'health' or 'social' [type=enum, input_value='home', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/enum"}
+TEST 47 | POST /api/ai/generate-theme | PASS | AI generated theme: Ocean Sunset, colors: #0B7285
+TEST 48 | POST /api/ai/auto-routines | PASS | AI generated routines: Generated 8 routines!, 8 tasks saved
+TEST 49 | POST /api/ai/adjust-difficulty | FAIL | Status 500, response: {'text': 'Internal Server Error'}
+TEST 50 | POST /api/ai/suggest-rewards | PASS | AI suggested 5 rewards
+
+### L. VISITOR MODULE (3 tests)
+--------------------------------------------------------------------------------
+TEST 51 | GET /api/visitor/TEST01 | FAIL | Status 404, response: {'detail': 'Invalid family code'}
+TEST 52 | GET /api/visitor/REVIEW | PASS | Reviewer family: Demo Family
+TEST 53 | GET /api/visitor/INVALID | PASS | Invalid code rejected with 404
+
+### M. HEALTH & ROOT (2 tests)
+--------------------------------------------------------------------------------
+TEST 54 | GET /api/ | PASS | Root endpoint: DodotX API, version: 2.0.0
+TEST 55 | GET /api/health | PASS | Health check: healthy
+
+### N. EDGE CASES (5 tests)
+--------------------------------------------------------------------------------
+TEST 56 | POST /api/auth/signup (weak pwd) | FAIL | Expected 400, got 422
+TEST 57 | POST /api/auth/signup (duplicate) | PASS | Duplicate email rejected
+TEST 58 | POST /api/tasks (missing fields) | FAIL | Expected 422, got 200
+Testing rate limiting (this may take a moment)...
+TEST 59 | Rate limiting test | FAIL | Rate limit not enforced after 11 attempts
+TEST 60 | Expired family code test | PASS | Expired/invalid code handled with 404
+
+================================================================================
+TEST SUMMARY
+================================================================================
+
+Total Tests: 60
+Passed: 51
+Failed: 9
+Success Rate: 85.0%
+
+================================================================================
+
+FAILED TESTS:
+--------------------------------------------------------------------------------
+TEST 20 | POST /api/family/verify-code (TEST01) | FAIL | Status 404, response: {'detail': 'Invalid family code'}
+TEST 23 | POST /api/family/join-child | FAIL | Status 404, response: {'detail': 'Invalid family code'}
+TEST 24 | Child API access | FAIL | No child token available
+TEST 46 | POST /api/ai/suggest-tasks | FAIL | Status 500, response: {'detail': "Failed to generate suggestions: 1 validation error for AITaskResponse\ncat\n  Input should be 'learning', 'active', 'creative', 'chores', 'health' or 'social' [type=enum, input_value='home', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/enum"}
+TEST 49 | POST /api/ai/adjust-difficulty | FAIL | Status 500, response: {'text': 'Internal Server Error'}
+TEST 51 | GET /api/visitor/TEST01 | FAIL | Status 404, response: {'detail': 'Invalid family code'}
+TEST 56 | POST /api/auth/signup (weak pwd) | FAIL | Expected 400, got 422
+TEST 58 | POST /api/tasks (missing fields) | FAIL | Expected 422, got 200
+TEST 59 | Rate limiting test | FAIL | Rate limit not enforced after 11 attempts

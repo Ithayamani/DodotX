@@ -419,7 +419,11 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "AI Adjust Difficulty Endpoint"
+    - "AI Suggest Tasks Endpoint"
+    - "Rate Limiting on Auth Endpoints"
+    - "Task Creation Field Validation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -467,3 +471,66 @@ agent_communication:
       message: "APPLE APP STORE READINESS TESTING COMPLETE - ALL BACKEND TESTS PASSED (19/19): Comprehensive testing of all Apple App Store compliance features. ✅ CRITICAL: Account Deletion Flow (5 tests) - Create test account, verify exists, DELETE /auth/delete-account returns success message, GET /auth/me returns 401 after deletion, login fails after deletion. Backend logs confirm account deletion. ✅ Review Family Code (REVIEW) - POST /family/verify-code returns family data. ✅ Review Child Join (REVIEW code) - POST /family/join-child returns JWT token with all required fields. ✅ All previous tests still passing (parent login, PIN verification, family code, child join with JWT, seed data). CODE VERIFIED: ✅ Landing page footer has Privacy Policy, Terms, Support links (https://dodotx.com/privacy, /terms, /support). ✅ Login page has back button with router.back(). ✅ Settings has 'Legal & Support' section with all links and app version 'DodotX v2.0.0'. ✅ Settings has 'Delete Account' button with double confirmation. ✅ API client has deleteAccount method. ✅ Console.log removal - only 1 console.error remaining for error logging (acceptable). ALL APPLE APP STORE REQUIREMENTS ARE IMPLEMENTED AND WORKING. Backend is production-ready for App Store submission."
     - agent: "testing"
       message: "TESTFLIGHT CRITICAL BUG FIXES VERIFIED - ALL 12 BACKEND TESTS PASSED: Completed comprehensive testing of 3 critical bug fixes reported during TestFlight testing. ✅ BUG 1 (Family Code Expiry): REVIEW and TEST01 codes NEVER expire (200 OK, NOT 410). Child join with REVIEW code successful. Child can access tasks and family with JWT token. MINOR FIX: Updated Family model to make code_generated_at Optional[datetime] = None (was causing 500 error when child accessed GET /family). ✅ BUG 2 (Login/Signup Flow): Signup with new credentials successful (200 OK with access_token). Login with review_parent@dodotx.com and parent@test.com successful. Login with wrong credentials rejected (401 with clear error message). ✅ BUG 3 (Auto-seed): Backend logs confirm 'Demo accounts already exist.' Server automatically seeds demo accounts on startup. ✅ Additional Verification: PIN verification (200 OK), Tasks have correct fields (pts, cat, modes with daily/vacation), Rewards have correct fields (name, pts, desc). All TestFlight critical issues are RESOLVED and production-ready."
+    - agent: "testing"
+      message: "COMPREHENSIVE 60-TEST BACKEND API TESTING COMPLETE - 51/60 PASSED (85.0%): Executed full test suite covering all API endpoints. ✅ PASSED (51 tests): Authentication (7/7) - signup, login, /me, delete-account all working. Forgot Password (3/3) - security messages, invalid code rejection. Family Management (6/6) - GET/PUT family, vacation mode, code regeneration. PIN Verification (3/3) - correct/wrong PIN, no token rejection. Children Management (5/5) - CRUD operations all working. Task Management (5/5) - CRUD operations, field validation. Task Toggle (3/3) - completion tracking, progress updates. Reward Management (4/4) - CRUD operations. Progress & Cheers (4/4) - progress tracking, cheer messages. AI Features (3/5) - theme generation, auto-routines, suggest-rewards working. Visitor Module (2/3) - REVIEW code working. Health & Root (2/2). Edge Cases (2/5). ❌ FAILED (9 tests): 1) TEST01 family code not found (code was regenerated to WCVE9V in test 16 - expected behavior, affects tests 20, 23, 24, 51). 2) AI suggest-tasks returns invalid category 'home' (should be learning/active/creative/chores/health/social - validation error). 3) AI adjust-difficulty has TypeError: unhashable type 'dict' in line 86 of routes/ai.py when accessing t['pts'] - CRITICAL BUG. 4) Rate limiting not enforced after 11 rapid login attempts. 5) Weak password validation returns 422 instead of 400 (correct FastAPI behavior, test expectation issue). 6) Missing fields in task creation returns 200 instead of 422 (validation not working). CRITICAL ISSUES REQUIRING FIXES: AI adjust-difficulty bug, AI suggest-tasks category validation, rate limiting enforcement, task creation field validation."
+
+  - task: "AI Adjust Difficulty Endpoint"
+    implemented: true
+    working: false
+    file: "routes/ai.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL BUG: POST /api/ai/adjust-difficulty returns 500 Internal Server Error. Root cause: TypeError: unhashable type: 'dict' at line 86 in routes/ai.py. The code tries to access t['pts'] but 'modes' field is a dict causing the error. Error occurs in list comprehension: [{'title':t['title'],'pts':t['pts']} for t in tasks[:15]]. Need to fix the dict access or handle the modes field properly."
+
+  - task: "AI Suggest Tasks Endpoint"
+    implemented: true
+    working: false
+    file: "routes/ai.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "VALIDATION ERROR: POST /api/ai/suggest-tasks returns 500 error due to AI returning invalid category 'home'. The TaskCategory enum only accepts: learning, active, creative, chores, health, social. The AI prompt needs to be more specific about valid categories. Error: 'Input should be learning, active, creative, chores, health or social [type=enum, input_value=home, input_type=str]'. Need to update the AI prompt to explicitly list valid categories."
+
+  - task: "Rate Limiting on Auth Endpoints"
+    implemented: true
+    working: false
+    file: "routes/auth.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Rate limiting not enforced after 11 rapid login attempts. The rate limiter is implemented in routes/auth.py with RATE_LIMIT_MAX=10 and RATE_LIMIT_WINDOW=60 seconds, but it's not triggering 429 responses. Possible issues: 1) In-memory rate limiter state not persisting across requests, 2) IP address detection not working correctly in containerized environment, 3) Rate limiter logic has a bug. Need to investigate and fix."
+
+  - task: "Task Creation Field Validation"
+    implemented: true
+    working: false
+    file: "routes/tasks.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "POST /api/tasks with missing required fields returns 200 instead of 422. Test sent only {'title': 'Incomplete Task'} without icon, pts, cat, modes fields, but endpoint accepted it and returned 200. FastAPI should automatically validate required fields in TaskCreate model. Need to verify TaskCreate model has all fields marked as required (not Optional) and that the endpoint is using the correct model."
+
+  - task: "Family Code Regeneration Side Effect"
+    implemented: true
+    working: true
+    file: "routes/family.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Minor: POST /api/family/regenerate-code successfully generates new codes, but this causes TEST01 code to be replaced with a new code (WCVE9V in testing). This is expected behavior, but it means any tests that rely on TEST01 code after regeneration will fail. This is a test design issue, not a bug. The endpoint is working correctly."
+
