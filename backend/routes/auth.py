@@ -15,7 +15,10 @@ _rate_limits: dict = defaultdict(list)
 RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = 10     # max attempts per window
 
-def check_rate_limit(ip: str, action: str = "auth"):
+def check_rate_limit(request: Request, action: str = "auth"):
+    # Use X-Forwarded-For header in containerized environments, fall back to client.host
+    forwarded = request.headers.get("x-forwarded-for")
+    ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
     key = f"{ip}:{action}"
     now = time.time()
     # Clean old entries
@@ -36,7 +39,7 @@ def validate_password(password: str) -> str | None:
 
 @router.post("/signup", response_model=Token)
 async def signup(user_data: UserSignup, request: Request):
-    check_rate_limit(request.client.host, "signup")
+    check_rate_limit(request, "signup")
     pwd_error = validate_password(user_data.password)
     if pwd_error:
         raise HTTPException(status_code=400, detail=pwd_error)
@@ -52,7 +55,7 @@ async def signup(user_data: UserSignup, request: Request):
 
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, request: Request):
-    check_rate_limit(request.client.host, "login")
+    check_rate_limit(request, "login")
     user = await db.users.find_one({"email": credentials.email})
     if not user or not verify_password(credentials.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -66,7 +69,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 @router.post("/forgot-password")
 async def forgot_password(data: PasswordResetRequest, request: Request):
-    check_rate_limit(request.client.host, "forgot-password")
+    check_rate_limit(request, "forgot-password")
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart

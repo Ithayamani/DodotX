@@ -19,12 +19,16 @@ def clean_llm_json(response: str) -> str:
 async def ai_suggest_tasks(suggestion_data: AITaskSuggestion, current_user: User = Depends(get_current_user)):
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     interests_text = ", ".join(suggestion_data.interests) if suggestion_data.interests else "general activities"
-    prompt = f"""Generate {5 if suggestion_data.current_tasks_count < 10 else 3} age-appropriate daily tasks for a {suggestion_data.child_age}-year-old child.\nInterests: {interests_text}\nGoals: {suggestion_data.goals or 'Build positive daily habits'}\nReturn ONLY valid JSON array: [{{"title":"...","icon":"emoji","pts":10,"cat":"learning","modes":{{"daily":true,"vacation":false}}}}]"""
+    prompt = f"""Generate {5 if suggestion_data.current_tasks_count < 10 else 3} age-appropriate daily tasks for a {suggestion_data.child_age}-year-old child.\nInterests: {interests_text}\nGoals: {suggestion_data.goals or 'Build positive daily habits'}\nIMPORTANT: "cat" must be EXACTLY one of: learning, active, creative, chores, health, social\nReturn ONLY valid JSON array: [{{"title":"...","icon":"emoji","pts":10,"cat":"learning","modes":{{"daily":true,"vacation":false}}}}]"""
     try:
         api_key = os.getenv("EMERGENT_LLM_KEY")
         chat = LlmChat(api_key=api_key, session_id=f"task_{current_user.id}", system_message="Return valid JSON arrays only.").with_model("openai", "gpt-5.2")
         response = await chat.send_message(UserMessage(text=prompt))
         suggestions = json.loads(clean_llm_json(response))
+        valid_cats = {"learning", "active", "creative", "chores", "health", "social"}
+        for s in suggestions:
+            if s.get("cat") not in valid_cats:
+                s["cat"] = "chores"
         return [AITaskResponse(**task) for task in suggestions]
     except Exception as e:
         logging.error(f"AI suggestion error: {str(e)}")
@@ -83,7 +87,7 @@ async def ai_adjust_difficulty(current_user: User = Depends(get_current_user)):
         p = await db.progress.find_one({"child_id": c["id"]})
         ct = p.get("completed_today", []) if p else []
         behavior.append({"name": c.get("name"), "age": c.get("age", "?"), "completed": len(ct), "total": len(tasks), "rate": round(len(ct)/max(len(tasks),1)*100), "points": p.get("points",0) if p else 0, "streak": p.get("streak",0) if p else 0})
-    prompt = f"""Analyze and suggest adjustments. Data: {json.dumps(behavior)}. Tasks: {json.dumps([{{"title":t["title"],"pts":t["pts"]}} for t in tasks[:15]])}. Return ONLY JSON: {{"analysis":"...","suggestions":[{{"action":"add|modify|remove","title":"...","icon":"emoji","pts":10,"reason":"..."}}]}}"""
+    prompt = f"""Analyze and suggest adjustments. Data: {json.dumps(behavior)}. Tasks: {json.dumps([{"title": t.get("title",""), "pts": t.get("pts",10)} for t in tasks[:15]])}. Return ONLY JSON: {{"analysis":"...","suggestions":[{{"action":"add|modify|remove","title":"...","icon":"emoji","pts":10,"reason":"..."}}]}}"""
     try:
         api_key = os.getenv("EMERGENT_LLM_KEY")
         chat = LlmChat(api_key=api_key, session_id=f"diff_{current_user.id}", system_message="Return valid JSON.").with_model("openai", "gpt-5.2")
