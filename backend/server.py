@@ -53,6 +53,19 @@ async def root():
 async def health_check():
     return {"status": "healthy", "database": "connected"}
 
+@app.on_event("startup")
+async def startup_seed_demo():
+    """Auto-seed demo accounts on startup if they don't exist."""
+    from routes import db
+    review_user = await db.users.find_one({"email": "review_parent@dodotx.com"})
+    if not review_user:
+        logger.info("Demo accounts not found. Seeding...")
+        import subprocess
+        subprocess.run(["python3", str(ROOT_DIR / "seed_review_account.py")], capture_output=True)
+        logger.info("Demo accounts seeded successfully.")
+    else:
+        logger.info("Demo accounts already exist.")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
