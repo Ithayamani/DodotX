@@ -57,6 +57,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "backendUrl": "https://app-store-setup-2.preview.emergentagent.com",
       "router": {
         "origin": false
       },
