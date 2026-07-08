@@ -534,3 +534,19 @@ agent_communication:
           agent: "testing"
           comment: "Minor: POST /api/family/regenerate-code successfully generates new codes, but this causes TEST01 code to be replaced with a new code (WCVE9V in testing). This is expected behavior, but it means any tests that rely on TEST01 code after regeneration will fail. This is a test design issue, not a bug. The endpoint is working correctly."
 
+  - task: "Apple App Store Review - Demo Account Login (CRITICAL)"
+    implemented: true
+    working: true
+    file: "server.py, routes/auth.py, seed_review_account.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "🎉 APPLE APP STORE REVIEW CRITICAL TEST - ALL 15 TESTS PASSED (100% SUCCESS): Verified inline seed system with verification logging after 3 Apple rejections. ✅ TEST 1: Demo login (review_parent@dodotx.com / Review123!) returns 200 with access_token. ✅ TEST 2: Test login (parent@test.com / Parent123!) returns 200 with access_token. ✅ TEST 3: GET /admin/verify-demo returns exists=true, password_valid=true, family_code=REVIEW, children_count=2, tasks_count=12. ✅ TEST 4: GET /admin/seed returns 200 with status=success (manual re-seed working). ✅ TEST 5: Login after re-seed successful. ✅ TEST 6: GET /health returns 200 with database=connected. ✅ TEST 7-11: Full flow after login - GET /family (code=REVIEW), POST /family/verify-pin?pin=1234 (success), GET /children (2 children: Emma, Liam), GET /tasks (12 tasks), GET /rewards (6 rewards). ✅ TEST 12: POST /family/verify-code with code=REVIEW returns 200 (no auth needed). ✅ TEST 13: POST /family/join-child with family_code=REVIEW, child_name=AppleReviewer returns 200 with access_token and child_id. ✅ TEST 14: Child can access GET /family and GET /tasks with JWT token. ✅ TEST 15: POST /auth/signup with new user returns 200 with access_token. ✅ STARTUP VERIFICATION: Backend logs show 'Demo account review_parent@dodotx.com exists and password VERIFIED OK' on startup, confirming inline seed system is working correctly. The seed system has been rewritten to be inline (no subprocess) with comprehensive verification logging including: password hash verification immediately after creation, DB read-back password verification, and startup verification. This addresses the root cause of Apple's 3 rejections - demo accounts are now guaranteed to exist and work on every server restart. Backend is PRODUCTION-READY for Apple App Store submission."
+
+agent_communication:
+    - agent: "testing"
+      message: "🎉 APPLE APP STORE REVIEW CRITICAL TEST COMPLETE - 100% SUCCESS (15/15 TESTS PASSED): The demo account login issue that caused 3 Apple rejections has been RESOLVED. The inline seed system with verification logging is working perfectly. All critical flows tested: demo login, test login, admin verification, manual re-seed, health check with DB connection, full authenticated flow (family, PIN, children, tasks, rewards, code verification, child join with JWT), and signup flow. Backend logs confirm startup seed verification is working: 'Demo account review_parent@dodotx.com exists and password VERIFIED OK'. The app is now READY for Apple App Store submission. No backend issues found - all APIs working correctly."
+
