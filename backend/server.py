@@ -87,7 +87,7 @@ async def seed_demo_accounts_inline():
     def hash_pw(plain):
         return bcrypt.hashpw(plain.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    PARENT_EMAIL = "review_parent@dodotx.com"
+    PARENT_EMAIL = "review@dodotx.net"
     PARENT_PASSWORD = "Review123!"
     TEST_EMAIL = "parent@test.com"
     TEST_PASSWORD = "Parent123!"
@@ -292,7 +292,7 @@ async def manual_seed():
     """Force re-seed demo accounts. Can be triggered manually if accounts are missing."""
     from routes import db
     # Delete the review user to force re-seed
-    await db.users.delete_one({"email": "review_parent@dodotx.com"})
+    await db.users.delete_one({"email": "review@dodotx.net"})
     try:
         await seed_demo_accounts_inline()
         return {"status": "success", "message": "Demo accounts re-seeded successfully"}
@@ -307,7 +307,7 @@ async def verify_demo():
     """Check if the demo account exists and password is valid."""
     import bcrypt
     from routes import db
-    user = await db.users.find_one({"email": "review_parent@dodotx.com"})
+    user = await db.users.find_one({"email": "review@dodotx.net"})
     if not user:
         return {"exists": False, "password_valid": False, "message": "Demo user NOT found in database"}
     try:

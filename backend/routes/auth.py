@@ -10,22 +10,41 @@ import os, logging, random, re, time
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
-# Simple in-memory rate limiter for auth endpoints
+# Simple in-memory rate limiter for auth endpoints (single-worker; use Redis if scaling to multiple workers)
 _rate_limits: dict = defaultdict(list)
-RATE_LIMIT_WINDOW = 60  # seconds
-RATE_LIMIT_MAX = 10     # max attempts per window
 
-def check_rate_limit(request: Request, action: str = "auth"):
-    # Use X-Forwarded-For header in containerized environments, fall back to client.host
+def _get_client_ip(request: Request) -> str:
+    # Behind a trusted reverse proxy (K8s ingress), the real client IP is the right-most
+    # entry appended by the proxy. Left-most entries can be spoofed by the client.
     forwarded = request.headers.get("x-forwarded-for")
-    ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
-    key = f"{ip}:{action}"
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else "unknown"
+
+def _hit(key: str, max_attempts: int, window: int) -> bool:
+    """Record an attempt for `key`. Returns True if allowed, False if rate-limited."""
     now = time.time()
-    # Clean old entries
-    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < RATE_LIMIT_WINDOW]
-    if len(_rate_limits[key]) >= RATE_LIMIT_MAX:
-        raise HTTPException(status_code=429, detail="Too many attempts. Please wait a minute and try again.")
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < window]
+    if len(_rate_limits[key]) >= max_attempts:
+        return False
     _rate_limits[key].append(now)
+    return True
+
+def check_login_rate_limit(email: str):
+    # Per-account limit prevents brute force without locking out all users behind a shared proxy IP.
+    if not _hit(f"login_acc:{email.lower().strip()}", 10, 60):
+        raise HTTPException(status_code=429, detail="Too many login attempts for this account. Please wait a minute and try again.")
+
+def check_signup_rate_limit(request: Request):
+    # Generous per-IP cap: blocks extreme bot spam but never throttles normal users
+    # even when many share a single proxy IP.
+    ip = _get_client_ip(request)
+    if not _hit(f"signup_ip:{ip}", 30, 60):
+        raise HTTPException(status_code=429, detail="Too many signup attempts. Please wait a minute and try again.")
+
+def check_reset_rate_limit(email: str):
+    if not _hit(f"reset_acc:{email.lower().strip()}", 5, 300):
+        raise HTTPException(status_code=429, detail="Too many reset requests for this account. Please wait a few minutes.")
 
 def validate_password(password: str) -> str | None:
     """Returns error message if password is weak, None if valid"""
@@ -39,7 +58,7 @@ def validate_password(password: str) -> str | None:
 
 @router.post("/signup", response_model=Token)
 async def signup(user_data: UserSignup, request: Request):
-    check_rate_limit(request, "signup")
+    check_signup_rate_limit(request)
     pwd_error = validate_password(user_data.password)
     if pwd_error:
         raise HTTPException(status_code=400, detail=pwd_error)
@@ -55,7 +74,7 @@ async def signup(user_data: UserSignup, request: Request):
 
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, request: Request):
-    check_rate_limit(request, "login")
+    check_login_rate_limit(credentials.email)
     user = await db.users.find_one({"email": credentials.email})
     if not user or not verify_password(credentials.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -69,7 +88,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 @router.post("/forgot-password")
 async def forgot_password(data: PasswordResetRequest, request: Request):
-    check_rate_limit(request, "forgot-password")
+    check_reset_rate_limit(data.email)
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart

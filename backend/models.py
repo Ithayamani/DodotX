@@ -27,10 +27,10 @@ class Task(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TaskCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1)
+    pts: int = Field(ge=1, le=100)
+    cat: TaskCategory
     icon: str = "✓"
-    pts: int = Field(default=10, ge=1, le=100)
-    cat: TaskCategory = TaskCategory.CHORES
     modes: TaskMode = TaskMode()
     active: bool = True
 

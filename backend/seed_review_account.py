@@ -15,7 +15,7 @@ MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "kidquest_db")
 
 # Demo credentials
-PARENT_EMAIL = "review_parent@dodotx.com"
+PARENT_EMAIL = "review@dodotx.net"
 PARENT_PASSWORD = "Review123!"
 PARENT_NAME = "Demo Parent"
 FAMILY_PIN = "1234"
