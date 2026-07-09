@@ -69,7 +69,7 @@ async def verify_family_pin(pin: str, current_user: User = Depends(get_current_u
     if not family:
         raise HTTPException(status_code=404, detail="Family not found")
     if not verify_pin(pin, family["pin"]):
-        raise HTTPException(status_code=401, detail="Incorrect PIN")
+        raise HTTPException(status_code=403, detail="Incorrect PIN")
     return {"success": True}
 
 @router.post("/verify-code", response_model=dict)

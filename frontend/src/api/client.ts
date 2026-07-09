@@ -29,11 +29,25 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Handle 401 errors
+// Handle 401 errors — only clear the session for genuine token-invalidation failures.
+// Credential/PIN/code checks can legitimately return 401/403 and must NOT wipe the auth token
+// (a wrong PIN was logging users out of the whole app).
+const CREDENTIAL_ENDPOINTS = [
+  '/auth/login',
+  '/auth/signup',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/family/verify-pin',
+  '/family/verify-code',
+  '/family/join-child',
+];
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const url: string = error.config?.url || '';
+    const isCredentialEndpoint = CREDENTIAL_ENDPOINTS.some((ep) => url.includes(ep));
+    if (error.response?.status === 401 && !isCredentialEndpoint) {
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('user_data');
     }
