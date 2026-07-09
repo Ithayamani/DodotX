@@ -1,0 +1,44 @@
+{
+  "summary": "HUMAN-LIKE END-TO-END WALKTHROUGH of DodotX Expo/RN web preview at mobile 390x844. All critical flows PASS. Landing → Login (review@dodotx.net) → Role-Select (Demo Family, Emma 245pts, Liam 180pts, Parent Dashboard) → Wrong PIN 9999 (backend returned 403, auth_token in localStorage was UNCHANGED, screen stayed on PIN — regression fix confirmed) → Correct PIN 1234 (Parent Dashboard opened with kids). Parent tabs Children/Tasks/Rewards/Settings all rendered with correct data: 12 tasks, 6 rewards, Family Code REVIEW, Task Mode toggle, Theme picker, Profile Picture. Child flow: picked Emma → Home shows Rising Star 245 points, 5 streak, 4/8 trophies, 6 rewards won; Tasks tab tap Brush Teeth → 245→255 pts with strikethrough + '1/20 completed today +10 points'; second tap reverted to 245 (untoggle works); Trophies + Shop tabs load (6 rewards WON, progress bars visible). Visitor flow via /visitor → entered REVIEW → GET /api/visitor/REVIEW returned 200 → Read-only dashboard shows Demo Family with 28 tasks, 2 kids, 6 rewards, Emma 245pts 97% level, Liam 180pts 53% level, streak/perfect/trophies for each. Signup with fresh unique email + Verify123! succeeded and landed on onboarding Step 1 of 3 with session token established. Session token PERSISTED across every navigation in the ~4-minute run — 0 unexpected 401s, no 'not authenticated' toasts. Deprecated packages/APIs detected: `props.pointerEvents is deprecated. Use style.pointerEvents` warning still surfacing (unchanged from iteration 4). Missing feature: visitor 'send cheer message' is not implemented in /app/frontend/app/visitor.tsx — dashboard is view-only with pull-to-refresh; if the reviewer expects a cheer button, main agent needs to add it.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "props.pointerEvents deprecation (still present)",
+        "issue": "Console warns 'props.pointerEvents is deprecated. Use style.pointerEvents' on visitor screen and elsewhere. Same finding as iteration_4 — not yet fixed. Reference: search /app/frontend for pointerEvents= and migrate to style.pointerEvents."
+      },
+      {
+        "component": "Missing testID props on interactive elements (still present)",
+        "issue": "Landing buttons (Sign Up as a Parent, Sign In as a Parent, Join Your Family, View as Visitor), login email/password, PIN input, PIN Verify button, Parent tab bar (Children/Tasks/Rewards/Settings), Children add-'+' FAB, task/reward edit/delete icons, child bottom-tab (Home/Tasks/Trophies/Shop), visitor code input & 'View Family Progress' button all render without testID. Testing had to rely on text/positional selectors, which is brittle. Add testID such as: landing-signup-button, landing-signin-button, landing-join-family, landing-view-visitor, login-email, login-password, login-submit, pin-input, pin-verify, tab-children/tasks/rewards/settings, child-tab-home/tasks/trophies/shop, visitor-code-input, visitor-view-button."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_5.json",
+    "/app/backend/tests/test_auth_persistence.py (reused from iteration_4)"
+  ],
+  "action_items": [
+    "Migrate all `props.pointerEvents=` usages to `style={{ pointerEvents: ... }}` — grep the /app/frontend/**/*.tsx tree for pointerEvents=.",
+    "Add testID props to interactive elements (see react_native_issues above). This is now the ONLY blocker preventing reliable automated regression on the mobile web preview.",
+    "Confirm whether visitor 'send cheer message' is in scope. Review request lists it but /app/frontend/app/visitor.tsx implements only a read-only dashboard (no cheer/message UI, no POST endpoint used). If yes, add a cheer button per child that posts to a new /api/visitor/cheer endpoint.",
+    "Onboarding: Step 1 requires BOTH Family Name AND Child Pet Name to advance (validation blocks Next). This is correct product behavior, but consider adding an inline error message (currently the Next button appears to no-op silently when child name is empty — better UX to highlight the empty field)."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/app/visitor.tsx:74-125 — visitor code screen is clean but the 'View Family Progress' button uses styles.buttonDisabled only when !familyCode.trim() || loading. Otherwise it works. GET /api/visitor/{code} returns full family + children stats correctly.",
+    "/app/frontend/app/parent-pin.tsx — wrong-PIN scenario confirmed: backend /api/family/verify-pin returned 403, axios interceptor did NOT wipe localStorage token, screen remained on PIN and immediate retry with 1234 succeeded. Iteration_4 fix holds.",
+    "Child task toggle (POST /api/tasks/{id}/toggle or similar) is idempotent: tap 1 → +10, tap 2 → -10, points revert exactly. Points update in the top-right pts badge in real-time."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% for the endpoints exercised via UI (login, family/me, children, tasks, rewards, verify-pin 403 on wrong / 200 on correct, tasks/toggle for child, visitor/REVIEW). No 500s.",
+    "frontend": "100% on the tested happy paths (landing, login, role-select, wrong→correct PIN, all 4 parent tabs, all 4 child tabs, visitor flow, signup landing on onboarding step 1). Deep onboarding wizard step-through was NOT fully exercised in this run (needed both Family Name + Child Pet Name; automated script only filled Family Name)."
+  },
+  "seed_data_creation": "Signup created a throwaway parent user: email=testuser_1783609228@example.com, password=Verify123!, family=(orphaned, still on onboarding step 1 — will not have completed setup because onboarding wasn't finished). Consider a cron/cleanup to remove parent accounts with no completed family. Demo family code REVIEW is intact (verified via GET /api/family).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Regression checkpoints: (1) POST /api/family/verify-pin with wrong PIN must stay 403; (2) after wrong PIN, localStorage.auth_token must be UNCHANGED (previously it was cleared by a 401 interceptor); (3) Child task toggle must update the on-screen pts badge symmetrically (+X on complete, -X on uncomplete); (4) GET /api/visitor/{code} for REVIEW must return {family_name:'Demo Family', children:[Emma,Liam], total_tasks:28, total_rewards:6}. Demo seed is: parent review@dodotx.net (id 6z42ulk), family_id 4ah128q, code REVIEW, Emma 245pts, Liam 180pts. testID props are still missing everywhere — main agent should add them before the next automated regression run.",
+  "rca_of_issue": "N/A — no functional regressions found in this pass. Both fixes from the previous iteration (wrong-PIN 403 + interceptor allowlist, AI auto-routines sanitizer) are still in place and working. Only remaining code-quality items are: (a) deprecated pointerEvents warning, (b) universally missing testID props, (c) potentially missing visitor-cheer feature (unclear if in-scope)."
+}
