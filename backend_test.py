@@ -9,7 +9,7 @@ import json
 from typing import Dict, Any
 
 # DEPLOYED BACKEND URL (not localhost)
-BACKEND_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://family-quest-15.preview.emergentagent.com/api"
 
 # Test credentials from review request
 REVIEW_PARENT_EMAIL = "review_parent@dodotx.com"

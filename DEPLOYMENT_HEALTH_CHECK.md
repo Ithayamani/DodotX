@@ -38,7 +38,7 @@ All critical checks have passed. The application is properly configured and read
 - **State:** Zustand + AsyncStorage
 - **API Client:** Axios with JWT auto-injection
 - **Screens:** Welcome, Login, Signup, Onboarding (3 steps)
-- **Web Preview:** Available at https://app-store-setup-2.preview.emergentagent.com
+- **Web Preview:** Available at https://family-quest-15.preview.emergentagent.com
 
 ### ✅ Environment Variables
 **Backend (.env):**
@@ -260,16 +260,16 @@ EXPO_PUBLIC_BACKEND_URL=https://your-backend.railway.app
 ## 💻 Development URLs
 
 **Frontend Preview:**  
-https://app-store-setup-2.preview.emergentagent.com
+https://family-quest-15.preview.emergentagent.com
 
 **Backend API:**  
-https://app-store-setup-2.preview.emergentagent.com/api
+https://family-quest-15.preview.emergentagent.com/api
 
 **API Documentation:**  
-https://app-store-setup-2.preview.emergentagent.com/api/docs (Swagger UI)
+https://family-quest-15.preview.emergentagent.com/api/docs (Swagger UI)
 
 **Health Check:**  
-https://app-store-setup-2.preview.emergentagent.com/api/health
+https://family-quest-15.preview.emergentagent.com/api/health
 
 ---
 

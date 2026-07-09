@@ -10,7 +10,7 @@ import json
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
+BASE_URL = "https://family-quest-15.preview.emergentagent.com/api"
 REVIEW_EMAIL = "review_parent@dodotx.com"
 REVIEW_PASSWORD = "Review123!"
 TEST_EMAIL = "parent@test.com"

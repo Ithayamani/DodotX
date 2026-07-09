@@ -106,7 +106,7 @@ netlify deploy --prod
 The frontend is already configured to work with Emergent's preview system.
 Simply push your changes and it will be live at:
 ```
-https://your-app.preview.emergentagent.com
+https://family-quest-15.preview.emergentagent.com
 ```
 
 ---
