@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
@@ -24,7 +25,7 @@ export default function ChildTrophies() {
       const progressData = await progressAPI.get(currentChild.id);
       setTrophies(progressData.trophies);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load trophies');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -35,6 +36,10 @@ export default function ChildTrophies() {
     setRefreshing(true);
     loadData();
   };
+
+  if (!currentChild) {
+    return <Redirect href="/role-select" />;
+  }
 
   if (loading) {
     return (

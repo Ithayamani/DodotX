@@ -11,7 +11,7 @@ import time
 from typing import Dict, Any, Optional
 
 # Backend URL from frontend/.env
-BASE_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
+BASE_URL = "https://family-quest-15.preview.emergentagent.com/api"
 
 # Test credentials from memory/test_credentials.md
 PARENT_EMAIL = "parent@test.com"

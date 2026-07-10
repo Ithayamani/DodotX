@@ -1,0 +1,36 @@
+{
+  "summary": "Backend-only regression run for DodotX. All 4 known bug fixes verified plus auth/seed/family/visitor/join-child flows. 15/15 pytest tests passed against public URL. BUG1 (adjust-difficulty) returns 200, BUG2 (suggest-tasks with 'home' interest) returns 200 with all cats in valid enum, BUG3 (per-account login rate limit) confirmed: 11th rapid POST to a throwaway email → 429 while review@dodotx.net login still succeeds (cross-account isolation intact), BUG4 (TaskCreate validation) missing pts/cat → 422, full valid body → 200. Demo seed integrity: /api/admin/verify-demo shows exists=true, password_valid=true, family_code=REVIEW, children_count=2, tasks_count=12. Signup with fresh email works. Regression: parent@test.com / TEST01 still work.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "None — all reported bugs (BUG1-4) verified fixed. Demo seed integrity confirmed.",
+    "Frontend was intentionally skipped per review_request (testing_type: backend only). Main agent may still want to verify TestFlight signup end-to-end from the mobile client since the underlying per-IP lockout was the suspected cause."
+  ],
+  "critical_code_review_comments": [
+    "auth.py rate limiter is in-memory (single-worker). Fine for current supervisor setup but will not scale to multiple workers/replicas — migrate to Redis if horizontal scaling is added.",
+    "server.py startup seed WIPES all collections when the review password check fails. This is aggressive; if a real user's password ever gets corrupted for review@dodotx.net, every family's data would be deleted. Consider a safer re-seed strategy (only touch the demo family_id).",
+    "family/join-child creates a child User with empty hashed_password. If any code path later tries verify_password on that user it would still fail-safe, but consider explicitly marking these users as unauthenticatable (e.g., role check gate in login)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (created)",
+    "/app/backend/tests/__init__.py (created)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested (skipped per request)"},
+  "seed_data_creation": "No new seed data created. Startup inline seed already provisions review + test families. Test-created records use TEST_ prefix and are cleaned up (task delete). Ephemeral children created via join-child left in DB (acceptable, prefixed TEST_kid_).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "BASE_URL is read from EXPO_PUBLIC_BACKEND_URL (not EXPO_BACKEND_URL) in frontend/.env. Public URL: https://family-quest-15.preview.emergentagent.com. Per-account login rate limit is 10/60s — when writing rate-limit tests, ALWAYS use a throwaway email (e.g. ratelimit_test_<uuid>@x.com) so real demo/test accounts stay usable. AI endpoints (/api/ai/*) take ~5-15s each — use timeout>=60s.",
+  "rca_of_issue": "TestFlight 'Signup Failed / Could not create account' RCA: previous rate limiter keyed on X-Forwarded-For IP which collapses to a single ingress-edge IP for many mobile clients behind carrier NAT/proxies, causing one bad actor (or repeated review attempts) to lock everyone out. Fix: login rate-limit is now per-account (10/60s) and signup is per-IP but generous (30/60s). Verified via test_per_account_login_rate_limit: 11 rapid hits to a throwaway email produce 429, yet review@dodotx.net login still returns 200 in the same window — proving no shared-IP global lockout."
+}

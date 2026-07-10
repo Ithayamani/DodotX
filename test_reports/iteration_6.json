@@ -1,0 +1,54 @@
+{
+  "summary": "Calendar/Streak feature end-to-end tested (backend + frontend, mobile 390x844). ALL PASS. Backend: 10/10 pytest cases passed in /app/backend/tests/test_calendar.py — Emma current_streak=8, longest_streak=8, complete_days=8, 7-day milestone earned (14/30/60/100 not earned); Liam current_streak=2, longest_streak=3, complete_days=5, NO milestones earned; days map contains both 'complete' and 'partial' statuses for Emma; daily_task_total=8; unauth requests → 401/403. Frontend: (a) Kid tab — login → role-select → Emma → bottom-tab 'Calendar' renders with 3 summary cards (🔥8 Current, 🏆8 Best, ✅8 Perfect), 8-day streak banner, month grid July 2026 showing days 3-10 green (streak) and day 1 yellow (partial), today=10 with orange border, legend (All done/Some done/None) visible, forward chevron disabled (grey), Week Streak! UNLOCKED, Two-Week Hero/Monthly Master/Diamond Discipline/Legendary 100 locked with 🔒. (b) Parent per-child — login → Parent Dashboard → PIN 1234 → Children tab → tapped Emma's calendar icon → routed to /child-calendar?childId=dxsjzgv&childName=Emma with header 'Emma\\u2019s Calendar', same streak data; back arrow returned to Children screen; repeated for Liam → 'Liam\\u2019s Calendar' shows 🔥2 🏆3 ✅5, all 5 milestones locked, days 5,6,7 green (3-run) then gap on day 8 (grey/none), days 9,10 green (2 recent), day 4 yellow (partial). No regressions on visible child/parent tabs. No red screens or console errors. Only stale warning: 'props.pointerEvents is deprecated' (unchanged from prior iterations).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Child Home vs Calendar tab (Emma)",
+        "issues": [
+          "Child Home shows '6 🔥 Day Streak' (reads progress.streak from Progress doc) while Calendar tab shows 'Current Streak 8' (computed from completions map). Two different sources of truth for the same concept — reviewer may perceive as inconsistent. Recommendation: unify by having Home also read from compute_streak_stats, OR update progress.streak whenever completions change."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "props.pointerEvents deprecation (still present, not from calendar feature)",
+        "issue": "Console warns 'props.pointerEvents is deprecated. Use style.pointerEvents' on landing/login. Existed in iterations 4-5; not introduced by calendar work but still open."
+      },
+      {
+        "component": "Missing testID props on calendar UI elements",
+        "issue": "The new Calendar screen has NO testID on any element (streak stat cards, month back/forward chevrons, day cells, milestone cards, calendar-icon buttons on parent Children cards, child-calendar back arrow). Add testIDs like: calendar-stat-current, calendar-stat-best, calendar-stat-perfect, calendar-month-prev, calendar-month-next, calendar-day-{yyyy-mm-dd}, milestone-{days}, parent-child-calendar-btn-{childId}, child-calendar-back. Reference: /app/frontend/src/components/CalendarView.tsx and /app/frontend/app/child-calendar.tsx."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_6.json",
+    "/app/backend/tests/test_calendar.py",
+    "/app/test_reports/pytest/pytest_calendar.xml"
+  ],
+  "action_items": [
+    "Consider unifying streak source: Child Home shows progress.streak (=6 for Emma) while Calendar shows compute_streak_stats current_streak (=8). Same field, different values — recommend using the calendar-computed value everywhere.",
+    "Add testID props to new Calendar UI elements (see react_native_issues) for reliable regression automation.",
+    "(Carryover) Migrate remaining props.pointerEvents usages to style.pointerEvents in landing/login screens."
+  ],
+  "critical_code_review_comments": [
+    "/app/backend/routes/progress.py get_calendar — clean implementation. Persists earned milestones via $set streak_milestones for auto-unlock semantics; upsert=True is defensive.",
+    "/app/backend/utils.py compute_streak_stats — correctly handles 'today not yet complete': if today isn't complete, streak walks from yesterday. Longest streak scans sorted unique dates and is O(n). Good.",
+    "/app/frontend/src/components/CalendarView.tsx — canGoNext correctly disables forward navigation beyond the current month. Today border overlays complete bg (works but a slight visual note: today's green fill is partially masked by the orange border on the small day cell — still readable).",
+    "/app/frontend/app/child-calendar.tsx — clean, safe param handling with childId guard and back button."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_calendar.py (new: 10 pytest cases for GET /api/progress/{child_id}/calendar + regressions)"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 pytest cases pass: auth-required, Emma shape+streak+milestones+days statuses, Liam broken-streak+no milestones+gap-day, plus 3 no-regression checks for /progress, /tasks, /family)",
+    "frontend": "100% on all review checkpoints (child Calendar tab summary+grid+today+legend+milestones+month nav; parent Children→calendar icon→per-child Calendar for both Emma and Liam; back navigation returns to Children screen)"
+  },
+  "seed_data_creation": "Did NOT re-run /api/admin/seed (would wipe streaks). Relied on existing calendar demo state seeded by /app/backend/seed_calendar_demo.py. Emma completions kept intact (8-day streak ending today, 3 partial days before). Liam completions kept intact (2 recent + gap + 3 earlier).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Calendar feature is fully functional. Regression checkpoints for future runs: (1) GET /api/progress/{child_id}/calendar returns {days, current_streak, longest_streak, complete_days, daily_task_total, milestones:[{days:7|14|30|60|100, earned:bool, name, icon, reward}]}. (2) Milestone auto-unlock is stored on progress.streak_milestones (list of ints). (3) Kid Calendar tab is at /(child)/calendar and requires currentChild in zustand store — reach it via role-select. (4) Parent per-child Calendar is at /child-calendar?childId=X&childName=Y opened from Children screen calendar icon (see /app/frontend/app/(parent)/index.tsx line ~199-208). (5) A day counts 'complete' when completed>=daily_task_total (daily_task_total for REVIEW family = 8). (6) Streak resumes from yesterday if today isn't yet complete — do not break the streak just because today's tasks aren't done yet. (7) If demo state gets wiped, re-run: python /app/backend/seed_calendar_demo.py (do NOT hit /api/admin/seed).",
+  "rca_of_issue": "N/A — all scoped features work correctly. Only a minor UX note: kid Home 'Day Streak' widget uses progress.streak (increment-on-task-complete, currently 6 for Emma) while Calendar uses compute_streak_stats from completions map (8 for Emma). Not a bug per the review request but likely to confuse reviewers."
+}

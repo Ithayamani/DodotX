@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI, cheersAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
@@ -33,7 +33,7 @@ export default function ChildHome() {
       setProgress(progressData);
       setCheers(cheersData.slice(0, 3));
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load your progress');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -44,6 +44,10 @@ export default function ChildHome() {
     setRefreshing(true);
     loadData();
   };
+
+  if (!currentChild) {
+    return <Redirect href="/role-select" />;
+  }
 
   if (loading) {
     return (

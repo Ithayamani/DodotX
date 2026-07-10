@@ -11,6 +11,8 @@ export default function ParentPin() {
   const [pin, setPin] = useState('');
   const colors = getThemeColors(theme);
 
+  const setParentUnlocked = useAppStore((state) => state.setParentUnlocked);
+
   const handleVerify = async () => {
     if (pin.length !== 4) {
       Alert.alert('Error', 'PIN must be 4 digits');
@@ -19,6 +21,7 @@ export default function ParentPin() {
 
     try {
       await familyAPI.verifyPin(pin);
+      setParentUnlocked(true);
       router.replace('/(parent)');
     } catch (error) {
       Alert.alert('Incorrect PIN', 'Please try again');

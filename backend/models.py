@@ -27,10 +27,10 @@ class Task(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TaskCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1)
+    pts: int = Field(ge=1, le=100)
+    cat: TaskCategory
     icon: str = "✓"
-    pts: int = Field(default=10, ge=1, le=100)
-    cat: TaskCategory = TaskCategory.CHORES
     modes: TaskMode = TaskMode()
     active: bool = True
 
@@ -93,6 +93,7 @@ class Progress(BaseModel):
     perfect_days: int = 0
     completions: Dict[str, List[str]] = {}
     redeemed_rewards: List[str] = []
+    streak_milestones: List[int] = []
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TaskCompletion(BaseModel):
@@ -193,6 +194,9 @@ class TokenData(BaseModel):
 
 class FamilyCodeVerify(BaseModel):
     code: str
+
+class PinVerify(BaseModel):
+    pin: str
 
 class ChildInvite(BaseModel):
     family_code: str

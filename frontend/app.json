@@ -57,6 +57,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "backendUrl": "https://family-quest-15.preview.emergentagent.com",
       "router": {
         "origin": false
       },

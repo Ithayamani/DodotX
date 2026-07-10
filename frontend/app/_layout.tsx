@@ -19,8 +19,9 @@ export default function RootLayout() {
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/signup" />
         <Stack.Screen name="onboarding/index" />
-        <Stack.Screen name="(child)/index" />
-        <Stack.Screen name="(parent)/index" />
+        <Stack.Screen name="(child)" />
+        <Stack.Screen name="(parent)" />
+        <Stack.Screen name="child-calendar" />
       </Stack>
     </QueryClientProvider>
   );

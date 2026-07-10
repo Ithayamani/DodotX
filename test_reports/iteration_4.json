@@ -1,0 +1,55 @@
+{
+  "summary": "PRIMARY AUTH-PERSISTENCE FIX VALIDATED end-to-end. UI (Playwright, mobile 390x844) and API tests both confirm: (1) wrong PIN 9999 now returns HTTP 403 (was 401) and axios interceptor no longer wipes auth_token — confirmed the token in localStorage was PRESENT and IDENTICAL before/after the wrong-PIN attempt; (2) correct PIN 1234 immediately after the wrong attempt succeeds (200) and opens Parent Dashboard with Emma & Liam visible; (3) added 3 children in a row (TEST_Kid1/2/3) with 0 auth errors — all POST /api/children returned 200, every subsequent request kept the Authorization header, and no 'not authenticated' toast surfaced; (4) create task worked (POST /api/tasks 200) and DELETE /api/tasks/<id> returned 200 (also verified via backend test — no 'Failed to delete task' banner); (5) toggle task (child complete flow) returned 200 with correct points update (245→255 on complete, 255→245 on uncomplete) and auth token remained intact; (6) navigation across Children/Tasks/Rewards/Settings tabs did not break the session; (7) Settings screen correctly displays Family Code, Theme picker, Task Mode toggle; (8) Rewards screen renders 5 rewards with edit/delete controls. 7/7 pytest cases pass in /app/backend/tests/test_auth_persistence.py. NO 401s were observed for authenticated endpoints during the entire session.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "app/_layout.tsx (Expo Router)",
+        "issues": [
+          "Console warns twice on every navigation: [Layout children]: No route named \"(child)/index\" exists in nested children, and same for \"(parent)/index\". Root _layout is declaring a Stack.Screen for '(child)/index' and '(parent)/index' but the file-based router expects '(child)' and '(parent)' (the group directories). Not blocking, but pollutes the console and could confuse future testing."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "Interactive controls (missing testID)",
+        "issue": "NONE of the tested interactive elements expose testID props. Parent header + add-child button, delete-child trash Pressable, task edit/delete icons, PIN input, modal Save/Cancel buttons, and bottom-tab items all render with only React Native Web class hashes, forcing tests to rely on text/position heuristics. Reference: /app/frontend/app/(parent)/index.tsx:153-158,199-211,240-292; /app/frontend/app/parent-pin.tsx:36-52; /app/frontend/app/(parent)/tasks.tsx (edit/delete pencil/trash). Add testID='add-child-button', testID='child-delete-<id>', testID='task-create-modal-save', testID='parent-pin-input', testID='parent-pin-verify' etc."
+      },
+      {
+        "component": "props.pointerEvents deprecation",
+        "issue": "Console warns 'props.pointerEvents is deprecated. Use style.pointerEvents'. Migrate any <View pointerEvents=... /> to style={{pointerEvents:...}} for RN 0.74+ compatibility."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_persistence.py",
+    "/app/test_reports/pytest/pytest_auth_persistence.xml",
+    "/app/test_reports/iteration_4.json"
+  ],
+  "action_items": [
+    "Add testID props to all interactive elements (see react_native_issues) so future UI regressions can be caught reliably.",
+    "Fix _layout.tsx Stack.Screen names — replace '(child)/index' and '(parent)/index' entries with '(child)' and '(parent)' to remove the two repeated Layout warnings.",
+    "Migrate deprecated `props.pointerEvents` usages to `style.pointerEvents`.",
+    "Re-seed the demo family: I accidentally called POST /api/family/regenerate-code during backend probing — Demo Family code is now 6JVHL7, not REVIEW. Please re-seed so the Apple reviewer / visitor flow with code 'REVIEW' works again.",
+    "Optional: also add `testID` on child cards so the delete flow can be automated without JS DOM walking."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/api/client.ts:32-56 — the CREDENTIAL_ENDPOINTS allowlist correctly excludes /family/verify-pin, /auth/login, /auth/signup, /auth/forgot-password, /auth/reset-password, /family/verify-code, /family/join-child from the 401→logout path. This is exactly the fix described and it works. Consider also excluding /auth/delete-account for symmetry (a 401 there would already be unrecoverable, but is not a wrong-credential case).",
+    "/app/backend/routes/family.py:72 — verify-pin now returns 403 for wrong PIN (not 401). Confirmed both via HTTP and via the UI network log.",
+    "/app/frontend/app/parent-pin.tsx has NO testID on the PIN TextInput or Verify button; testing had to rely on positional and text selectors."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_persistence.py (new — 7 tests, all passing)"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 pytest — see pytest_auth_persistence.xml)",
+    "frontend": "100% for the critical auth-persistence scenarios exercised via Playwright (wrong→correct PIN, add 3 kids, create/delete task, navigate all parent tabs). Delete-task DOM interaction succeeded via API but the UI-side delete click was flaky in Playwright due to lack of testID — added as an action item, not a functional bug."
+  },
+  "seed_data_creation": "Created TEST_Kid1, TEST_Kid2, TEST_Kid3 via UI (not deleted — main agent will re-seed). Created & deleted TEST_Task_Del / TEST_flow / TEST_rew via API. Called POST /family/regenerate-code once by accident — new family code is 6JVHL7 (was REVIEW). Main agent MUST re-seed to restore code=REVIEW for reviewer/visitor flow.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The wrong-PIN → correct-PIN scenario is the single most important regression. Verify: (a) POST /api/family/verify-pin?pin=9999 returns 403 (never 401); (b) frontend axios response interceptor in /app/frontend/src/api/client.ts:32-56 keeps CREDENTIAL_ENDPOINTS excluded; (c) localStorage 'auth_token' remains unchanged after the wrong-PIN attempt. Use the pytest suite at /app/backend/tests/test_auth_persistence.py for quick verification (runs in ~4s). Interactive elements still lack testID props — write DOM/text-based selectors or push main agent to add testIDs.",
+  "rca_of_issue": "Original bug: backend /family/verify-pin returned 401 on wrong PIN; frontend axios response interceptor cleared auth_token & user_data from AsyncStorage on ANY 401. So a single wrong PIN wiped the JWT — but the in-memory zustand `isAuthenticated` state was NOT reset, so the app kept trying protected calls without a token, causing intermittent 'not authenticated' errors (add 3rd child, delete task, complete task). Fix (verified): (a) /app/backend/routes/family.py:72 raises 403 for wrong PIN; (b) /app/frontend/src/api/client.ts:35-53 defines CREDENTIAL_ENDPOINTS and only clears storage on 401s from OTHER endpoints. Net effect: wrong PIN → 403 → interceptor no-op → user stays logged in → correct PIN immediately after succeeds → session continues normally. All 7 pytest cases + full Playwright walk-through pass with 0 unexpected 401s."
+}

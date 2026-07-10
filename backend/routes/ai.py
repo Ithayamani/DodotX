@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from routes import db, get_current_user
 from models import User, Task, TaskMode, AITaskSuggestion, AITaskResponse, AIThemeRequest, CustomTheme
-from utils import generate_id
+from utils import generate_id, get_today_date
 import os, logging, json
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -57,23 +57,71 @@ async def ai_auto_generate_routines(current_user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="No children found.")
     existing_tasks = await db.tasks.find({"family_id": current_user.family_id}).to_list(100)
     existing_titles = [t["title"] for t in existing_tasks]
-    child_desc = [f"{c.get('name')} (age {c.get('age', 'school-age')})" for c in children]
-    prompt = f"""Create 8 daily routines for: {', '.join(child_desc)}. Existing (DON'T duplicate): {', '.join(existing_titles[:20]) or 'None'}. Cover: morning, learning, active, creative, chores, health. Return ONLY JSON array: [{{"title":"...","icon":"emoji","pts":10,"cat":"health","modes":{{"daily":true,"vacation":false}}}}]"""
+
+    # Factor in each child's age; gracefully handle missing ages.
+    child_desc = []
+    known_ages = []
+    for c in children:
+        age = c.get("age")
+        if age:
+            known_ages.append(age)
+            child_desc.append(f"{c.get('name')} (age {age})")
+        else:
+            child_desc.append(f"{c.get('name')} (age unknown)")
+    if known_ages:
+        age_line = f"Tailor the difficulty, wording and point values to these ages: {', '.join(str(a) for a in known_ages)}. Younger kids get simpler tasks and lower points; older kids get more responsibility and higher points."
+    else:
+        age_line = "Ages are unknown — create a fun, cool and motivating mix of routines that works well for kids roughly 5-12, with playful titles and a good variety."
+
+    prompt = f"""Create 8 daily routines for: {', '.join(child_desc)}.
+{age_line}
+Existing routines (DON'T duplicate): {', '.join(existing_titles[:20]) or 'None'}.
+Cover a mix across: morning, learning, active, creative, chores, health.
+STRICT RULES: "cat" MUST be EXACTLY one of: learning, active, creative, chores, health, social. "pts" MUST be an integer between 1 and 100. "icon" MUST be a single emoji.
+Return ONLY a valid JSON array: [{{"title":"...","icon":"emoji","pts":10,"cat":"health","modes":{{"daily":true,"vacation":false}}}}]"""
     try:
         api_key = os.getenv("EMERGENT_LLM_KEY")
-        chat = LlmChat(api_key=api_key, session_id=f"routine_{current_user.id}", system_message="Return valid JSON arrays.").with_model("openai", "gpt-5.2")
+        chat = LlmChat(api_key=api_key, session_id=f"routine_{current_user.id}", system_message="Return valid JSON arrays only.").with_model("openai", "gpt-5.2")
         response = await chat.send_message(UserMessage(text=prompt))
         routines = json.loads(clean_llm_json(response))
+        if not isinstance(routines, list):
+            raise ValueError("AI response was not a list")
+        valid_cats = {"learning", "active", "creative", "chores", "health", "social"}
         saved = []
         for td in routines:
-            task_id = generate_id()
-            task = Task(id=task_id, title=td["title"], icon=td.get("icon", "\ud83d\udccb"), pts=td.get("pts", 10), cat=td.get("cat", "chores"), modes=TaskMode(daily=td.get("modes", {}).get("daily", True), vacation=td.get("modes", {}).get("vacation", False)), family_id=current_user.family_id)
+            if not isinstance(td, dict):
+                continue
+            title = str(td.get("title") or "").strip()
+            if not title:
+                continue
+            cat = td.get("cat")
+            if cat not in valid_cats:
+                cat = "chores"
+            try:
+                pts = int(td.get("pts", 10))
+            except (ValueError, TypeError):
+                pts = 10
+            pts = max(1, min(100, pts))
+            modes_raw = td.get("modes") if isinstance(td.get("modes"), dict) else {}
+            task = Task(
+                id=generate_id(), title=title, icon=str(td.get("icon") or "\ud83d\udccb"),
+                pts=pts, cat=cat,
+                modes=TaskMode(daily=bool(modes_raw.get("daily", True)), vacation=bool(modes_raw.get("vacation", False))),
+                family_id=current_user.family_id,
+            )
             await db.tasks.insert_one(task.dict())
             saved.append(task.dict())
+        if not saved:
+            raise HTTPException(status_code=502, detail="The AI didn't return any valid routines. Please try again.")
         return {"message": f"Generated {len(saved)} routines!", "tasks": saved}
+    except HTTPException:
+        raise
+    except json.JSONDecodeError:
+        logging.error("AI routine error: invalid JSON from LLM")
+        raise HTTPException(status_code=502, detail="The AI response couldn't be read. Please try again.")
     except Exception as e:
         logging.error(f"AI routine error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate routines. Please try again.")
 
 @router.post("/adjust-difficulty")
 async def ai_adjust_difficulty(current_user: User = Depends(get_current_user)):
@@ -82,10 +130,11 @@ async def ai_adjust_difficulty(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="User has no family")
     children = await db.children.find({"family_id": current_user.family_id}).to_list(100)
     tasks = await db.tasks.find({"family_id": current_user.family_id}).to_list(100)
+    today = get_today_date()
     behavior = []
     for c in children:
         p = await db.progress.find_one({"child_id": c["id"]})
-        ct = p.get("completed_today", []) if p else []
+        ct = p.get("completions", {}).get(today, []) if p else []
         behavior.append({"name": c.get("name"), "age": c.get("age", "?"), "completed": len(ct), "total": len(tasks), "rate": round(len(ct)/max(len(tasks),1)*100), "points": p.get("points",0) if p else 0, "streak": p.get("streak",0) if p else 0})
     prompt = f"""Analyze and suggest adjustments. Data: {json.dumps(behavior)}. Tasks: {json.dumps([{"title": t.get("title",""), "pts": t.get("pts",10)} for t in tasks[:15]])}. Return ONLY JSON: {{"analysis":"...","suggestions":[{{"action":"add|modify|remove","title":"...","icon":"emoji","pts":10,"reason":"..."}}]}}"""
     try:

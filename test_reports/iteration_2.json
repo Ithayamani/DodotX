@@ -1,0 +1,53 @@
+{
+  "summary": "Frontend end-to-end verification against the live preview backend (https://family-quest-15.preview.emergentagent.com). All four requested user-facing flows PASSED with zero 4xx/5xx network errors. (1) LOGIN with review@dodotx.net/Review123! authenticated and navigated to /role-select showing Demo Family with Emma & Liam. (2) SIGNUP with a fresh unique email (verifytest+<ts>@gmail.com), name 'Verify', password 'Verify123!' succeeded and navigated to /onboarding (Step 1 of 3 Family & Child) with NO 'Signup Failed' alert. (3) VISITOR family code REVIEW was accepted and dashboard rendered 'Demo Family' + 'Visitor View' badge + both Emma (245 pts, 97%) and Liam (180 pts, 53%) with streaks/trophies. (4) PARENT PIN 1234 accepted from /parent-pin after login and navigated into Parent Dashboard listing Children/Tasks/Rewards/Settings tabs. This confirms EXPO_PUBLIC_BACKEND_URL/app.json backendUrl wiring is correct end-to-end and a fresh iOS build using this same JS bundle should behave identically. Minor non-blocking findings noted in code review below.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/ (landing hero)",
+        "issues": [
+          "On 375px viewport the hero H1 'Make Everyday Things a Game' breaks awkwardly — one word per line rendered vertically due to 40px font + width>768 branching. Consider reducing font-size or lineHeight for narrow widths."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "expo-router root layout",
+        "issue": "Console warning on every screen: '[Layout children]: No route named \"(child)/index\" exists in nested children' and same for '(parent)/index'. Suggests _layout.tsx declares <Stack.Screen name=\"(child)/index\" /> and \"(parent)/index\" while the actual group route is just '(child)' / '(parent)'. Non-fatal but pollutes logs. Reference: /app/frontend/app/_layout.tsx"
+      },
+      {
+        "component": "TouchableOpacity/View (react-native-web)",
+        "issue": "Console warning: 'props.pointerEvents is deprecated. Use style.pointerEvents.' Emitted by react-native-web on interactive components. Non-blocking but should be migrated when upgrading RN."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/iteration_2.json"
+  ],
+  "action_items": [
+    "No blocking issues — the three user-facing flows (login, signup, visitor code) plus PIN work end-to-end against the preview backend. Safe to generate a new iOS build.",
+    "Optional: fix the two Expo Router route-name warnings in app/_layout.tsx by renaming Stack.Screen entries from '(child)/index' → '(child)' and '(parent)/index' → '(parent)'.",
+    "Optional: add testID props to key interactive elements (Sign In button, Sign Up button, email/password/PIN inputs, family-code input, View Family Progress button, Verify button, Parent Dashboard card) so future automated regression is more robust than placeholder-text based selectors.",
+    "Optional design: narrow-width (iPhone SE-class) hero title wraps one word per line — consider a smaller heroTitle font or explicit textBreakStrategy for widths <=375."
+  ],
+  "critical_code_review_comments": [
+    "src/api/client.ts uses `Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || ''`. Falling through to '' would silently break requests with baseURL '/api'. Since the previous TestFlight bug was caused by a stale baked URL, consider throwing at startup if BACKEND_URL is empty so misconfiguration fails loud instead of degrading to generic 'Invalid credentials' errors.",
+    "auth/login.tsx and auth/signup.tsx surface `error.response?.data?.detail || 'Invalid credentials' | 'Could not create account'`. When the request never leaves the device (network failure, DNS, wrong baseURL) these fallbacks masquerade as auth failures — same class of bug that hit the last TestFlight build. Recommend differentiating: if `!error.response` show 'Cannot reach server — check connection' instead of the generic auth message.",
+    "parent-pin.tsx has NO rate limiting or lockout on repeated wrong PIN attempts client-side, and the backend endpoint should also be checked (out of scope this run).",
+    "No testID attributes anywhere in the four screens tested — makes automation brittle."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested this iteration (verified 100% in iteration_1)", "frontend": "100% (4/4 flows: login, signup, visitor, parent-pin)"},
+  "seed_data_creation": "Signup test created one real user via /api/auth/signup with email verifytest+<unix_ts>@gmail.com and name 'Verify'. Left in DB (no cleanup endpoint used); harmless demo data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Public preview URL: https://family-quest-15.preview.emergentagent.com. Placeholder-based selectors that WORK on this build: 'Email', 'Password', 'Your Name', 'ABCDEF' (visitor code). 'Create Account' text appears TWICE on signup screen (title + button) — always use .nth(1) for the button. 'Sign In' text is unique. The PIN screen is a single TextInput (no on-screen keypad); locate via `page.locator('input').first` and `.fill('1234')` then click 'Verify'. Parent Dashboard is at /(parent) group and lists Children/Tasks/Rewards/Settings tabs after PIN. Backend URL for the JS bundle is baked from app.json extra.backendUrl (currently correct). No 4xx/5xx observed during the full run.",
+  "rca_of_issue": "N/A — no bug in this iteration. Prior TestFlight failures (login/signup/visitor 'Invalid credentials' / 'Signup Failed' / 'Invalid or expired family code') were confirmed by main agent to be caused by a stale backendUrl baked into the installed TestFlight build. This iteration verifies that with the CURRENT app.json/EXPO_PUBLIC_BACKEND_URL (both set to https://family-quest-15.preview.emergentagent.com), all four flows succeed end-to-end against the preview backend — so a fresh iOS build produced from this JS bundle will exhibit the fixed behavior."
+}

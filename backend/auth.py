@@ -5,7 +5,7 @@ from typing import Optional
 import os
 from models import TokenData
 
-SECRET_KEY = os.getenv("JWT_SECRET", "kidquest_secret_key_2025_v1")
+SECRET_KEY = os.environ["JWT_SECRET"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 

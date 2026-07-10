@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useAppStore } from '../src/stores';
 import { familyAPI, childrenAPI } from '../src/api/client';
@@ -9,7 +9,7 @@ import type { Child } from '../src/types';
 export default function RoleSelect() {
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
-  const { family, setFamily, setCurrentChild, setChildren, theme } = useAppStore();
+  const { family, setFamily, setCurrentChild, setChildren, theme, reset: resetAppStore } = useAppStore();
   const [children, setChildrenList] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const colors = getThemeColors(theme);
@@ -28,7 +28,7 @@ export default function RoleSelect() {
       setChildrenList(childrenData);
       setChildren(childrenData);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load your family');
     } finally {
       setLoading(false);
     }
@@ -45,6 +45,7 @@ export default function RoleSelect() {
 
   const handleLogout = async () => {
     await clearAuth();
+    resetAppStore();
     router.replace('/');
   };
 

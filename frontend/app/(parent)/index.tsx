@@ -9,6 +9,8 @@ import { getThemeColors, AVATARS } from '../../src/constants';
 import { hapticHeavy, hapticLight } from '../../src/utils/haptics';
 import type { Child } from '../../src/types';
 
+const MAX_IMAGE_BASE64_LENGTH = 4 * 1024 * 1024;
+
 export default function ParentChildren() {
   const router = useRouter();
   const theme = useAppStore((state) => state.theme);
@@ -45,7 +47,7 @@ export default function ParentChildren() {
       });
       setChildrenProgress(progressMap);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load children');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -121,6 +123,10 @@ export default function ParentChildren() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
+      if (result.assets[0].base64.length > MAX_IMAGE_BASE64_LENGTH) {
+        Alert.alert('Photo Too Large', 'Please choose a smaller photo.');
+        return;
+      }
       try {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
         await childrenAPI.update(child.id, { profile_picture: base64Image });
@@ -195,6 +201,17 @@ export default function ParentChildren() {
                       </View>
                     )}
                   </View>
+
+                  <TouchableOpacity
+                    style={[styles.calendarButton, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+                    onPress={() => {
+                      hapticLight();
+                      router.push({ pathname: '/child-calendar', params: { childId: child.id, childName: child.name } });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
 
                   <Pressable
                     style={({ pressed }) => [
@@ -398,6 +415,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     backgroundColor: 'rgba(196, 112, 112, 0.1)',
+  },
+  calendarButton: {
+    padding: 14,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
   },
   deleteButtonPressed: {
     backgroundColor: 'rgba(196, 112, 112, 0.3)',

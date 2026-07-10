@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://app-store-setup-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://family-quest-15.preview.emergentagent.com/api"
 TEST_EMAIL = "parent@test.com"
 TEST_PASSWORD = "parent123"
 
