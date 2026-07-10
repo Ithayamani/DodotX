@@ -30,7 +30,7 @@ export default function ParentRewards() {
       const rewardsData = await rewardsAPI.getAll();
       setRewards(rewardsData);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load rewards');
     } finally {
       setLoading(false);
       setRefreshing(false);

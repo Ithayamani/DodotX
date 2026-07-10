@@ -2,34 +2,12 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
-  SafeAreaView, ScrollView, RefreshControl, Dimensions
+  SafeAreaView, ScrollView, RefreshControl
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { visitorAPI } from '../src/api/client';
-
-const { width } = Dimensions.get('window');
-
-interface ChildData {
-  name: string;
-  avatar: string;
-  profile_picture: string | null;
-  points: number;
-  streak: number;
-  perfect_days: number;
-  level: { name: string; min: number; max: number; progress: number };
-  trophies_count: number;
-  tasks_done_today: number;
-}
-
-interface VisitorData {
-  family_name: string;
-  theme: string;
-  vacation_mode: boolean;
-  children: ChildData[];
-  total_tasks: number;
-  total_rewards: number;
-}
+import type { VisitorView as VisitorViewData } from '../src/types';
 
 export default function VisitorView() {
   const router = useRouter();
@@ -37,7 +15,7 @@ export default function VisitorView() {
   const [familyCode, setFamilyCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState<VisitorData | null>(null);
+  const [data, setData] = useState<VisitorViewData | null>(null);
 
   const fetchVisitorData = async (code: string) => {
     const result = await visitorAPI.getView(code.trim().toUpperCase());

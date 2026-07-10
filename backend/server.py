@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from pathlib import Path
 import logging
+import os
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -29,14 +30,26 @@ from routes.visitor import router as visitor_router
 # Create the main app
 app = FastAPI(title="DodotX API", docs_url=None, redoc_url=None)
 
-# CORS middleware
+# CORS middleware. The app authenticates with a Bearer token (not cookies), so
+# credentialed cross-origin requests are never needed; allow_credentials=False lets us
+# safely keep allow_origins=["*"] for the mobile/web clients without exposing a
+# credentialed-wildcard hole.
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Admin endpoints are gated behind a shared secret so they can't be triggered by anyone
+# who simply finds the URL. Fails closed: if ADMIN_SECRET isn't configured, the endpoints
+# are unusable rather than silently open.
+ADMIN_SECRET = os.getenv("ADMIN_SECRET")
+
+async def require_admin_secret(x_admin_secret: str = Header(default=None)):
+    if not ADMIN_SECRET or x_admin_secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
 # Include all routers under /api prefix
 app.include_router(auth_router, prefix="/api")
@@ -287,7 +300,7 @@ async def startup_seed_demo():
 
 
 # Manual seed endpoint (for emergency re-seeding)
-@app.get("/api/admin/seed")
+@app.get("/api/admin/seed", dependencies=[Depends(require_admin_secret)])
 async def manual_seed():
     """Force re-seed demo accounts. Can be triggered manually if accounts are missing."""
     from routes import db
@@ -302,7 +315,7 @@ async def manual_seed():
 
 
 # Verify demo account endpoint
-@app.get("/api/admin/verify-demo")
+@app.get("/api/admin/verify-demo", dependencies=[Depends(require_admin_secret)])
 async def verify_demo():
     """Check if the demo account exists and password is valid."""
     import bcrypt

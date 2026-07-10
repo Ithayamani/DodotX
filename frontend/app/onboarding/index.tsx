@@ -74,7 +74,6 @@ export default function Onboarding() {
 
       router.replace('/role-select');
     } catch (error: any) {
-      // Error handled silently
       Alert.alert('Setup Failed', error.response?.data?.detail || 'Could not complete setup');
     } finally {
       setLoading(false);

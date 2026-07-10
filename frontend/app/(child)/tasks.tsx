@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { tasksAPI, progressAPI, familyAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
@@ -19,6 +20,9 @@ export default function ChildTasks() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [points, setPoints] = useState(0);
   const colors = getThemeColors(theme);
+  // Guards against out-of-order toggle responses (e.g. two quick taps) clobbering
+  // the displayed point total with a response from an earlier, now-stale request.
+  const toggleSeq = useRef(0);
 
   useEffect(() => {
     loadData();
@@ -45,7 +49,6 @@ export default function ChildTasks() {
       setCompletedToday(progressData.today_completions);
       setPoints(progressData.points);
     } catch (error) {
-      // Error handled silently
       Alert.alert('Error', 'Failed to load tasks');
     } finally {
       setLoading(false);
@@ -62,7 +65,8 @@ export default function ChildTasks() {
     if (!currentChild) return;
     
     const isCompleted = completedToday.includes(task.id);
-    
+    const seq = ++toggleSeq.current;
+
     try {
       // Optimistic update
       if (isCompleted) {
@@ -72,21 +76,22 @@ export default function ChildTasks() {
       } else {
         setCompletedToday(prev => [...prev, task.id]);
         setPoints(prev => prev + task.pts);
-        
+
         // Haptic feedback
         hapticSuccess();
-        
+
         // Show confetti
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 2000);
       }
-      
+
       // API call
       const result = await tasksAPI.toggle(task.id, currentChild.id);
-      setPoints(result.points);
-      
+      if (seq === toggleSeq.current) {
+        setPoints(result.points);
+      }
+
     } catch (error) {
-      // Error handled silently
       // Revert optimistic update
       if (isCompleted) {
         setCompletedToday(prev => [...prev, task.id]);
@@ -96,6 +101,10 @@ export default function ChildTasks() {
       Alert.alert('Error', 'Failed to update task');
     }
   };
+
+  if (!currentChild) {
+    return <Redirect href="/role-select" />;
+  }
 
   if (loading) {
     return (

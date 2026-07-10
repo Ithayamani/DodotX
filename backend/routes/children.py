@@ -29,7 +29,7 @@ async def get_child(child_id: str, current_user: User = Depends(get_current_user
     child = await db.children.find_one({"id": child_id})
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
-    if current_user.family_id and child["family_id"] != current_user.family_id:
+    if not current_user.family_id or child["family_id"] != current_user.family_id:
         raise HTTPException(status_code=403, detail="Not authorized")
     return Child(**child)
 

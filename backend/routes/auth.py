@@ -12,6 +12,19 @@ logger = logging.getLogger(__name__)
 
 # Simple in-memory rate limiter for auth endpoints (single-worker; use Redis if scaling to multiple workers)
 _rate_limits: dict = defaultdict(list)
+_MAX_WINDOW_SECONDS = 300  # largest window used by any limiter below (check_reset_rate_limit)
+_last_sweep = 0.0
+
+def _sweep_stale_keys(now: float):
+    """Periodically drop keys whose every attempt has aged out, so a long-lived
+    single-worker deployment doesn't accumulate one entry per email/IP forever."""
+    global _last_sweep
+    if now - _last_sweep < _MAX_WINDOW_SECONDS:
+        return
+    _last_sweep = now
+    stale = [k for k, v in _rate_limits.items() if not v or now - v[-1] >= _MAX_WINDOW_SECONDS]
+    for k in stale:
+        del _rate_limits[k]
 
 def _get_client_ip(request: Request) -> str:
     # Behind a trusted reverse proxy (K8s ingress), the real client IP is the right-most
@@ -24,6 +37,7 @@ def _get_client_ip(request: Request) -> str:
 def _hit(key: str, max_attempts: int, window: int) -> bool:
     """Record an attempt for `key`. Returns True if allowed, False if rate-limited."""
     now = time.time()
+    _sweep_stale_keys(now)
     _rate_limits[key] = [t for t in _rate_limits[key] if now - t < window]
     if len(_rate_limits[key]) >= max_attempts:
         return False

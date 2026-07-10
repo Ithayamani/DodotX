@@ -1,12 +1,19 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
 import { getThemeColors } from '../../src/constants';
 
 export default function ParentLayout() {
   const theme = useAppStore((state) => state.theme);
+  const parentUnlocked = useAppStore((state) => state.parentUnlocked);
   const colors = getThemeColors(theme);
+
+  // Require the PIN to be re-verified every session — direct navigation, deep links,
+  // or a page reload must not be able to bypass the parent-pin screen.
+  if (!parentUnlocked) {
+    return <Redirect href="/parent-pin" />;
+  }
 
   return (
     <Tabs
