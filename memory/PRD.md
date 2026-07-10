@@ -1,402 +1,188 @@
-# KidQuest - Mobile App PRD
+# DodotX — Product Requirements Document (PRD)
 
-## Version: 2.0 (Full-Stack Mobile App)
-**Platform:** Expo (iOS, Android, Web)  
-**Backend:** FastAPI + MongoDB  
-**Status:** In Development  
-**Date:** July 2025
+**Version:** 3.0 (consolidated) · **Platform:** Mobile (Expo / React Native) · **Backend:** FastAPI · **DB:** MongoDB
 
 ---
 
-## Executive Summary
+## 1. Overview
 
-KidQuest is a family-focused gamified task management mobile application that motivates children to build positive daily habits through points, trophies, and rewards. Parents manage tasks and rewards while children interact with a fun, game-like interface. Extended family members can view progress and send encouragement.
+DodotX is a **family gamified task-management app**. Parents create tasks and rewards for their children; children complete daily tasks to earn points, level up, unlock trophies and rewards, and build streaks. A read-only **visitor** mode lets extended family follow a child's progress and send cheers. The app supports themes, a vacation-mode task set, an AI assistant for generating tasks/routines/rewards/themes, and a **streak calendar** with milestone rewards.
 
-**Mission:** Turn everyday family routines into joyful quests, giving children achievement and parents a tool that works.
+### 1.1 Goals
+- Motivate kids through gamification (points, levels, trophies, streaks, rewards).
+- Give parents simple control over tasks, rewards, children, and family settings.
+- Provide glanceable progress tracking via a calendar with daily completion status and streak milestones.
+- Allow safe, low-friction child access (family code + name, no email needed) and read-only visitor access.
 
----
-
-## Technical Architecture
-
-### Frontend (Expo)
-- **Framework:** Expo SDK 52+ with React Native
-- **Navigation:** React Navigation v7 (Tab + Stack navigation)
-- **State Management:** Zustand + React Query
-- **UI Components:** React Native + Custom components
-- **Offline Support:** AsyncStorage with MongoDB sync
-- **Platforms:** iOS, Android, Web (responsive)
-
-### Backend (FastAPI)
-- **Framework:** FastAPI (Python 3.11+)
-- **Database:** MongoDB
-- **Authentication:** JWT-based auth
-- **API Prefix:** All routes under `/api`
-- **File Storage:** Base64 for avatars
-
-### Database Schema (MongoDB)
-**Collections:**
-1. `families` - Family data and settings
-2. `users` - Parents and children accounts
-3. `tasks` - Task definitions
-4. `rewards` - Reward definitions
-5. `progress` - Child progress tracking
-6. `cheers` - Encouragement messages
-7. `trophies` - Trophy unlock tracking
+### 1.2 Personas / Roles
+| Role | Access | Auth |
+|------|--------|------|
+| **Parent** | Full control: tasks, rewards, children, family settings, AI tools. Protected by a 4-digit PIN. | Email + password (JWT) |
+| **Child** | Complete tasks, view Home/Tasks/Trophies/Shop/Calendar. | Family code + child name → JWT (role `child`) |
+| **Visitor** | Read-only view of a family's children progress; send cheer messages. | Family code only (no login) |
 
 ---
 
-## Core Features (v1.0)
+## 2. Tech Architecture
 
-### 1. Authentication & Onboarding
-- **Parent Signup:** Email/phone + password
-- **Family Setup Wizard:** 4 steps (family name, theme, children, default tasks)
-- **Child Invite:** Via email/mobile (no password, family code access)
-- **Visitor Access:** Family code (6-char) for read-only access
-- **4-digit PIN:** Parent dashboard protection
+- **Frontend:** Expo Router (file-based routing), Zustand store, Axios API client, React Native Reanimated, Confetti, AsyncStorage/SecureStore for token, theme system.
+- **Backend:** FastAPI, routers mounted under `/api`, Motor (async MongoDB). JWT auth (7-day expiry), bcrypt password + PIN hashing.
+- **AI:** Emergent LLM key via `emergentintegrations` (`LlmChat`, OpenAI `gpt-5.2`) for task/routine/reward/theme generation.
+- **Email:** Gmail SMTP for password-reset codes.
+- **Auth token:** stored in AsyncStorage; axios attaches `Authorization: Bearer`. Interceptor clears the token only on genuine 401s (NOT for credential/PIN/code endpoints).
 
-### 2. Role-Based Access
-- **Parent:** Full dashboard (manage tasks, rewards, children, settings)
-- **Child:** Task completion, trophy viewing, reward shop
-- **Visitor:** Read-only progress view + send cheers
-
-### 3. Child Module
-- **Home Screen:** 
-  - Personalized greeting
-  - Total points, level, XP progress bar
-  - Stats: tasks done today, streak, trophies, rewards won
-  - Next reward progress
-  - Trophy cabinet preview
-  
-- **Daily Tasks Screen:**
-  - Filtered by mode (Daily/Vacation)
-  - Tap to complete → confetti + points
-  - Visual feedback (checkmarks, strikethrough)
-  - Daily point total
-  
-- **Trophies Screen:**
-  - 8 trophies with unlock conditions
-  - Visual state (locked/unlocked)
-  
-- **Shop Screen:**
-  - Rewards sorted by points
-  - Progress bars
-  - Lock/unlock states
-
-### 4. Parent Module
-- **Children Management:**
-  - Add/edit/remove children
-  - View stats per child
-  - Avatar selection (emoji or AI-generated)
-  
-- **Task Manager:**
-  - Create/edit/delete tasks
-  - Configure: title, icon, points (1-100), category
-  - Dual mode toggles: Daily / Vacation
-  - Active/inactive status
-  
-- **Reward Manager:**
-  - Create/edit/delete rewards
-  - Configure: name, icon, description, point threshold
-  - Auto-sort by points
-  
-- **Family Panel:**
-  - 6-char family invite code
-  - Share link generation
-  - Family member list
-  
-- **Settings:**
-  - 6 visual themes
-  - Vacation mode toggle
-  - Change PIN
-  - Reset data (danger zone)
-
-### 5. Visitor Module
-- Join via family code
-- Select child to view
-- See points, level, streak
-- Send pre-written cheer messages
-- View cheer feed
-
-### 6. Gamification System
-
-**Level System:**
-- 🌱 Beginner: 0-99 pts
-- ⚡ Rising Star: 100-249 pts
-- 🔥 Hot Streak: 250-499 pts
-- 🌟 Quest Master: 500-999 pts
-- 💎 Legend: 1000-1999 pts
-- 🏆 Champion: 2000+ pts
-
-**8 Trophies:**
-1. First Quest 🥉 - Complete 1 task
-2. On Fire 🔥 - 3-day streak
-3. Week Warrior ⚡ - 7-day streak
-4. Century 💫 - 100 total points
-5. Star Player 🌟 - 500 total points
-6. Diamond 💎 - 1000 total points
-7. First Reward 🎁 - Unlock first reward
-8. Perfect Day 🏆 - Complete all tasks in one day
-
-**Streak Logic:**
-- Increments daily with ≥1 task completed
-- Resets to 0 if no tasks completed
-- Tracked per child
-
-### 7. Visual Themes (6 Options)
-1. ⚽ Football - Grass green (#00c853)
-2. 🚀 Space - Violet (#7c4dff)
-3. 🌊 Ocean - Cyan (#00bcd4)
-4. 🌿 Nature - Leaf green (#8bc34a)
-5. 🎮 Gaming - Purple (#e040fb)
-6. 🗺️ Adventure - Amber (#ff6f00)
+### 2.1 Rate limiting (auth)
+- **Login:** per-account (email) — 10 attempts / 60s → 429 (avoids shared-proxy lockout).
+- **Signup:** per-IP — 30 / 60s (generous).
+- **Forgot-password:** per-account — 5 / 5min.
 
 ---
 
-## AI Integration Preparation (v1.0)
-
-### Feature: "Ask AI to Suggest Tasks"
-**Location:** Parent Task Manager screen  
-**Functionality:**
-- Button: "✨ Get AI Suggestions"
-- Input: Child age, interests, goals
-- Output: 5-10 task suggestions with icons, points, categories
-- Parent can add suggestions with one tap
-
-**Technical Implementation:**
-- Endpoint: `POST /api/ai/suggest-tasks`
-- Request: `{ child_age, interests[], goals, current_tasks_count }`
-- LLM Provider: Use Emergent LLM Key (OpenAI/Claude/Gemini)
-- Prompt engineering for age-appropriate, creative tasks
-- Response format: Array of task objects
-
----
-
-## Default Data
-
-### Default Tasks (8 pre-loaded)
-| Task | Icon | Points | Daily | Vacation |
-|------|------|--------|-------|----------|
-| Morning Routine | 🌅 | 10 | ✅ | ✅ |
-| Read for 20 mins | 📚 | 15 | ✅ | - |
-| Physical Activity | ⚽ | 15 | ✅ | - |
-| Help with Chores | 🧹 | 10 | ✅ | - |
-| No Screens Before 10AM | 📵 | 10 | ✅ | - |
-| Creative Project | 🎨 | 15 | - | ✅ |
-| Outdoor Adventure | 🌳 | 20 | - | ✅ |
-| Healthy Meal | 🥗 | 10 | ✅ | ✅ |
-
-### Default Rewards (5 pre-loaded)
-| Reward | Icon | Points | Description |
-|--------|------|--------|-------------|
-| Pizza Night | 🍕 | 50 | Pick the toppings! |
-| Extra Screen Time | 🎮 | 80 | 30 mins bonus gaming! |
-| Movie Night | 🎬 | 120 | You pick the movie! |
-| Shopping Trip | 🛍️ | 200 | Choose a small treat |
-| Grand Surprise | 🏆 | 400 | Epic reward! |
-
----
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/signup` - Parent registration (email/phone)
-- `POST /api/auth/login` - Login
-- `POST /api/auth/refresh` - Refresh token
-- `POST /api/auth/invite-child` - Send child invite
-- `POST /api/auth/join-family` - Child joins via code
+## 3. Data Models (fields)
 
 ### Family
-- `GET /api/family` - Get family details
-- `PUT /api/family` - Update family settings
-- `GET /api/family/code` - Get/regenerate family code
-- `POST /api/family/verify-code` - Verify visitor code
+`id`, `name`, `code` (6-char invite code), `code_generated_at` (None = never expires, e.g. demo), `pin` (hashed 4-digit), `theme` (enum), `custom_theme` (optional), `vacation_mode` (bool), `vacation_start_date` (YYYY-MM-DD), `vacation_end_date` (YYYY-MM-DD), `parent_id`, `parent_profile_picture` (base64), `created_at`.
 
-### Children
-- `POST /api/children` - Add child
-- `GET /api/children` - List all children
-- `GET /api/children/:id` - Get child details
-- `PUT /api/children/:id` - Update child
-- `DELETE /api/children/:id` - Remove child
+### User
+`id`, `email`, `hashed_password`, `name`, `role` (`parent`|`child`|`visitor`), `family_id`, `created_at`.
 
-### Tasks
-- `POST /api/tasks` - Create task
-- `GET /api/tasks` - List all tasks
-- `PUT /api/tasks/:id` - Update task
-- `DELETE /api/tasks/:id` - Delete task
-- `POST /api/tasks/:id/toggle` - Toggle task completion
+### Child
+`id`, `name`, `avatar` (emoji or base64), `age` (optional int), `profile_picture` (optional base64), `family_id`, `created_at`.
 
-### Rewards
-- `POST /api/rewards` - Create reward
-- `GET /api/rewards` - List all rewards
-- `PUT /api/rewards/:id` - Update reward
-- `DELETE /api/rewards/:id` - Delete reward
+### Task
+`id`, `title`, `icon` (emoji), `pts` (1–100), `cat` (TaskCategory), `modes` {`daily`:bool, `vacation`:bool}, `active` (bool), `family_id`, `created_at`.
+- **TaskCategory enum:** `learning`, `active`, `creative`, `chores`, `health`, `social`.
+- **Create validation:** `title` (min 1), `pts` (1–100), `cat` **required**; `icon`, `modes`, `active` optional.
 
-### Progress
-- `GET /api/progress/:childId` - Get child progress
-- `GET /api/progress/:childId/stats` - Get stats (streak, trophies)
-- `GET /api/progress/:childId/history` - Task completion history
+### Reward
+`id`, `name`, `icon` (emoji), `pts` (≥1), `desc`, `family_id`, `created_at`.
 
-### Cheers
-- `POST /api/cheers` - Send cheer message
-- `GET /api/cheers/:childId` - Get cheers for child
+### Progress (per child)
+`child_id`, `points`, `total_tasks`, `streak`, `last_date`, `perfect_days`, `completions` {`YYYY-MM-DD`: [task_id,…]}, `redeemed_rewards` [reward_id], `streak_milestones` [int], `updated_at`.
 
-### AI (v1.0)
-- `POST /api/ai/suggest-tasks` - AI task suggestions
+### CheerMessage
+`id`, `child_id`, `sender_name`, `message`, `created_at`.
+
+### CustomTheme
+`name`, `primary`, `background`, `card`, `text`, `accent`.
 
 ---
 
-## Mobile UX Guidelines
+## 4. Gamification Rules
 
-### Navigation Architecture
-- **Bottom Tab Navigation** (Child Mode):
-  - Home 🏠
-  - Tasks ✓
-  - Trophies 🏆
-  - Shop 🎁
-  
-- **Bottom Tab Navigation** (Parent Mode):
-  - Children 👨‍👩‍👧
-  - Tasks ✓
-  - Rewards 🎁
-  - Family 👪
-  - Settings ⚙️
+### 4.1 Levels (by total points)
+🌱 Beginner (0–99) · ⚡ Rising Star (100–249) · 🔥 Hot Streak (250–499) · 🌟 Quest Master (500–999) · 💎 Legend (1000–1999) · 🏆 Champion (2000+).
 
-### Gesture Patterns
-- Pull-to-refresh on all list screens
-- Swipe actions for edit/delete
-- Long-press for quick actions
-- Bottom sheet for forms/modals
+### 4.2 Trophies (auto-earned)
+🥉 First Quest! (1 task) · 🔥 On Fire! (3-day streak) · ⚡ Week Warrior (7-day streak) · 💫 Century! (100 pts) · 🌟 Star Player (500 pts) · 💎 Diamond (1000 pts) · 🎁 First Reward! (redeem 1) · 🏆 Perfect Day! (all tasks in a day).
 
-### Visual Feedback
-- Confetti animation on task completion
-- Toast notifications (+N pts)
-- Progress bar animations
-- Trophy unlock animations
-- Haptic feedback on interactions
+### 4.3 Streak definition (unified everywhere)
+A day is **complete** when ALL applicable tasks were done that day (vacation-mode tasks on vacation days, daily-mode tasks otherwise; measured by intersection of completed task IDs with the applicable task set). **Streak** = consecutive complete days ending today or yesterday; resets on a miss. Same value shown on Home, parent child cards, trophies, and the calendar.
+
+### 4.4 Streak milestone rewards (badge + auto-unlocked special reward)
+| Days | Badge | Special reward |
+|------|-------|----------------|
+| 7 | 🥉 Week Streak! | 🍕 Pizza night of your choice |
+| 14 | 🥈 Two-Week Hero! | 🎮 1 hour of extra screen time |
+| 30 | 🥇 Monthly Master! | 🎁 A special toy or book |
+| 60 | 💎 Diamond Discipline! | 🎢 A fun day out |
+| 100 | 👑 Legendary 100! | 🏆 Grand prize — parent's choice |
+Earned milestones are persisted to `progress.streak_milestones` (based on longest streak).
 
 ---
 
-## Deployment Requirements
+## 5. Themes & Vacation Mode
 
-### Mobile App (iOS/Android)
-- **App Store Metadata:** Screenshots, description, keywords
-- **Permissions Required:**
-  - Notifications (task reminders)
-  - Camera (optional for child avatars)
-- **Build Configuration:** 
-  - iOS: app.json with bundle ID, version
-  - Android: app.json with package name, permissions
-- **Compliance:** 
-  - COPPA compliance (children's privacy)
-  - Age rating: 4+
-
-### Web Deployment
-- Progressive Web App (PWA) support
-- Responsive design (320px+)
-- Web preview URL
+- **Themes:** ⚽ Football, 🚀 Space, 🌊 Ocean, 🌿 Nature, 🎮 Gaming, 🗺️ Adventure. Each defines primary/background/card/text/accent colors. AI can generate a `custom_theme` from a text description.
+- **Vacation mode:** a **date range** (`vacation_start_date` → `vacation_end_date`). When today is within the range, only **vacation-mode** tasks apply; otherwise **daily-mode** tasks apply. Activation is **date-aware** in the child Tasks screen and backend task toggle. The calendar visually marks the vacation range.
 
 ---
 
-## Future Roadmap
+## 6. Screens & Flows (frontend routes)
 
-### v1.1
-- Edit child profiles
-- Reward claiming approval flow
-- Weekly progress reports
-- Custom avatar upload
+### 6.1 Entry / Auth
+- **Landing** (`/index`): Sign Up as Parent, Sign In as Parent, Join Your Family (visitor/child), legal links.
+- **Signup** (`/auth/signup`): name, email, password (8+ chars incl. number & special char). → creates account.
+- **Login** (`/auth/login`): email + password → role-select.
+- **Forgot password** (`/auth/forgot-password`): request reset code via email → confirm code + new password.
+- **Onboarding** (`/onboarding`): first-time parent wizard — family name, theme, add first child, seed default tasks/rewards.
 
-### v1.2
-- Scheduled tasks (weekday-specific)
-- Custom trophies
-- Task history calendar (heatmap)
-- Export progress (PDF/CSV)
+### 6.2 Role selection & PIN
+- **Role select** (`/role-select`): child cards + "Parent Dashboard" card.
+- **Parent PIN** (`/parent-pin`): 4-digit PIN gate to enter parent area. Wrong PIN → error (403), does NOT log out. Correct PIN → parent tabs.
 
-### v2.0
-- Push notifications (task reminders)
-- Sibling leaderboard mode
-- Enhanced AI features (habit analysis)
-- Teacher/tutor role
-- Dark mode
+### 6.3 Parent area (tab layout `(parent)`)
+- **Children** (`/index`): list children (avatar, name, age); add / edit (name, avatar, photo, age) / delete child; **calendar icon** per child → child-calendar; AI assistant entry.
+- **Tasks** (`/tasks`): list/create/edit/delete tasks (title, icon, points, category, daily & vacation toggles); **AI Smart Assistant**: Auto-Generate Routines (age-aware), Suggest Tasks, Adjust Difficulty, Suggest Rewards.
+- **Rewards** (`/rewards`): list/create/edit/delete rewards (name, icon, points, description).
+- **Settings** (`/settings`): family code (share, regenerate), theme switch, vacation mode toggle + date range, parent profile picture, PIN change, legal/support links, **Delete Account** (confirm).
 
----
+### 6.4 Child area (tab layout `(child)`)
+- **Home** (`/index`): greeting, points, level + progress, streak, stats, trophy preview.
+- **Tasks** (`/tasks`): today's tasks (daily or vacation set, date-aware); tap to complete/uncomplete → points update + confetti; "Regular Mode / Vacation Mode" indicator; perfect-day handling.
+- **Trophies** (`/trophies`): all trophies with locked/unlocked states.
+- **Shop** (`/shop`): rewards with progress bars toward point cost; unlock/redeem.
+- **Calendar** (`/calendar`): month grid colored by daily completion (🟢 all done, 🟡 some, ⚪ none), today highlighted, vacation days marked (🏖️ + blue border) with vacation banner; streak summary (current 🔥 / best 🏆 / perfect days ✅); Streak Rewards milestones (locked/unlocked).
 
-## Non-Functional Requirements
-
-- **Performance:** App launch < 2s, API response < 500ms
-- **Offline:** Core features work offline, sync on reconnect
-- **Security:** JWT auth, PIN protection, encrypted storage
-- **Accessibility:** WCAG 2.1 AA, min 44×44px touch targets
-- **Data Privacy:** COPPA compliant, parental consent
-- **Device Support:** iOS 14+, Android 8+
-- **Responsive:** 320px - 1920px screen widths
+### 6.5 Shared / Visitor
+- **Child calendar (parent view)** (`/child-calendar?childId=&childName=`): same CalendarView, opened from parent Children screen.
+- **Join family** (`/join-family`): enter family code → verify → child join (name) OR visitor.
+- **Visitor** (`/visitor`): enter family code → read-only children progress; vacation indicator; (cheers).
 
 ---
 
-## Tech Stack Summary
+## 7. API Endpoints (all under `/api`)
 
-**Frontend Libraries:**
-- expo-router (navigation)
-- zustand (state management)
-- @tanstack/react-query (server state)
-- react-native-reanimated (animations)
-- expo-notifications (push notifications)
-- @react-native-async-storage/async-storage (offline storage)
-- react-native-confetti-cannon (celebrations)
-- expo-haptics (tactile feedback)
+### Auth (`/auth`)
+`POST /signup` · `POST /login` · `GET /me` · `POST /forgot-password` · `POST /reset-password` · `DELETE /delete-account`
 
-**Backend Libraries:**
-- fastapi
-- pymongo
-- python-jose (JWT)
-- passlib (password hashing)
-- pydantic (validation)
-- python-dotenv
+### Family (`/family`)
+`POST /` (create) · `GET /` · `PUT /` (update: name, theme, custom_theme, vacation_mode + dates, pin, parent picture) · `POST /verify-pin?pin=` (403 on wrong) · `POST /verify-code` · `POST /join-child` · `POST /regenerate-code`
 
-**AI Integration:**
-- Emergent LLM Key (OpenAI/Claude/Gemini)
-- emergentintegrations library
+### Children (`/children`)
+`POST /` · `GET /` · `GET /{child_id}` · `PUT /{child_id}` · `DELETE /{child_id}`
 
----
+### Tasks (`/tasks`)
+`POST /` · `GET /` · `PUT /{task_id}` · `DELETE /{task_id}` · `POST /{task_id}/toggle` (marks done/undone for today, updates points, streak, perfect_days, completions)
 
-## Success Metrics
+### Rewards (`/rewards`)
+`POST /` · `GET /` · `PUT /{reward_id}` · `DELETE /{reward_id}`
 
-- Parent setup completion: <3 minutes
-- Child task completion rate: >60% daily
-- App retention: >80% week 1
-- Parent satisfaction: 4.5+ stars
-- Zero data loss incidents
-- <1% crash rate
+### Progress (no sub-prefix)
+`GET /progress/{child_id}` (points, level, streak, trophies, rewards status, today completions) · `GET /progress/{child_id}/calendar` (days map, current/longest streak, complete_days, daily/vacation totals, `vacation:{active,start,end}`, milestones) · `POST /cheers` · `GET /cheers/{child_id}`
+
+### AI (`/ai`)
+`POST /suggest-tasks` (age/interests/goals → task list, category-validated) · `POST /auto-routines` (age-aware, sanitized, saves up to 8) · `POST /adjust-difficulty` (analyzes tasks, suggests point tweaks) · `POST /suggest-rewards` · `POST /generate-theme` (text → custom_theme)
+
+### Visitor (`/visitor`)
+`GET /{family_code}` (read-only family + children progress)
+
+### Admin/Health
+`GET /api/health` · `GET /api/admin/seed` (force re-seed demo — **wipes data**) · `GET /api/admin/verify-demo`
 
 ---
 
-## Constraints & Assumptions
+## 8. Default Content (seeded)
 
-- MongoDB connection required for multi-device sync
-- One family per parent account
-- Max 10 children per family
-- Max 50 tasks per family
-- Max 30 rewards per family
-- Visitor access doesn't require account
-- Parent PIN stored securely (hashed)
-- Images stored as base64 (avatars, icons)
+- **Default tasks (8):** Morning Routine, Read for 20 mins, Physical Activity, Help with Chores, No Screens Before 10AM, Creative Project, Outdoor Adventure, Healthy Meal.
+- **Default rewards (5):** Pizza Night!, Extra Screen Time, Movie Night, Shopping Trip, Grand Surprise.
+
+---
+
+## 9. Demo / Review Account
+
+- **Parent:** `review@dodotx.net` / `Review123!` · **PIN:** `1234` · **Family code:** `REVIEW` (never expires) · **Children:** Emma, Liam.
+- Internal test: `parent@test.com` / `Parent123!` · code `TEST01`.
+- Seeded demo streak history via `seed_calendar_demo.py` (do NOT run `/api/admin/seed`, it wipes it).
+
+---
+
+## 10. Non-functional / Deployment Notes
+
+- Mobile build reads backend URL from `app.json` → `extra.backendUrl` (`.env` is NOT bundled in EAS builds). Preview URLs change on fork → rebuild after any URL change.
+- iOS/Android builds & TestFlight/App Store via Emergent Publish flow (Emergent manages the Expo account).
+- Images stored as base64 (avatars, profile pictures).
 
 ---
 
 ## End of PRD
-
----
-
-## Addendum — Streak Calendar (v2.1)
-
-**Feature:** Calendar/streak tracking view for both kids and parents.
-- **Day status** (from `progress.completions`): GREEN = all active daily tasks done, YELLOW = some done, GREY = none.
-- **Streak** = consecutive complete days ending today/yesterday; resets on a miss. Unified across Home, parent child cards, trophies, and calendar (computed from completions, not the legacy per-toggle counter).
-- **Milestone rewards** (streak-based, badge + auto-unlocked special reward): 7 days 🥉 Pizza night, 14 🥈 extra screen time, 30 🥇 special toy/book, 60 💎 fun day out, 100 👑 grand prize.
-- **Placement:** Kids have a "Calendar" bottom tab; parents open each child's calendar via the calendar icon on the Children screen (`/child-calendar?childId=&childName=`).
-- **API:** `GET /api/progress/{child_id}/calendar` → `{ days, current_streak, longest_streak, complete_days, daily_task_total, milestones[] }`. Earned milestones persisted to `progress.streak_milestones`.
-- **Files:** backend `routes/progress.py`, `utils.py` (STREAK_MILESTONES, compute_streak_stats), `models.py`; frontend `src/components/CalendarView.tsx`, `app/(child)/calendar.tsx`, `app/child-calendar.tsx`.
-
-## Addendum — Vacation-aware Calendar (v2.2)
-- Calendar reflects **vacation mode as a start→end date range**. On vacation days a day is "complete" only when ALL vacation-mode tasks are done; outside vacation, daily tasks apply. Completion compares the intersection of completed task IDs with the applicable task-ID set.
-- Calendar visually marks vacation days (blue border + 🏖️), shows a "Vacation mode: start → end" banner and a "Vacation" legend entry. Endpoint returns `vacation:{active,start,end}`, `vacation_task_total`, and per-day `vacation` flag.
-- Vacation activation is now **date-aware everywhere**: child Tasks screen (`isVacationActive` in `src/utils/vacation.ts`) and backend `toggle_task` use `check_vacation_mode(family)` so a future-dated vacation range does NOT switch today's task list. Previously the raw `vacation_mode` flag was used.
