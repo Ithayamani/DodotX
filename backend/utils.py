@@ -173,6 +173,61 @@ def compute_streak_stats(completions: dict, daily_total: int) -> dict:
     return {"current_streak": current, "longest_streak": longest, "complete_days": len(complete_dates)}
 
 
+def is_vacation_day(date_str: str, family: dict) -> bool:
+    """Whether a given YYYY-MM-DD date falls in the family's vacation period."""
+    if not family or not family.get("vacation_mode"):
+        return False
+    start = family.get("vacation_start_date")
+    end = family.get("vacation_end_date")
+    if start and end:
+        return start <= date_str <= end
+    # Vacation mode on but no explicit dates -> treat every day as vacation.
+    return True
+
+
+def compute_complete_dates(completions: dict, family: dict, daily_ids: set, vacation_ids: set) -> set:
+    """A day is complete when ALL applicable tasks were done that day
+    (vacation tasks on vacation days, daily tasks otherwise)."""
+    complete = set()
+    for d, ids in completions.items():
+        applicable = vacation_ids if is_vacation_day(d, family) else daily_ids
+        if applicable and len(set(ids) & applicable) >= len(applicable):
+            complete.add(d)
+    return complete
+
+
+def streaks_from_dates(complete_dates: set) -> dict:
+    """Compute current + longest streak from a set of 'complete' YYYY-MM-DD dates."""
+    from datetime import timedelta
+    today = datetime.utcnow().date()
+
+    def has(day_date) -> bool:
+        return day_date.isoformat() in complete_dates
+
+    current = 0
+    cursor = today
+    if not has(cursor):
+        cursor = today - timedelta(days=1)
+    while has(cursor):
+        current += 1
+        cursor -= timedelta(days=1)
+
+    longest = 0
+    if complete_dates:
+        ds = sorted(datetime.fromisoformat(x).date() for x in complete_dates)
+        run = 1
+        longest = 1
+        for i in range(1, len(ds)):
+            if (ds[i] - ds[i - 1]).days == 1:
+                run += 1
+            else:
+                run = 1
+            if run > longest:
+                longest = run
+
+    return {"current_streak": current, "longest_streak": longest, "complete_days": len(complete_dates)}
+
+
 DEFAULT_TASKS = [
     {
         "title": "Morning Routine",

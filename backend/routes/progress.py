@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from routes import db, get_current_user
 from models import User, Progress, CheerMessage, CheerCreate
-from utils import generate_id, get_today_date, get_level_info, check_trophies, compute_streak_stats, STREAK_MILESTONES
+from utils import generate_id, get_today_date, get_level_info, check_trophies, compute_streak_stats, STREAK_MILESTONES, is_vacation_day, compute_complete_dates, streaks_from_dates
 
 router = APIRouter(tags=["progress"])
 
@@ -18,11 +18,14 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
         progress = Progress(child_id=child_id).dict()
         await db.progress.insert_one(progress)
     level_info = get_level_info(progress.get("points", 0))
-    # Unified streak: consecutive days where ALL active daily tasks were completed.
+    # Unified streak: consecutive days where all applicable tasks were completed
+    # (vacation tasks on vacation days, daily tasks otherwise).
+    family = await db.families.find_one({"id": child["family_id"]}) or {}
     all_tasks = await db.tasks.find({"family_id": child["family_id"], "active": True}).to_list(200)
-    daily_total = sum(1 for t in all_tasks if t.get("modes", {}).get("daily", True))
-    streak_stats = compute_streak_stats(progress.get("completions", {}), daily_total)
-    current_streak = streak_stats["current_streak"]
+    daily_ids = {t["id"] for t in all_tasks if t.get("modes", {}).get("daily", True)}
+    vacation_ids = {t["id"] for t in all_tasks if t.get("modes", {}).get("vacation", False)}
+    complete_dates = compute_complete_dates(progress.get("completions", {}), family, daily_ids, vacation_ids)
+    current_streak = streaks_from_dates(complete_dates)["current_streak"]
     trophies = check_trophies({**progress, "streak": current_streak})
     rewards = await db.rewards.find({"family_id": child["family_id"]}).sort("pts", 1).to_list(100)
     rewards_status = []
@@ -44,22 +47,29 @@ async def get_calendar(child_id: str, current_user: User = Depends(get_current_u
         progress = Progress(child_id=child_id).dict()
     completions = progress.get("completions", {})
 
-    # Daily tasks apply to every calendar day (regular mode).
+    family = await db.families.find_one({"id": child["family_id"]}) or {}
     tasks = await db.tasks.find({"family_id": child["family_id"], "active": True}).to_list(200)
-    daily_total = sum(1 for t in tasks if t.get("modes", {}).get("daily", True))
+    daily_ids = {t["id"] for t in tasks if t.get("modes", {}).get("daily", True)}
+    vacation_ids = {t["id"] for t in tasks if t.get("modes", {}).get("vacation", False)}
+    daily_total = len(daily_ids)
+    vacation_total = len(vacation_ids)
 
-    stats = compute_streak_stats(completions, daily_total)
+    complete_dates = compute_complete_dates(completions, family, daily_ids, vacation_ids)
+    stats = streaks_from_dates(complete_dates)
 
     days = {}
     for d, ids in completions.items():
-        cnt = len(ids)
-        if daily_total > 0 and cnt >= daily_total:
+        vac = is_vacation_day(d, family)
+        applicable = vacation_ids if vac else daily_ids
+        total = len(applicable)
+        done = len(set(ids) & applicable)
+        if total > 0 and done >= total:
             status = "complete"
-        elif cnt > 0:
+        elif done > 0:
             status = "partial"
         else:
             status = "none"
-        days[d] = {"completed": cnt, "total": daily_total, "status": status}
+        days[d] = {"completed": done, "total": total, "status": status, "vacation": vac}
 
     longest = stats["longest_streak"]
     earned = [m["days"] for m in STREAK_MILESTONES if longest >= m["days"]]
@@ -77,6 +87,12 @@ async def get_calendar(child_id: str, current_user: User = Depends(get_current_u
         "longest_streak": longest,
         "complete_days": stats["complete_days"],
         "daily_task_total": daily_total,
+        "vacation_task_total": vacation_total,
+        "vacation": {
+            "active": bool(family.get("vacation_mode")),
+            "start": family.get("vacation_start_date"),
+            "end": family.get("vacation_end_date"),
+        },
         "milestones": milestones,
     }
 

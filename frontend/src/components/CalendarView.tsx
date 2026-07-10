@@ -17,6 +17,8 @@ const STATUS_COLORS: Record<string, string> = {
   none: 'rgba(255,255,255,0.08)',
 };
 
+const VACATION_COLOR = '#4FC3F7';
+
 function pad(n: number) {
   return String(n).padStart(2, '0');
 }
@@ -78,6 +80,10 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
   const currentStreak = data?.current_streak || 0;
   const longestStreak = data?.longest_streak || 0;
   const completeDays = data?.complete_days || 0;
+  const vacation = data?.vacation || { active: false };
+
+  const isVacationDay = (dateStr: string) =>
+    !!(vacation.active && vacation.start && vacation.end && dateStr >= vacation.start && dateStr <= vacation.end);
 
   const canGoNext = year < new Date().getFullYear() || (year === new Date().getFullYear() && month < new Date().getMonth());
 
@@ -115,6 +121,14 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
           </View>
         )}
 
+        {vacation.active && vacation.start && vacation.end && (
+          <View style={[styles.vacationBanner, { borderColor: VACATION_COLOR }]}>
+            <Text style={styles.vacationBannerText}>
+              🏖️ Vacation mode: {vacation.start} → {vacation.end}
+            </Text>
+          </View>
+        )}
+
         {/* Month navigation */}
         <View style={[styles.calendarCard, { backgroundColor: colors.card }]}>
           <View style={styles.monthNav}>
@@ -146,17 +160,20 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
               const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
               const status = days[dateStr]?.status || 'empty';
               const isToday = dateStr === todayStr;
+              const isVac = isVacationDay(dateStr);
               const bg = status === 'empty' ? 'transparent' : STATUS_COLORS[status];
+              const borderColor = isToday ? colors.primary : isVac ? VACATION_COLOR : 'transparent';
               return (
                 <View key={dateStr} style={styles.dayCell}>
                   <View
                     style={[
                       styles.dayInner,
                       { backgroundColor: bg },
-                      isToday && { borderWidth: 2, borderColor: colors.primary },
+                      (isToday || isVac) && { borderWidth: 2, borderColor },
                     ]}
                   >
                     <Text style={[styles.dayText, status === 'complete' && styles.dayTextStrong]}>{d}</Text>
+                    {isVac && <Text style={styles.vacationMark}>🏖️</Text>}
                   </View>
                 </View>
               );
@@ -176,6 +193,10 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: STATUS_COLORS.none }]} />
               <Text style={styles.legendText}>None</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, styles.legendVacation]} />
+              <Text style={styles.legendText}>Vacation</Text>
             </View>
           </View>
         </View>
@@ -231,10 +252,14 @@ const styles = StyleSheet.create({
   dayInner: { flex: 1, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   dayText: { color: '#ddd', fontSize: 13 },
   dayTextStrong: { color: '#fff', fontWeight: 'bold' },
-  legend: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 16 },
+  vacationMark: { position: 'absolute', top: 1, right: 2, fontSize: 8 },
+  legend: { flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 16, flexWrap: 'wrap' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 12, height: 12, borderRadius: 6 },
+  legendVacation: { backgroundColor: 'transparent', borderWidth: 2, borderColor: VACATION_COLOR },
   legendText: { color: '#ccc', fontSize: 12 },
+  vacationBanner: { padding: 10, borderRadius: 12, marginBottom: 16, borderWidth: 1.5, backgroundColor: 'rgba(79,195,247,0.08)' },
+  vacationBannerText: { color: '#9fdcf5', fontWeight: '600', textAlign: 'center', fontSize: 13 },
   sectionTitle: { fontSize: 20, fontWeight: '600', color: '#fff', marginBottom: 12 },
   milestoneList: { gap: 10 },
   milestoneCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, gap: 12 },

@@ -141,6 +141,167 @@ class TestCalendarEndpoint:
         assert gap_day not in days, f"gap day {gap_day} unexpectedly present: {days.get(gap_day)}"
 
 
+class TestVacationMode:
+    """Vacation-mode calendar/streak tests.
+    Family REVIEW currently: vacation_mode=True, 2026-07-13 → 2026-07-19 (future range).
+    daily_task_total=8, vacation_task_total=7.
+    Emma's completions are on daily-mode days (early July) — future vacation window
+    must NOT affect past streak.
+    """
+
+    def test_calendar_response_shape_vacation_fields(self, auth_headers, children):
+        emma = children["emma"]
+        r = requests.get(
+            f"{BASE_URL}/api/progress/{emma['id']}/calendar",
+            headers=auth_headers,
+            timeout=15,
+        )
+        assert r.status_code == 200, r.text
+        data = r.json()
+        # New fields required by review
+        assert "vacation" in data, f"missing 'vacation' key: {list(data.keys())}"
+        assert "vacation_task_total" in data, "missing 'vacation_task_total'"
+        assert "daily_task_total" in data, "missing 'daily_task_total'"
+        vac = data["vacation"]
+        for k in ("active", "start", "end"):
+            assert k in vac, f"vacation missing key {k}: {vac}"
+        assert vac["active"] is True, f"vacation.active should be True, got {vac}"
+        assert vac["start"] == "2026-07-13", f"vacation.start expected 2026-07-13, got {vac['start']}"
+        assert vac["end"] == "2026-07-19", f"vacation.end expected 2026-07-19, got {vac['end']}"
+        assert data["daily_task_total"] == 8
+        assert data["vacation_task_total"] == 7, f"expected 7 vacation tasks, got {data['vacation_task_total']}"
+
+    def test_future_vacation_does_not_break_streak(self, auth_headers, children):
+        """Emma's completions are on daily-mode days — future vacation range must not affect streak."""
+        emma = children["emma"]
+        r = requests.get(
+            f"{BASE_URL}/api/progress/{emma['id']}/calendar",
+            headers=auth_headers,
+            timeout=15,
+        )
+        data = r.json()
+        assert data["current_streak"] == 8, f"Emma current_streak expected 8, got {data['current_streak']}"
+        assert data["longest_streak"] == 8, f"Emma longest_streak expected 8, got {data['longest_streak']}"
+
+    def test_vacation_days_flagged_true_if_present(self, auth_headers, children):
+        """Days inside 07-13..07-19 must have vacation:true. Absence is OK (no completions).
+        Days outside must have vacation:false."""
+        emma = children["emma"]
+        r = requests.get(
+            f"{BASE_URL}/api/progress/{emma['id']}/calendar",
+            headers=auth_headers,
+            timeout=15,
+        )
+        days = r.json()["days"]
+        for d, v in days.items():
+            assert "vacation" in v, f"day {d} missing 'vacation' flag: {v}"
+            in_range = "2026-07-13" <= d <= "2026-07-19"
+            assert v["vacation"] is in_range, f"day {d} vacation flag mismatch: {v['vacation']} (in_range={in_range})"
+
+    def test_vacation_completion_edge_controlled(self, auth_headers, children):
+        """Controlled edge test: temporarily set vacation to cover Emma's last 3 completed days,
+        confirm those days become 'partial' (she only did 5 of 7 vacation tasks on those daily days)
+        and streak drops. Then restore vacation to 2026-07-13..2026-07-19."""
+        emma = children["emma"]
+
+        # Snapshot current family vacation config (should be the future range).
+        fam_r = requests.get(f"{BASE_URL}/api/family", headers=auth_headers, timeout=15)
+        assert fam_r.status_code == 200
+        original = fam_r.json()
+        orig_start = original.get("vacation_start_date")
+        orig_end = original.get("vacation_end_date")
+        orig_mode = original.get("vacation_mode")
+
+        # Pick last 3 completed days for Emma (from calendar days map).
+        cal_r = requests.get(
+            f"{BASE_URL}/api/progress/{emma['id']}/calendar",
+            headers=auth_headers,
+            timeout=15,
+        )
+        days = cal_r.json()["days"]
+        complete_days_sorted = sorted([d for d, v in days.items() if v["status"] == "complete"])
+        assert len(complete_days_sorted) >= 3, f"Need >=3 complete days to run edge test, got {complete_days_sorted}"
+        last3 = complete_days_sorted[-3:]
+        edge_start, edge_end = last3[0], last3[-1]
+
+        try:
+            # Temporarily flip vacation dates to cover Emma's last 3 completed daily days.
+            upd = requests.put(
+                f"{BASE_URL}/api/family",
+                headers=auth_headers,
+                json={
+                    "vacation_mode": True,
+                    "vacation_start_date": edge_start,
+                    "vacation_end_date": edge_end,
+                },
+                timeout=15,
+            )
+            assert upd.status_code in (200, 204), f"family PUT failed: {upd.status_code} {upd.text}"
+
+            cal_r2 = requests.get(
+                f"{BASE_URL}/api/progress/{emma['id']}/calendar",
+                headers=auth_headers,
+                timeout=15,
+            )
+            assert cal_r2.status_code == 200, cal_r2.text
+            data2 = cal_r2.json()
+            assert data2["vacation"]["active"] is True
+            assert data2["vacation"]["start"] == edge_start
+            assert data2["vacation"]["end"] == edge_end
+            days2 = data2["days"]
+
+            # Each of the last 3 days must now be flagged vacation:true AND become 'partial'
+            # (she completed 5 daily tasks; only 2 of the 7 vacation-mode task ids were common
+            #  → intersection < 7, so status is partial, not complete).
+            for d in last3:
+                assert d in days2, f"expected day {d} to still be in days map"
+                assert days2[d]["vacation"] is True, f"day {d} should be vacation:true after edit"
+                assert days2[d]["total"] == 7, f"day {d} total should be 7 (vacation tasks), got {days2[d]['total']}"
+                assert days2[d]["status"] == "partial", (
+                    f"day {d} expected partial under vacation, got {days2[d]['status']} "
+                    f"(completed={days2[d]['completed']}/{days2[d]['total']})"
+                )
+
+            # Streak must drop (last 3 days were the streak's tail).
+            assert data2["current_streak"] < 8, (
+                f"streak should drop when last completed days become partial, got {data2['current_streak']}"
+            )
+        finally:
+            # Restore to future vacation range 2026-07-13 → 2026-07-19 (or original if it was that).
+            restore_payload = {
+                "vacation_mode": bool(orig_mode) if orig_mode is not None else True,
+                "vacation_start_date": orig_start or "2026-07-13",
+                "vacation_end_date": orig_end or "2026-07-19",
+            }
+            restore = requests.put(
+                f"{BASE_URL}/api/family",
+                headers=auth_headers,
+                json=restore_payload,
+                timeout=15,
+            )
+            assert restore.status_code in (200, 204), f"restore failed: {restore.status_code} {restore.text}"
+
+            # Sanity: streak back to 8.
+            cal_r3 = requests.get(
+                f"{BASE_URL}/api/progress/{emma['id']}/calendar",
+                headers=auth_headers,
+                timeout=15,
+            )
+            d3 = cal_r3.json()
+            assert d3["current_streak"] == 8, f"post-restore streak != 8: got {d3['current_streak']}"
+            assert d3["vacation"]["start"] == "2026-07-13"
+            assert d3["vacation"]["end"] == "2026-07-19"
+
+    def test_progress_streak_matches_calendar_current_streak(self, auth_headers, children):
+        """Regression: GET /api/progress/{id} 'streak' must match GET /api/progress/{id}/calendar current_streak."""
+        emma = children["emma"]
+        p = requests.get(f"{BASE_URL}/api/progress/{emma['id']}", headers=auth_headers, timeout=15).json()
+        c = requests.get(f"{BASE_URL}/api/progress/{emma['id']}/calendar", headers=auth_headers, timeout=15).json()
+        assert p["streak"] == c["current_streak"] == 8, (
+            f"streak mismatch: progress={p['streak']} vs calendar={c['current_streak']}"
+        )
+
+
 class TestNoRegressions:
     def test_progress_endpoint_still_works(self, auth_headers, children):
         emma = children["emma"]

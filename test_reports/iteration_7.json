@@ -1,0 +1,53 @@
+{
+  "summary": "Vacation-aware Streak Calendar tested end-to-end (backend + frontend, mobile 390x844). ALL PASS. Backend: 15/15 pytest cases in /app/backend/tests/test_calendar.py — 7 pre-existing + 5 NEW vacation tests + 3 no-regression. New vacation tests verify: (a) GET /api/progress/{child_id}/calendar returns vacation:{active:true,start:'2026-07-13',end:'2026-07-19'}, vacation_task_total=7, daily_task_total=8, each day has a boolean 'vacation' flag; (b) Emma current_streak=8, longest_streak=8 unaffected by future vacation range; (c) days in 07-13..07-19 correctly flagged vacation:true (absent days are OK), all other days vacation:false; (d) controlled edge — temporarily PUT /api/family setting vacation to cover Emma's last 3 complete daily days flipped those days to status='partial' (5 of 7 vacation tasks intersected — only 'Morning Routine' + 'Healthy Meal' overlap between her 5 completed daily-mode tasks and the 7 vacation-mode task ids), current_streak dropped below 8, then restored to 2026-07-13..2026-07-19 and current_streak back to 8; (e) /api/progress/{id}.streak == /api/progress/{id}/calendar.current_streak = 8. Frontend: (1) Kid Calendar tab (Emma) shows blue vacation banner '🏖️ Vacation mode: 2026-07-13 → 2026-07-19', days 13-19 rendered with blue border + 🏖️ marker, legend includes 'Vacation' entry (blue outlined dot), summary shows 🔥8/🏆8/✅8, July 2026, streak banner '8-day streak', Week Streak UNLOCKED. (2) Parent per-child calendar (/child-calendar?childId=dxsjzgv&childName=Emma) opened from Children tab's calendar icon shows identical vacation banner + markers + legend + streak 8/8/8. Demo family vacation state verified restored to 2026-07-13..2026-07-19 after tests. No red screens; only pre-existing 'props.pointerEvents is deprecated' warning (carryover, not from this feature).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Child Home vs Calendar tab (Emma) — carryover from iteration_6",
+        "issues": [
+          "Child Home 'Day Streak' widget still shows 8 (progress.streak) matching Calendar's 8 today — no reviewer confusion right now, but Home reads from Progress.streak while Calendar computes from completions map + vacation logic. If future edits change one path, they will diverge again. Recommend unifying via a single source (streaks_from_dates)."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "props.pointerEvents deprecation (carryover, not from vacation feature)",
+        "issue": "Console warns 'props.pointerEvents is deprecated. Use style.pointerEvents' on landing/login. Existed in iterations 4-6; unresolved. Reference: /app/frontend/app/(landing) screens."
+      },
+      {
+        "component": "Missing testID props on calendar UI (carryover)",
+        "issue": "CalendarView.tsx has no testID on stat cards, month prev/next chevrons, day cells, vacation banner, or legend. Add: calendar-vacation-banner, calendar-day-{yyyy-mm-dd}, calendar-legend-vacation, calendar-stat-current/best/perfect, calendar-month-prev/next. Reference: /app/frontend/src/components/CalendarView.tsx."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_7.json",
+    "/app/backend/tests/test_calendar.py",
+    "/app/test_reports/pytest/pytest_calendar.xml"
+  ],
+  "action_items": [
+    "(Optional) Add testID props to vacation-related UI so future automation can assert vacation banner + day markers + legend deterministically (see react_native_issues).",
+    "(Carryover from iteration_6) Migrate remaining props.pointerEvents usages to style.pointerEvents in landing/login screens."
+  ],
+  "critical_code_review_comments": [
+    "/app/backend/utils.py::is_vacation_day — clean: honors vacation_mode toggle + start/end range; returns True for every day when mode is on but no dates set. Correct semantic for the review request.",
+    "/app/backend/utils.py::compute_complete_dates — correctly picks applicable task-id set per day (vacation vs daily) and requires intersection >= |applicable|. This is the crux of the fix and was validated by the edge test (5 daily completions intersecting 7 vacation ids = partial).",
+    "/app/backend/routes/progress.py::get_calendar — returns vacation:{active,start,end}, vacation_task_total, daily_task_total, and per-day 'vacation' boolean as required. Persistence of earned milestones via $set streak_milestones with upsert=True is preserved.",
+    "/app/frontend/src/components/CalendarView.tsx — vacation banner conditional on vacation.active && start && end (safe against null); isVacationDay uses lexicographic YYYY-MM-DD compare (correct because dates are ISO); today-border overlays vacation-border priority (isToday wins) — subtle but acceptable UX."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_calendar.py (added TestVacationMode class with 5 new tests: shape+fields, streak-not-broken-by-future-range, per-day vacation flag correctness, controlled edge test with PUT-then-restore, progress.streak==calendar.current_streak regression)"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 pytest cases pass — 7 pre-existing calendar + 5 NEW vacation-mode + 3 no-regression)",
+    "frontend": "100% on all review checkpoints (kid Calendar tab: vacation banner + 13-19 markers + legend entry + streak 8/8/8 + July 2026; parent Children→calendar icon→Emma's Calendar shows identical banner+markers+legend)"
+  },
+  "seed_data_creation": "Did NOT re-run /api/admin/seed (would wipe streaks). Controlled edge test did PUT /api/family twice (temporarily narrow vacation to Emma's last 3 complete days, then restore to 2026-07-13..2026-07-19). Post-test GET /api/family confirmed vacation_mode=true, start=2026-07-13, end=2026-07-19. Demo state clean.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Vacation-aware calendar is fully working. Regression rules: (1) GET /api/progress/{child_id}/calendar MUST include vacation:{active,start,end}, vacation_task_total, daily_task_total, and days[d].vacation boolean. (2) A day is 'complete' when |completed_ids ∩ applicable_ids| >= |applicable_ids|, where applicable_ids = vacation_ids on vacation days, else daily_ids. (3) REVIEW family constants: daily_task_total=8, vacation_task_total=7, vacation range 2026-07-13..2026-07-19 (future). Emma's completions (early July) are all daily-mode → streak stays 8/8/8 regardless of vacation. (4) DO NOT call /api/admin/seed — it wipes completions. If you PUT /api/family to change vacation dates for testing, always restore to vacation_mode=true, start=2026-07-13, end=2026-07-19. (5) Parent per-child calendar route: /child-calendar?childId=X&childName=Y (opened from Children tab calendar icon). (6) Kid Calendar tab is the 4th bottom-tab in the child experience.",
+  "rca_of_issue": "N/A — all scoped features work correctly. Controlled edge test proved the vacation-aware completion logic is correct: when vacation dates were narrowed to cover Emma's last 3 complete daily days, those days re-classified as vacation days with total=7 (vacation task count), her 5 completed daily tasks intersected the 7 vacation ids at only 2 tasks (Morning Routine + Healthy Meal — the tasks with modes.daily=true AND modes.vacation=true), producing status='partial' and dropping current_streak below 8. Restoring vacation to the future range brought streak back to 8."
+}
