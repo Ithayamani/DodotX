@@ -122,7 +122,7 @@ https://family-quest-15.preview.emergentagent.com
    MONGO_URL=mongodb://mongo:27017
    DB_NAME=kidquest_db
    JWT_SECRET=your-secret-key-here
-   EMERGENT_LLM_KEY=sk-emergent-a88015b1f4f0eF9562
+   EMERGENT_LLM_KEY=<your-emergent-llm-key>
    ```
 5. Deploy!
 
