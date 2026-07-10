@@ -157,7 +157,7 @@ All critical checks have passed. The application is properly configured and read
 MONGO_URL=<mongodb-connection-string>
 DB_NAME=kidquest_production
 JWT_SECRET=<generate-secure-secret>
-EMERGENT_LLM_KEY=sk-emergent-a88015b1f4f0eF9562
+EMERGENT_LLM_KEY=<your-emergent-llm-key>
 # 4. Deploy!
 ```
 
@@ -165,7 +165,7 @@ EMERGENT_LLM_KEY=sk-emergent-a88015b1f4f0eF9562
 - `MONGO_URL` - MongoDB connection string (use MongoDB Atlas free tier)
 - `DB_NAME` - Production database name
 - `JWT_SECRET` - Secure random string (use: `openssl rand -hex 32`)
-- `EMERGENT_LLM_KEY` - AI API key (already provided)
+- `EMERGENT_LLM_KEY` - AI API key (get from your Emergent dashboard)
 
 ### Step 2: Mobile App Deployment
 
