@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from routes import db, get_current_user
 from models import User, Progress, CheerMessage, CheerCreate
-from utils import generate_id, get_today_date, get_level_info, check_trophies
+from utils import generate_id, get_today_date, get_level_info, check_trophies, compute_streak_stats, STREAK_MILESTONES
 
 router = APIRouter(tags=["progress"])
 
@@ -28,6 +28,54 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
     today = get_today_date()
     today_completions = progress.get("completions", {}).get(today, [])
     return {"child": child, "points": progress.get("points", 0), "total_tasks": progress.get("total_tasks", 0), "streak": progress.get("streak", 0), "perfect_days": progress.get("perfect_days", 0), "level": level_info, "trophies": trophies, "rewards": rewards_status, "today_tasks_count": len(today_completions), "today_completions": today_completions}
+
+@router.get("/progress/{child_id}/calendar")
+async def get_calendar(child_id: str, current_user: User = Depends(get_current_user)):
+    child = await db.children.find_one({"id": child_id})
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+    progress = await db.progress.find_one({"child_id": child_id})
+    if not progress:
+        progress = Progress(child_id=child_id).dict()
+    completions = progress.get("completions", {})
+
+    # Daily tasks apply to every calendar day (regular mode).
+    tasks = await db.tasks.find({"family_id": child["family_id"], "active": True}).to_list(200)
+    daily_total = sum(1 for t in tasks if t.get("modes", {}).get("daily", True))
+
+    stats = compute_streak_stats(completions, daily_total)
+
+    days = {}
+    for d, ids in completions.items():
+        cnt = len(ids)
+        if daily_total > 0 and cnt >= daily_total:
+            status = "complete"
+        elif cnt > 0:
+            status = "partial"
+        else:
+            status = "none"
+        days[d] = {"completed": cnt, "total": daily_total, "status": status}
+
+    longest = stats["longest_streak"]
+    earned = [m["days"] for m in STREAK_MILESTONES if longest >= m["days"]]
+    stored = progress.get("streak_milestones", [])
+    if set(earned) - set(stored):
+        await db.progress.update_one({"child_id": child_id}, {"$set": {"streak_milestones": earned}}, upsert=True)
+
+    milestones = [{**m, "earned": longest >= m["days"]} for m in STREAK_MILESTONES]
+
+    return {
+        "child_id": child_id,
+        "child_name": child.get("name"),
+        "days": days,
+        "current_streak": stats["current_streak"],
+        "longest_streak": longest,
+        "complete_days": stats["complete_days"],
+        "daily_task_total": daily_total,
+        "milestones": milestones,
+    }
+
+
 
 @router.post("/cheers", response_model=CheerMessage)
 async def send_cheer(cheer_data: CheerCreate):

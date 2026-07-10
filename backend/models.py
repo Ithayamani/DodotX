@@ -93,6 +93,7 @@ class Progress(BaseModel):
     perfect_days: int = 0
     completions: Dict[str, List[str]] = {}
     redeemed_rewards: List[str] = []
+    streak_milestones: List[int] = []
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TaskCompletion(BaseModel):

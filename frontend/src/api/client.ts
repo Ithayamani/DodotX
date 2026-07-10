@@ -212,6 +212,11 @@ export const progressAPI = {
     const response = await api.get(`/progress/${childId}`);
     return response.data;
   },
+
+  getCalendar: async (childId: string): Promise<any> => {
+    const response = await api.get(`/progress/${childId}/calendar`);
+    return response.data;
+  },
 };
 
 // Cheers API

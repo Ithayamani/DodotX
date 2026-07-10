@@ -196,6 +196,17 @@ export default function ParentChildren() {
                     )}
                   </View>
 
+                  <TouchableOpacity
+                    style={[styles.calendarButton, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+                    onPress={() => {
+                      hapticLight();
+                      router.push({ pathname: '/child-calendar', params: { childId: child.id, childName: child.name } });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+
                   <Pressable
                     style={({ pressed }) => [
                       styles.deleteButton,
@@ -398,6 +409,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     backgroundColor: 'rgba(196, 112, 112, 0.1)',
+  },
+  calendarButton: {
+    padding: 14,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
   },
   deleteButtonPressed: {
     backgroundColor: 'rgba(196, 112, 112, 0.3)',
