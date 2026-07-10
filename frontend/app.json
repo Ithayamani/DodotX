@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.emergent.appstoresetup2b51d4557",
-      "buildNumber": "2",
+      "buildNumber": "8",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos for child avatars",
         "NSPhotoLibraryUsageDescription": "Choose avatar photos from gallery",
@@ -63,7 +63,8 @@
       },
       "eas": {
         "projectId": "10b6fa81-35b3-4a6a-be3f-058c52961cc9"
-      }
+      },
+      "backendUrl": "https://app-store-setup-2.preview.emergentagent.com"
     }
   }
 }
