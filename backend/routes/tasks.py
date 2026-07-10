@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from routes import db, get_current_user
 from models import User, Task, TaskCreate, TaskUpdate, TaskCompletion, Progress
-from utils import generate_id, get_today_date
+from utils import generate_id, get_today_date, check_vacation_mode
 from datetime import datetime
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -86,7 +86,7 @@ async def toggle_task(task_id: str, child_id: str, current_user: User = Depends(
             streak = 1
         last_date = today
     family = await db.families.find_one({"id": child["family_id"]})
-    vacation_mode = family.get("vacation_mode", False)
+    vacation_mode = check_vacation_mode(family)
     all_tasks = await db.tasks.find({"family_id": child["family_id"], "active": True}).to_list(100)
     active_tasks = []
     for t in all_tasks:

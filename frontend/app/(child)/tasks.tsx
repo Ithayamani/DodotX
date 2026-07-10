@@ -7,6 +7,7 @@ import { tasksAPI, progressAPI, familyAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
 import { hapticSuccess, hapticLight, hapticMedium } from '../../src/utils/haptics';
 import { AnimatedProgress, AnimatedCheckmark } from '../../src/utils/animations';
+import { isVacationActive } from '../../src/utils/vacation';
 import type { Task } from '../../src/types';
 
 export default function ChildTasks() {
@@ -33,7 +34,7 @@ export default function ChildTasks() {
         familyAPI.get(),
       ]);
       
-      const vacationMode = familyData.vacation_mode;
+      const vacationMode = isVacationActive(familyData);
       const filteredTasks = tasksData.filter(task => {
         if (!task.active) return false;
         if (vacationMode) return task.modes.vacation;
@@ -108,7 +109,7 @@ export default function ChildTasks() {
     .filter(task => completedToday.includes(task.id))
     .reduce((sum, task) => sum + task.pts, 0);
 
-  const isVacationMode = family?.vacation_mode || false;
+  const isVacationMode = isVacationActive(family);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
