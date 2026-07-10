@@ -383,3 +383,15 @@ KidQuest is a family-focused gamified task management mobile application that mo
 ---
 
 ## End of PRD
+
+---
+
+## Addendum — Streak Calendar (v2.1)
+
+**Feature:** Calendar/streak tracking view for both kids and parents.
+- **Day status** (from `progress.completions`): GREEN = all active daily tasks done, YELLOW = some done, GREY = none.
+- **Streak** = consecutive complete days ending today/yesterday; resets on a miss. Unified across Home, parent child cards, trophies, and calendar (computed from completions, not the legacy per-toggle counter).
+- **Milestone rewards** (streak-based, badge + auto-unlocked special reward): 7 days 🥉 Pizza night, 14 🥈 extra screen time, 30 🥇 special toy/book, 60 💎 fun day out, 100 👑 grand prize.
+- **Placement:** Kids have a "Calendar" bottom tab; parents open each child's calendar via the calendar icon on the Children screen (`/child-calendar?childId=&childName=`).
+- **API:** `GET /api/progress/{child_id}/calendar` → `{ days, current_streak, longest_streak, complete_days, daily_task_total, milestones[] }`. Earned milestones persisted to `progress.streak_milestones`.
+- **Files:** backend `routes/progress.py`, `utils.py` (STREAK_MILESTONES, compute_streak_stats), `models.py`; frontend `src/components/CalendarView.tsx`, `app/(child)/calendar.tsx`, `app/child-calendar.tsx`.

@@ -18,7 +18,12 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
         progress = Progress(child_id=child_id).dict()
         await db.progress.insert_one(progress)
     level_info = get_level_info(progress.get("points", 0))
-    trophies = check_trophies(progress)
+    # Unified streak: consecutive days where ALL active daily tasks were completed.
+    all_tasks = await db.tasks.find({"family_id": child["family_id"], "active": True}).to_list(200)
+    daily_total = sum(1 for t in all_tasks if t.get("modes", {}).get("daily", True))
+    streak_stats = compute_streak_stats(progress.get("completions", {}), daily_total)
+    current_streak = streak_stats["current_streak"]
+    trophies = check_trophies({**progress, "streak": current_streak})
     rewards = await db.rewards.find({"family_id": child["family_id"]}).sort("pts", 1).to_list(100)
     rewards_status = []
     for reward in rewards:
@@ -27,7 +32,7 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
         rewards_status.append({**reward, "unlocked": progress.get("points", 0) >= reward["pts"], "progress": min(100, (progress.get("points", 0) / reward["pts"]) * 100)})
     today = get_today_date()
     today_completions = progress.get("completions", {}).get(today, [])
-    return {"child": child, "points": progress.get("points", 0), "total_tasks": progress.get("total_tasks", 0), "streak": progress.get("streak", 0), "perfect_days": progress.get("perfect_days", 0), "level": level_info, "trophies": trophies, "rewards": rewards_status, "today_tasks_count": len(today_completions), "today_completions": today_completions}
+    return {"child": child, "points": progress.get("points", 0), "total_tasks": progress.get("total_tasks", 0), "streak": current_streak, "perfect_days": progress.get("perfect_days", 0), "level": level_info, "trophies": trophies, "rewards": rewards_status, "today_tasks_count": len(today_completions), "today_completions": today_completions}
 
 @router.get("/progress/{child_id}/calendar")
 async def get_calendar(child_id: str, current_user: User = Depends(get_current_user)):
