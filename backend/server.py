@@ -83,6 +83,22 @@ async def health_check():
     return {"status": "healthy", "database": db_status}
 
 
+async def _repair_demo_family_code(db, family_id, expected_code: str):
+    """Reset a demo family's invite code back to its fixed, never-expiring value if it has
+    drifted (e.g. someone called /family/regenerate-code on it)."""
+    if not family_id:
+        return
+    family = await db.families.find_one({"id": family_id})
+    if not family:
+        return
+    if family.get("code") != expected_code or family.get("code_generated_at") is not None:
+        await db.families.update_one(
+            {"id": family_id},
+            {"$set": {"code": expected_code, "code_generated_at": None}},
+        )
+        logger.warning(f"Demo family {family_id} code had drifted — reset to {expected_code}")
+
+
 # =======================================
 # INLINE DEMO SEED (No subprocess needed)
 # =======================================
@@ -119,6 +135,14 @@ async def seed_demo_accounts_inline():
                 if test_user:
                     test_ok = bcrypt.checkpw(TEST_PASSWORD.encode('utf-8'), test_user["hashed_password"].encode('utf-8'))
                     logger.info(f"Test account {TEST_EMAIL} password verified: {test_ok}")
+                # A parent tapping "Regenerate Code" (or a tester exercising that flow) replaces
+                # the demo family's fixed, never-expiring code with a random one that expires in
+                # 60 minutes — silently breaking the documented REVIEW/TEST01 codes for every
+                # future reviewer/tester. Repair it in place on every startup, without touching
+                # anything else (no destructive re-seed, so demo streak history survives).
+                await _repair_demo_family_code(db, review_user.get("family_id"), "REVIEW")
+                if test_user:
+                    await _repair_demo_family_code(db, test_user.get("family_id"), "TEST01")
                 return
             else:
                 logger.warning(f"Demo account {PARENT_EMAIL} exists but password FAILED — re-seeding!")
