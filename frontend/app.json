@@ -63,8 +63,7 @@
       },
       "eas": {
         "projectId": "10b6fa81-35b3-4a6a-be3f-058c52961cc9"
-      },
-      "backendUrl": "https://app-store-setup-2.preview.emergentagent.com"
+      }
     }
   }
 }
