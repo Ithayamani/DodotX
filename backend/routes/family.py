@@ -1,11 +1,25 @@
 from fastapi import APIRouter, HTTPException, Depends
 from routes import db, get_current_user, FAMILY_CODE_EXPIRY_MINUTES
-from models import User, Family, FamilyCreate, FamilyUpdate, FamilyCodeVerify, ChildInvite, Child, Task, Reward, Progress
+from models import User, Family, FamilyCreate, FamilyUpdate, FamilyCodeVerify, PinVerify, ChildInvite, Child, Task, Reward, Progress
 from auth import get_pin_hash, verify_pin, create_access_token
 from utils import generate_id, generate_family_code, DEFAULT_TASKS, DEFAULT_REWARDS
 from datetime import datetime, timedelta
+from collections import defaultdict
+import time
 
 router = APIRouter(prefix="/family", tags=["family"])
+
+# Per-code rate limit on family-code joins, mirroring the auth rate limiter — a 6-char
+# code is guessable enough that unthrottled attempts during its validity window matter.
+_join_attempts: dict = defaultdict(list)
+
+def check_join_rate_limit(family_code: str):
+    key = family_code.upper()
+    now = time.time()
+    _join_attempts[key] = [t for t in _join_attempts[key] if now - t < 60]
+    if len(_join_attempts[key]) >= 10:
+        raise HTTPException(status_code=429, detail="Too many join attempts for this code. Please wait a minute and try again.")
+    _join_attempts[key].append(now)
 
 def ensure_utc_timestamps(family_dict: dict) -> dict:
     for key in ['code_generated_at', 'created_at']:
@@ -17,7 +31,7 @@ def ensure_utc_timestamps(family_dict: dict) -> dict:
                 family_dict[key] = val + "Z"
     return family_dict
 
-@router.post("", response_model=Family)
+@router.post("", response_model=Family, response_model_exclude={"pin"})
 async def create_family(family_data: FamilyCreate, current_user: User = Depends(get_current_user)):
     if current_user.family_id:
         raise HTTPException(status_code=400, detail="User already has a family")
@@ -35,7 +49,7 @@ async def create_family(family_data: FamilyCreate, current_user: User = Depends(
         await db.rewards.insert_one(reward.dict())
     return family
 
-@router.get("", response_model=Family)
+@router.get("", response_model=Family, response_model_exclude={"pin"})
 async def get_family(current_user: User = Depends(get_current_user)):
     if not current_user.family_id:
         raise HTTPException(status_code=404, detail="User has no family")
@@ -45,7 +59,7 @@ async def get_family(current_user: User = Depends(get_current_user)):
     family = ensure_utc_timestamps(family)
     return Family(**family)
 
-@router.put("", response_model=Family)
+@router.put("", response_model=Family, response_model_exclude={"pin"})
 async def update_family(family_data: FamilyUpdate, current_user: User = Depends(get_current_user)):
     if not current_user.family_id:
         raise HTTPException(status_code=404, detail="User has no family")
@@ -62,13 +76,13 @@ async def update_family(family_data: FamilyUpdate, current_user: User = Depends(
     return Family(**updated_family)
 
 @router.post("/verify-pin")
-async def verify_family_pin(pin: str, current_user: User = Depends(get_current_user)):
+async def verify_family_pin(pin_data: PinVerify, current_user: User = Depends(get_current_user)):
     if not current_user.family_id:
         raise HTTPException(status_code=404, detail="User has no family")
     family = await db.families.find_one({"id": current_user.family_id})
     if not family:
         raise HTTPException(status_code=404, detail="Family not found")
-    if not verify_pin(pin, family["pin"]):
+    if not verify_pin(pin_data.pin, family["pin"]):
         raise HTTPException(status_code=403, detail="Incorrect PIN")
     return {"success": True}
 
@@ -88,6 +102,7 @@ async def verify_family_code(code_data: FamilyCodeVerify):
 
 @router.post("/join-child")
 async def join_child(invite_data: ChildInvite):
+    check_join_rate_limit(invite_data.family_code)
     family = await db.families.find_one({"code": invite_data.family_code.upper()})
     if not family:
         raise HTTPException(status_code=404, detail="Invalid family code")

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI } from '../../src/api/client';
 import { getThemeColors } from '../../src/constants';
@@ -27,7 +28,7 @@ export default function ChildShop() {
       setRewards(progressData.rewards);
       setPoints(progressData.points);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load rewards');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -38,6 +39,10 @@ export default function ChildShop() {
     setRefreshing(true);
     loadData();
   };
+
+  if (!currentChild) {
+    return <Redirect href="/role-select" />;
+  }
 
   if (loading) {
     return (

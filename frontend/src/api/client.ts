@@ -1,12 +1,14 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import * as secureStorage from '../utils/secureStorage';
 import type {
   AuthResponse, LoginCredentials, SignupData, User,
   Family, FamilyCreate, Child, ChildCreate,
   Task, TaskCreate, Reward, RewardCreate,
   Progress, CheerMessage, CheerCreate,
-  AITaskSuggestion, AITaskResponse
+  AITaskSuggestion, AITaskResponse, JoinChildResponse,
+  CalendarData, VisitorView, CustomTheme,
+  AIDifficultyResult, AIRewardSuggestion, FamilyUpdatePayload,
 } from '../types';
 
 // Get backend URL from environment
@@ -22,7 +24,7 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('auth_token');
+  const token = await secureStorage.getItem('auth_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -48,8 +50,8 @@ api.interceptors.response.use(
     const url: string = error.config?.url || '';
     const isCredentialEndpoint = CREDENTIAL_ENDPOINTS.some((ep) => url.includes(ep));
     if (error.response?.status === 401 && !isCredentialEndpoint) {
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user_data');
+      await secureStorage.removeItem('auth_token');
+      await secureStorage.removeItem('user_data');
     }
     return Promise.reject(error);
   }
@@ -100,7 +102,7 @@ export const familyAPI = {
     return response.data;
   },
   
-  update: async (data: Partial<Family>): Promise<Family> => {
+  update: async (data: FamilyUpdatePayload): Promise<Family> => {
     const response = await api.put('/family', data);
     return response.data;
   },
@@ -111,9 +113,7 @@ export const familyAPI = {
   },
   
   verifyPin: async (pin: string): Promise<{ success: boolean }> => {
-    const response = await api.post('/family/verify-pin', null, {
-      params: { pin },
-    });
+    const response = await api.post('/family/verify-pin', { pin });
     return response.data;
   },
   
@@ -122,7 +122,7 @@ export const familyAPI = {
     return response.data;
   },
   
-  joinChild: async (family_code: string, child_name: string): Promise<any> => {
+  joinChild: async (family_code: string, child_name: string): Promise<JoinChildResponse> => {
     const response = await api.post('/family/join-child', { family_code, child_name });
     return response.data;
   },
@@ -213,7 +213,7 @@ export const progressAPI = {
     return response.data;
   },
 
-  getCalendar: async (childId: string): Promise<any> => {
+  getCalendar: async (childId: string): Promise<CalendarData> => {
     const response = await api.get(`/progress/${childId}/calendar`);
     return response.data;
   },
@@ -239,22 +239,22 @@ export const aiAPI = {
     return response.data;
   },
   
-  generateTheme: async (description: string): Promise<any> => {
+  generateTheme: async (description: string): Promise<CustomTheme> => {
     const response = await api.post('/ai/generate-theme', { description });
     return response.data;
   },
-  
-  autoGenerateRoutines: async (): Promise<any> => {
+
+  autoGenerateRoutines: async (): Promise<{ message: string; tasks: Task[] }> => {
     const response = await api.post('/ai/auto-routines');
     return response.data;
   },
-  
-  adjustDifficulty: async (): Promise<any> => {
+
+  adjustDifficulty: async (): Promise<AIDifficultyResult> => {
     const response = await api.post('/ai/adjust-difficulty');
     return response.data;
   },
-  
-  suggestRewards: async (): Promise<any> => {
+
+  suggestRewards: async (): Promise<{ suggestions: AIRewardSuggestion[] }> => {
     const response = await api.post('/ai/suggest-rewards');
     return response.data;
   },
@@ -262,7 +262,7 @@ export const aiAPI = {
 
 // Visitor API (no auth required)
 export const visitorAPI = {
-  getView: async (familyCode: string): Promise<any> => {
+  getView: async (familyCode: string): Promise<VisitorView> => {
     const response = await api.get(`/visitor/${familyCode}`);
     return response.data;
   },

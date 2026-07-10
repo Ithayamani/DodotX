@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from pathlib import Path
 import logging
+import os
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -29,14 +30,26 @@ from routes.visitor import router as visitor_router
 # Create the main app
 app = FastAPI(title="DodotX API", docs_url=None, redoc_url=None)
 
-# CORS middleware
+# CORS middleware. The app authenticates with a Bearer token (not cookies), so
+# credentialed cross-origin requests are never needed; allow_credentials=False lets us
+# safely keep allow_origins=["*"] for the mobile/web clients without exposing a
+# credentialed-wildcard hole.
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Admin endpoints are gated behind a shared secret so they can't be triggered by anyone
+# who simply finds the URL. Fails closed: if ADMIN_SECRET isn't configured, the endpoints
+# are unusable rather than silently open.
+ADMIN_SECRET = os.getenv("ADMIN_SECRET")
+
+async def require_admin_secret(x_admin_secret: str = Header(default=None)):
+    if not ADMIN_SECRET or x_admin_secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
 # Include all routers under /api prefix
 app.include_router(auth_router, prefix="/api")
@@ -68,6 +81,22 @@ async def health_check():
     except Exception:
         db_status = "disconnected"
     return {"status": "healthy", "database": db_status}
+
+
+async def _repair_demo_family_code(db, family_id, expected_code: str):
+    """Reset a demo family's invite code back to its fixed, never-expiring value if it has
+    drifted (e.g. someone called /family/regenerate-code on it)."""
+    if not family_id:
+        return
+    family = await db.families.find_one({"id": family_id})
+    if not family:
+        return
+    if family.get("code") != expected_code or family.get("code_generated_at") is not None:
+        await db.families.update_one(
+            {"id": family_id},
+            {"$set": {"code": expected_code, "code_generated_at": None}},
+        )
+        logger.warning(f"Demo family {family_id} code had drifted — reset to {expected_code}")
 
 
 # =======================================
@@ -106,6 +135,14 @@ async def seed_demo_accounts_inline():
                 if test_user:
                     test_ok = bcrypt.checkpw(TEST_PASSWORD.encode('utf-8'), test_user["hashed_password"].encode('utf-8'))
                     logger.info(f"Test account {TEST_EMAIL} password verified: {test_ok}")
+                # A parent tapping "Regenerate Code" (or a tester exercising that flow) replaces
+                # the demo family's fixed, never-expiring code with a random one that expires in
+                # 60 minutes — silently breaking the documented REVIEW/TEST01 codes for every
+                # future reviewer/tester. Repair it in place on every startup, without touching
+                # anything else (no destructive re-seed, so demo streak history survives).
+                await _repair_demo_family_code(db, review_user.get("family_id"), "REVIEW")
+                if test_user:
+                    await _repair_demo_family_code(db, test_user.get("family_id"), "TEST01")
                 return
             else:
                 logger.warning(f"Demo account {PARENT_EMAIL} exists but password FAILED — re-seeding!")
@@ -287,7 +324,7 @@ async def startup_seed_demo():
 
 
 # Manual seed endpoint (for emergency re-seeding)
-@app.get("/api/admin/seed")
+@app.get("/api/admin/seed", dependencies=[Depends(require_admin_secret)])
 async def manual_seed():
     """Force re-seed demo accounts. Can be triggered manually if accounts are missing."""
     from routes import db
@@ -302,7 +339,7 @@ async def manual_seed():
 
 
 # Verify demo account endpoint
-@app.get("/api/admin/verify-demo")
+@app.get("/api/admin/verify-demo", dependencies=[Depends(require_admin_secret)])
 async def verify_demo():
     """Check if the demo account exists and password is valid."""
     import bcrypt

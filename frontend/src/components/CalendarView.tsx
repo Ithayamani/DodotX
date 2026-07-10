@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../stores';
 import { progressAPI } from '../api/client';
 import { getThemeColors } from '../constants';
+import type { CalendarData } from '../types';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = [
@@ -31,7 +32,7 @@ interface Props {
 export default function CalendarView({ childId, showTitle = true }: Props) {
   const theme = useAppStore((state) => state.theme);
   const colors = getThemeColors(theme);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<CalendarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [refDate, setRefDate] = useState(new Date());
@@ -158,10 +159,10 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
             {cells.map((d, idx) => {
               if (d === null) return <View key={`e${idx}`} style={styles.dayCell} />;
               const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
-              const status = days[dateStr]?.status || 'empty';
+              const dayEntry = days[dateStr];
               const isToday = dateStr === todayStr;
               const isVac = isVacationDay(dateStr);
-              const bg = status === 'empty' ? 'transparent' : STATUS_COLORS[status];
+              const bg = dayEntry ? STATUS_COLORS[dayEntry.status] : 'transparent';
               const borderColor = isToday ? colors.primary : isVac ? VACATION_COLOR : 'transparent';
               return (
                 <View key={dateStr} style={styles.dayCell}>
@@ -172,7 +173,7 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
                       (isToday || isVac) && { borderWidth: 2, borderColor },
                     ]}
                   >
-                    <Text style={[styles.dayText, status === 'complete' && styles.dayTextStrong]}>{d}</Text>
+                    <Text style={[styles.dayText, dayEntry?.status === 'complete' && styles.dayTextStrong]}>{d}</Text>
                     {isVac && <Text style={styles.vacationMark}>🏖️</Text>}
                   </View>
                 </View>
@@ -204,7 +205,7 @@ export default function CalendarView({ childId, showTitle = true }: Props) {
         {/* Milestone rewards */}
         <Text style={styles.sectionTitle}>Streak Rewards 🎁</Text>
         <View style={styles.milestoneList}>
-          {milestones.map((m: any) => (
+          {milestones.map((m) => (
             <View
               key={m.days}
               style={[

@@ -195,6 +195,9 @@ class TokenData(BaseModel):
 class FamilyCodeVerify(BaseModel):
     code: str
 
+class PinVerify(BaseModel):
+    pin: str
+
 class ChildInvite(BaseModel):
     family_code: str
     child_name: str

@@ -5,16 +5,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { familyAPI } from '../src/api/client';
-import { useAppStore } from '../src/stores';
-import { useAuthStore } from '../src/stores';
+import { useAppStore, useAuthStore } from '../src/stores';
 import { getThemeColors } from '../src/constants';
 import type { Theme } from '../src/types';
 
 export default function JoinFamily() {
   const router = useRouter();
   const { setCurrentChild, setTheme } = useAppStore();
+  const { setAuth } = useAuthStore();
 
   const [step, setStep] = useState<'code' | 'name'>('code');
   const [familyCode, setFamilyCode] = useState('');
@@ -54,12 +53,10 @@ export default function JoinFamily() {
     try {
       const result = await familyAPI.joinChild(familyCode.trim().toUpperCase(), petName.trim());
 
-      // Store the JWT token so child API calls are authenticated
-      if (result.access_token) {
-        await AsyncStorage.setItem('auth_token', result.access_token);
-        if (result.user) {
-          await AsyncStorage.setItem('user_data', JSON.stringify(result.user));
-        }
+      // Store the JWT token so child API calls are authenticated, going through the
+      // auth store (not raw AsyncStorage) so in-memory auth state stays consistent.
+      if (result.access_token && result.user) {
+        await setAuth(result.user, result.access_token);
       }
 
       // Set the child in the app store
@@ -68,9 +65,7 @@ export default function JoinFamily() {
         name: petName.trim(),
         avatar: '👦',
         family_id: result.family_id,
-        stars: 0,
-        level: 1,
-        profile_picture: undefined,
+        created_at: new Date().toISOString(),
       });
 
       if (familyInfo?.theme) {

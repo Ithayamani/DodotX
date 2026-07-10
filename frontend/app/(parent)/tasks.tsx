@@ -52,7 +52,7 @@ export default function ParentTasks() {
       const tasksData = await tasksAPI.getAll();
       setTasks(tasksData);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load tasks');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -580,9 +580,9 @@ export default function ParentTasks() {
                   <Text style={styles.suggestionsTitle}>Suggestions:</Text>
                   {aiSuggestions.map((suggestion, index) => (
                     <View key={index} style={styles.suggestionCard}>
-                      <Text style={styles.suggestionIcon}>{suggestion.icon}</Text>
+                      <Text style={styles.suggestionCardIcon}>{suggestion.icon}</Text>
                       <View style={styles.suggestionInfo}>
-                        <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
+                        <Text style={styles.suggestionCardTitle}>{suggestion.title}</Text>
                         <Text style={styles.suggestionMeta}>
                           {suggestion.pts} pts • {suggestion.cat}
                         </Text>
@@ -944,13 +944,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 12,
   },
-  suggestionIcon: {
+  suggestionCardIcon: {
     fontSize: 24,
   },
   suggestionInfo: {
     flex: 1,
   },
-  suggestionTitle: {
+  suggestionCardTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',

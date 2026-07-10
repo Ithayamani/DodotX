@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from routes import db, get_current_user
 from models import User, Progress, CheerMessage, CheerCreate
-from utils import generate_id, get_today_date, get_level_info, check_trophies, compute_streak_stats, STREAK_MILESTONES, is_vacation_day, compute_complete_dates, streaks_from_dates
+from utils import generate_id, get_today_date, get_level_info, check_trophies, STREAK_MILESTONES, is_vacation_day, compute_complete_dates, streaks_from_dates
 
 router = APIRouter(tags=["progress"])
 
@@ -11,6 +11,8 @@ async def get_progress(child_id: str, current_user: User = Depends(get_current_u
     child = await db.children.find_one({"id": child_id})
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
+    if not current_user.family_id or child["family_id"] != current_user.family_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     if "_id" in child:
         del child["_id"]
     progress = await db.progress.find_one({"child_id": child_id})
@@ -42,6 +44,8 @@ async def get_calendar(child_id: str, current_user: User = Depends(get_current_u
     child = await db.children.find_one({"id": child_id})
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
+    if not current_user.family_id or child["family_id"] != current_user.family_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     progress = await db.progress.find_one({"child_id": child_id})
     if not progress:
         progress = Progress(child_id=child_id).dict()
@@ -99,16 +103,23 @@ async def get_calendar(child_id: str, current_user: User = Depends(get_current_u
 
 
 @router.post("/cheers", response_model=CheerMessage)
-async def send_cheer(cheer_data: CheerCreate):
+async def send_cheer(cheer_data: CheerCreate, current_user: User = Depends(get_current_user)):
     child = await db.children.find_one({"id": cheer_data.child_id})
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
+    if not current_user.family_id or child["family_id"] != current_user.family_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     cheer_id = generate_id()
     cheer = CheerMessage(id=cheer_id, **cheer_data.dict())
     await db.cheers.insert_one(cheer.dict())
     return cheer
 
 @router.get("/cheers/{child_id}", response_model=List[CheerMessage])
-async def get_cheers(child_id: str):
+async def get_cheers(child_id: str, current_user: User = Depends(get_current_user)):
+    child = await db.children.find_one({"id": child_id})
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+    if not current_user.family_id or child["family_id"] != current_user.family_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     cheers = await db.cheers.find({"child_id": child_id}).sort("created_at", -1).limit(20).to_list(20)
     return [CheerMessage(**cheer) for cheer in cheers]

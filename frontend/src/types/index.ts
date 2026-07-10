@@ -29,7 +29,7 @@ export interface Family {
   name: string;
   code: string;
   code_generated_at?: string;
-  pin: string;
+  // The backend never returns the PIN (or its hash) in API responses.
   theme: Theme;
   custom_theme?: CustomTheme;
   vacation_mode: boolean;
@@ -45,6 +45,9 @@ export interface FamilyCreate {
   pin: string;
   theme: Theme;
 }
+
+// PUT /family accepts a write-only `pin` the API never echoes back in `Family` responses.
+export type FamilyUpdatePayload = Partial<Family> & { pin?: string };
 
 export interface CustomTheme {
   name: string;
@@ -179,4 +182,82 @@ export interface AITaskResponse {
   pts: number;
   cat: TaskCategory;
   modes: TaskMode;
+}
+
+export interface JoinChildResponse {
+  child_id: string;
+  family_id: string;
+  message: string;
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface CalendarDay {
+  completed: number;
+  total: number;
+  status: 'complete' | 'partial' | 'none';
+  vacation: boolean;
+}
+
+export interface StreakMilestone {
+  days: number;
+  name: string;
+  icon: string;
+  reward: string;
+  earned: boolean;
+}
+
+export interface CalendarData {
+  child_id: string;
+  child_name: string;
+  days: Record<string, CalendarDay>;
+  current_streak: number;
+  longest_streak: number;
+  complete_days: number;
+  daily_task_total: number;
+  vacation_task_total: number;
+  vacation: { active: boolean; start?: string; end?: string };
+  milestones: StreakMilestone[];
+}
+
+export interface VisitorChildSummary {
+  name: string;
+  avatar: string;
+  profile_picture?: string;
+  points: number;
+  streak: number;
+  perfect_days: number;
+  level: LevelInfo;
+  trophies_count: number;
+  tasks_done_today: number;
+}
+
+export interface VisitorView {
+  family_name: string;
+  theme: Theme;
+  vacation_mode: boolean;
+  children: VisitorChildSummary[];
+  total_tasks: number;
+  total_rewards: number;
+}
+
+export interface AISuggestion {
+  action: 'add' | 'modify' | 'remove';
+  title: string;
+  icon: string;
+  pts: number;
+  reason: string;
+}
+
+export interface AIDifficultyResult {
+  analysis: string;
+  suggestions: AISuggestion[];
+}
+
+export interface AIRewardSuggestion {
+  title: string;
+  icon: string;
+  cost: number;
+  reason: string;
 }

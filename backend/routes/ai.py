@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from routes import db, get_current_user
 from models import User, Task, TaskMode, AITaskSuggestion, AITaskResponse, AIThemeRequest, CustomTheme
-from utils import generate_id
+from utils import generate_id, get_today_date
 import os, logging, json
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -130,10 +130,11 @@ async def ai_adjust_difficulty(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="User has no family")
     children = await db.children.find({"family_id": current_user.family_id}).to_list(100)
     tasks = await db.tasks.find({"family_id": current_user.family_id}).to_list(100)
+    today = get_today_date()
     behavior = []
     for c in children:
         p = await db.progress.find_one({"child_id": c["id"]})
-        ct = p.get("completed_today", []) if p else []
+        ct = p.get("completions", {}).get(today, []) if p else []
         behavior.append({"name": c.get("name"), "age": c.get("age", "?"), "completed": len(ct), "total": len(tasks), "rate": round(len(ct)/max(len(tasks),1)*100), "points": p.get("points",0) if p else 0, "streak": p.get("streak",0) if p else 0})
     prompt = f"""Analyze and suggest adjustments. Data: {json.dumps(behavior)}. Tasks: {json.dumps([{"title": t.get("title",""), "pts": t.get("pts",10)} for t in tasks[:15]])}. Return ONLY JSON: {{"analysis":"...","suggestions":[{{"action":"add|modify|remove","title":"...","icon":"emoji","pts":10,"reason":"..."}}]}}"""
     try:

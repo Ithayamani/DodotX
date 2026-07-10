@@ -9,6 +9,8 @@ import { getThemeColors, AVATARS } from '../../src/constants';
 import { hapticHeavy, hapticLight } from '../../src/utils/haptics';
 import type { Child } from '../../src/types';
 
+const MAX_IMAGE_BASE64_LENGTH = 4 * 1024 * 1024;
+
 export default function ParentChildren() {
   const router = useRouter();
   const theme = useAppStore((state) => state.theme);
@@ -45,7 +47,7 @@ export default function ParentChildren() {
       });
       setChildrenProgress(progressMap);
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load children');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -121,6 +123,10 @@ export default function ParentChildren() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
+      if (result.assets[0].base64.length > MAX_IMAGE_BASE64_LENGTH) {
+        Alert.alert('Photo Too Large', 'Please choose a smaller photo.');
+        return;
+      }
       try {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
         await childrenAPI.update(child.id, { profile_picture: base64Image });

@@ -7,19 +7,26 @@ import { useAuthStore, useAppStore } from '../../src/stores';
 import { familyAPI, aiAPI, authAPI } from '../../src/api/client';
 import { getThemeColors, THEMES } from '../../src/constants';
 import type { Theme, Family } from '../../src/types';
+import { parseISO } from 'date-fns';
 
 const APP_VERSION = '2.0.0';
+// ~3MB decoded (base64 is ~4/3 the size of the decoded bytes) — keeps JSON request
+// bodies reasonable since images are embedded inline rather than uploaded as files.
+const MAX_IMAGE_BASE64_LENGTH = 4 * 1024 * 1024;
 const PRIVACY_URL = 'https://dodotx.com/privacy';
 const TERMS_URL = 'https://dodotx.com/terms';
 const SUPPORT_URL = 'https://dodotx.com/support';
 
 export default function ParentSettings() {
   const router = useRouter();
-  const { clearAuth } = useAuthStore();
-  const { family, setFamily, theme, setTheme } = useAppStore();
+  const { user, clearAuth } = useAuthStore();
+  const { family, setFamily, theme, setTheme, reset: resetAppStore } = useAppStore();
   const [localFamily, setLocalFamily] = useState<Family | null>(family);
   const [showPinModal, setShowPinModal] = useState(false);
   const [showVacationModal, setShowVacationModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -45,7 +52,7 @@ export default function ParentSettings() {
         setParentProfilePic(familyData.parent_profile_picture);
       }
     } catch (error) {
-      // Error handled silently
+      Alert.alert('Error', 'Failed to load family settings');
     }
   };
 
@@ -91,6 +98,10 @@ export default function ParentSettings() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
+      if (result.assets[0].base64.length > MAX_IMAGE_BASE64_LENGTH) {
+        Alert.alert('Photo Too Large', 'Please choose a smaller photo.');
+        return;
+      }
       setUploadingImage(true);
       try {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
@@ -213,6 +224,11 @@ export default function ParentSettings() {
   };
 
   const handleChangePin = async () => {
+    if (currentPin.length !== 4) {
+      Alert.alert('Error', 'Please enter your current 4-digit PIN');
+      return;
+    }
+
     if (newPin.length !== 4 || confirmPin.length !== 4) {
       Alert.alert('Error', 'PIN must be exactly 4 digits');
       return;
@@ -224,8 +240,16 @@ export default function ParentSettings() {
     }
 
     try {
+      await familyAPI.verifyPin(currentPin);
+    } catch (error) {
+      Alert.alert('Error', 'Current PIN is incorrect');
+      return;
+    }
+
+    try {
       await familyAPI.update({ pin: newPin });
       setShowPinModal(false);
+      setCurrentPin('');
       setNewPin('');
       setConfirmPin('');
       Alert.alert('Success', 'PIN updated successfully!');
@@ -257,6 +281,7 @@ export default function ParentSettings() {
           style: 'destructive',
           onPress: async () => {
             await clearAuth();
+            resetAppStore();
             router.replace('/');
           },
         },
@@ -274,31 +299,29 @@ export default function ParentSettings() {
           text: 'Delete Forever',
           style: 'destructive',
           onPress: () => {
-            Alert.alert(
-              'Are you absolutely sure?',
-              'All data will be permanently lost. Type your email to confirm.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Yes, Delete Everything',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      await authAPI.deleteAccount();
-                      await clearAuth();
-                      Alert.alert('Account Deleted', 'Your account and all data have been removed.');
-                      router.replace('/');
-                    } catch (error: any) {
-                      Alert.alert('Error', error.response?.data?.detail || 'Failed to delete account');
-                    }
-                  },
-                },
-              ]
-            );
+            setDeleteConfirmText('');
+            setShowDeleteModal(true);
           },
         },
       ]
     );
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    if (deleteConfirmText.trim().toLowerCase() !== (user?.email || '').toLowerCase()) {
+      Alert.alert('Error', "That doesn't match your account email.");
+      return;
+    }
+    try {
+      await authAPI.deleteAccount();
+      await clearAuth();
+      resetAppStore();
+      setShowDeleteModal(false);
+      Alert.alert('Account Deleted', 'Your account and all data have been removed.');
+      router.replace('/');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to delete account');
+    }
   };
 
   const handleRegenerateCode = async () => {
@@ -315,12 +338,9 @@ export default function ParentSettings() {
 
   const getCodeExpiryInfo = () => {
     if (!localFamily?.code_generated_at) return { expired: false, minutesLeft: 60 };
-    // Ensure UTC parsing - append Z if no timezone indicator present
-    let dateStr = localFamily.code_generated_at;
-    if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
-      dateStr += 'Z';
-    }
-    const generatedAt = new Date(dateStr).getTime();
+    // The backend always returns UTC timestamps with a trailing 'Z'; parseISO handles
+    // that (and any other explicit offset) correctly without needing to guess.
+    const generatedAt = parseISO(localFamily.code_generated_at).getTime();
     const expiresAt = generatedAt + (60 * 60 * 1000); // 60 minutes
     const now = Date.now();
     const minutesLeft = Math.max(0, Math.ceil((expiresAt - now) / (60 * 1000)));
@@ -696,7 +716,18 @@ export default function ParentSettings() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={styles.modalTitle}>Change PIN</Text>
-            
+
+            <TextInput
+              style={[styles.input, { borderColor: colors.primary }]}
+              placeholder="Current PIN"
+              placeholderTextColor="#999"
+              value={currentPin}
+              onChangeText={setCurrentPin}
+              keyboardType="number-pad"
+              maxLength={4}
+              secureTextEntry
+            />
+
             <TextInput
               style={[styles.input, { borderColor: colors.primary }]}
               placeholder="New 4-digit PIN"
@@ -724,18 +755,65 @@ export default function ParentSettings() {
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => {
                   setShowPinModal(false);
+                  setCurrentPin('');
                   setNewPin('');
                   setConfirmPin('');
                 }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: colors.primary }]}
                 onPress={handleChangePin}
               >
                 <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal visible={showDeleteModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={styles.modalTitle}>Are you absolutely sure?</Text>
+            <Text style={styles.modalDesc}>
+              All data will be permanently lost. Type your account email ({user?.email}) to confirm.
+            </Text>
+
+            <TextInput
+              style={[styles.input, { borderColor: colors.primary }]}
+              placeholder="Type your email to confirm"
+              placeholderTextColor="#999"
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  { backgroundColor: '#C47070' },
+                  deleteConfirmText.trim().toLowerCase() !== (user?.email || '').toLowerCase() && styles.buttonDisabled,
+                ]}
+                onPress={handleConfirmDeleteAccount}
+                disabled={deleteConfirmText.trim().toLowerCase() !== (user?.email || '').toLowerCase()}
+              >
+                <Text style={styles.modalButtonText}>Delete Everything</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1027,6 +1105,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
   // Family Code Styles
   codeSection: {
