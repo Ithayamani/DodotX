@@ -27,7 +27,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://family-quest-15.preview.emergentagent.com"
+        "EXPO_PUBLIC_BACKEND_URL": "https://app-store-setup-2.emergent.host"
       }
     }
   },

@@ -57,7 +57,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "backendUrl": "https://family-quest-15.preview.emergentagent.com",
+      "backendUrl": "https://app-store-setup-2.emergent.host",
       "router": {
         "origin": false
       },

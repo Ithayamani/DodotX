@@ -10,12 +10,15 @@ streaks, and non-account "visitors" can view read-only progress via a family cod
 / React Native mobile+web app backed by a FastAPI + MongoDB API, plus AI features (task suggestions,
 custom themes, auto-generated routines) proxied through Emergent's LLM integration.
 
-Hosting: the backend and MongoDB currently run on Emergent's infrastructure
-(`https://family-quest-15.preview.emergentagent.com`). That URL is a `.preview` domain and changes
-whenever the Emergent project is re-forked/reopened — if it ever changes, update
-`frontend/app.json` → `expo.extra.backendUrl` **and** `frontend/eas.json` →
-`build.production.env.EXPO_PUBLIC_BACKEND_URL` together (see "app.json extra.backendUrl" pitfall
-below for why both matter).
+Hosting: the backend and MongoDB run on Emergent's infrastructure, now on the stable production
+deploy (`https://app-store-setup-2.emergent.host`) rather than a `.preview.emergentagent.com` URL.
+The `.preview` domains are tied to an active Emergent editor session and silently go to sleep (and
+eventually get reassigned) after a period of inactivity — this was the root cause of several
+"login failed" / "invalid family code" reports that had nothing to do with app code at all, just the
+backend not being up. If the backend URL ever changes again, update `frontend/app.json` →
+`expo.extra.backendUrl` **and** `frontend/eas.json` → `build.production.env.EXPO_PUBLIC_BACKEND_URL`
+together (see "app.json extra.backendUrl" pitfall below for why both matter), and prefer whatever
+Emergent calls its stable/production deploy over a `.preview` URL.
 
 ## Commands
 
