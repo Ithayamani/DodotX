@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { familyAPI } from '../src/api/client';
 import { useAppStore } from '../src/stores';
 import { getThemeColors } from '../src/constants';
@@ -31,6 +32,10 @@ export default function ParentPin() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
+
       <View style={styles.content}>
         <Text style={styles.icon}>🔒</Text>
         <Text style={styles.title}>Parent Access</Text>
@@ -53,13 +58,6 @@ export default function ParentPin() {
         >
           <Text style={styles.buttonText}>Verify</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backText}>Go Back</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -68,11 +66,13 @@ export default function ParentPin() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 24,
   },
   content: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 60,
   },
   icon: {
     fontSize: 64,
@@ -113,10 +113,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 16,
-  },
-  backText: {
-    color: '#fff',
-    fontSize: 16,
-    opacity: 0.7,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
   },
 });
