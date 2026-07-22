@@ -55,9 +55,12 @@ export default function Onboarding() {
         const family = await familyAPI.create({ name: familyName, pin, theme });
         setFamily(family);
       } catch (familyError: any) {
-        // If family already exists, fetch it
+        // A family already exists for this account (e.g. an earlier onboarding attempt
+        // partially completed). Apply what was just entered on this screen to it instead
+        // of silently keeping whatever PIN/theme happened to be set the first time --
+        // otherwise the user believes the PIN they just typed is active when it isn't.
         if (familyError.response?.status === 400) {
-          const existingFamily = await familyAPI.get();
+          const existingFamily = await familyAPI.update({ name: familyName, pin, theme });
           setFamily(existingFamily);
         } else {
           throw familyError;
