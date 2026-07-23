@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ViewStyle } from 'react-native';
+import { ViewStyle, Pressable, PressableProps, GestureResponderEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -16,6 +16,7 @@ import Animated, {
   ZoomIn,
   Layout,
 } from 'react-native-reanimated';
+import { hapticLight } from './haptics';
 
 // Re-export preset entering/exiting animations for direct use
 export {
@@ -186,5 +187,48 @@ export function AnimatedCheckmark({ visible, color = '#fff', size = 16 }: { visi
     <Animated.Text style={[{ fontSize: size, color, fontWeight: 'bold' }, style]}>
       ✓
     </Animated.Text>
+  );
+}
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/**
+ * Claymorphism-style tactile press wrapper: springs down on press-in,
+ * back up on press-out/release, with a light haptic tick. Drop-in
+ * replacement for TouchableOpacity where a "squish" feel is wanted.
+ */
+export function ClayPressable({
+  children,
+  style,
+  onPressIn,
+  onPressOut,
+  ...pressableProps
+}: PressableProps & { children: React.ReactNode; style?: ViewStyle | ViewStyle[] }) {
+  const scale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = (e: GestureResponderEvent) => {
+    scale.value = withSpring(0.94, { damping: 12, stiffness: 220 });
+    hapticLight();
+    onPressIn?.(e);
+  };
+
+  const handlePressOut = (e: GestureResponderEvent) => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+    onPressOut?.(e);
+  };
+
+  return (
+    <AnimatedPressable
+      {...pressableProps}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[animStyle, style]}
+    >
+      {children}
+    </AnimatedPressable>
   );
 }

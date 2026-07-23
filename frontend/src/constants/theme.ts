@@ -49,6 +49,19 @@ export const getThemeColors = (theme: Theme) => {
   return THEME_COLORS[theme] || THEME_COLORS.gaming;
 };
 
+/**
+ * Soft, colored "clay" shadow for the claymorphism restyle -- tints the
+ * shadow with the theme's primary color instead of flat black, and pairs
+ * with rounded-corner cards for a tactile, layered look.
+ */
+export const getClayShadow = (color: string) => ({
+  shadowColor: color,
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.35,
+  shadowRadius: 16,
+  elevation: 8,
+});
+
 export const AVATARS = [
   '👦', '👧', '🧒', '👶', '👨', '👩',
   '🦸', '🦸‍♀️', '🧙', '🧙‍♀️', '🧚', '🧚‍♂️',

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI, cheersAPI } from '../../src/api/client';
-import { getThemeColors } from '../../src/constants';
-import { hapticLight } from '../../src/utils/haptics';
-import { AnimatedProgress } from '../../src/utils/animations';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
+import { AnimatedProgress, ClayPressable } from '../../src/utils/animations';
 import type { Progress, CheerMessage } from '../../src/types';
 
 export default function ChildHome() {
@@ -71,40 +71,48 @@ export default function ChildHome() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>Hi, {currentChild?.name}! 👋</Text>
-          <TouchableOpacity onPress={() => { hapticLight(); router.push('/role-select'); }}>
+          <ClayPressable onPress={() => router.push('/role-select')}>
             <Text style={styles.switchProfile}>Switch Profile</Text>
-          </TouchableOpacity>
+          </ClayPressable>
         </View>
 
         {/* Level Card */}
-        <Animated.View entering={FadeInDown.duration(400).springify()} style={[styles.levelCard, { backgroundColor: colors.card }]}>
-          <Text style={styles.avatar}>{currentChild?.avatar}</Text>
-          <View style={styles.levelInfo}>
-            <Text style={styles.levelName}>{progress?.level.name}</Text>
-            <AnimatedProgress
-              progress={progress?.level.progress || 0}
-              color={colors.primary}
-              height={8}
-            />
-            <Text style={[styles.points, { marginTop: 8 }]}>{progress?.points || 0} points</Text>
-          </View>
+        <Animated.View entering={FadeInDown.duration(400).springify()} style={getClayShadow(colors.primary)}>
+          <LinearGradient
+            colors={[colors.primary, colors.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.levelCard}
+          >
+            <Text style={styles.avatar}>{currentChild?.avatar}</Text>
+            <View style={styles.levelInfo}>
+              <Text style={styles.levelName}>{progress?.level.name}</Text>
+              <AnimatedProgress
+                progress={progress?.level.progress || 0}
+                color="#fff"
+                backgroundColor="rgba(255,255,255,0.3)"
+                height={8}
+              />
+              <Text style={[styles.points, { marginTop: 8 }]}>{progress?.points || 0} points</Text>
+            </View>
+          </LinearGradient>
         </Animated.View>
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <Animated.View entering={FadeInDown.delay(80).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
+          <Animated.View entering={FadeInDown.delay(80).springify()} style={[styles.statCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.statValue}>{progress?.today_tasks_count || 0}</Text>
             <Text style={styles.statLabel}>Tasks Today</Text>
           </Animated.View>
-          <Animated.View entering={FadeInDown.delay(140).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
+          <Animated.View entering={FadeInDown.delay(140).springify()} style={[styles.statCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.statValue}>{progress?.streak || 0} 🔥</Text>
             <Text style={styles.statLabel}>Day Streak</Text>
           </Animated.View>
-          <Animated.View entering={FadeInDown.delay(200).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
+          <Animated.View entering={FadeInDown.delay(200).springify()} style={[styles.statCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.statValue}>{earnedTrophies}/8 🏆</Text>
             <Text style={styles.statLabel}>Trophies</Text>
           </Animated.View>
-          <Animated.View entering={FadeInDown.delay(260).springify()} style={[styles.statCard, { backgroundColor: colors.card }]}>
+          <Animated.View entering={FadeInDown.delay(260).springify()} style={[styles.statCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.statValue}>{progress?.rewards.filter(r => r.unlocked).length || 0}</Text>
             <Text style={styles.statLabel}>Rewards Won</Text>
           </Animated.View>
@@ -112,7 +120,7 @@ export default function ChildHome() {
 
         {/* Next Reward */}
         {nextReward && (
-          <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.sectionTitle}>Next Reward</Text>
             <View style={styles.rewardCard}>
               <Text style={styles.rewardIcon}>{nextReward.icon}</Text>
@@ -137,7 +145,7 @@ export default function ChildHome() {
 
         {/* Recent Cheers */}
         {cheers.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.sectionTitle}>Recent Cheers 💬</Text>
             {cheers.map((cheer) => (
               <View key={cheer.id} style={styles.cheerCard}>
@@ -169,18 +177,20 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingExtraBold,
     color: '#fff',
   },
   switchProfile: {
     fontSize: 14,
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
     opacity: 0.7,
+    padding: 8,
   },
   levelCard: {
     flexDirection: 'row',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 28,
     gap: 16,
     alignItems: 'center',
   },
@@ -192,24 +202,14 @@ const styles = StyleSheet.create({
   },
   levelName: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 4,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
   points: {
     fontSize: 16,
-    color: '#ccc',
+    fontFamily: FONTS.body,
+    color: '#fff',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -220,26 +220,27 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '47%',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     alignItems: 'center',
   },
   statValue: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   section: {
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 28,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 16,
   },
@@ -255,12 +256,13 @@ const styles = StyleSheet.create({
   },
   rewardName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   rewardDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginBottom: 12,
   },
@@ -277,6 +279,7 @@ const styles = StyleSheet.create({
   },
   rewardPoints: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   cheerCard: {
@@ -284,12 +287,13 @@ const styles = StyleSheet.create({
   },
   cheerSender: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   cheerMessage: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
 });

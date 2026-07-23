@@ -1,4 +1,5 @@
 export * from './theme';
+export * from './fonts';
 
 export const TASK_CATEGORIES = [
   { value: 'learning', label: 'Learning', icon: '📚' },
