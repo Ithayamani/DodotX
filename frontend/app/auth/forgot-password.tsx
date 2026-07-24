@@ -6,8 +6,9 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../src/api/client';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
 import { hapticSuccess, hapticError, hapticLight } from '../../src/utils/haptics';
+import { ClayPressable } from '../../src/utils/animations';
 
 // Password validation rules
 function validatePassword(pw: string) {
@@ -94,13 +95,12 @@ export default function ForgotPassword() {
           <Text style={styles.subtitle}>
             Your password has been updated.{'\n'}You can now sign in with your new password.
           </Text>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary }]}
+          <ClayPressable
+            style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
             onPress={() => { hapticLight(); router.replace('/auth/login'); }}
-            activeOpacity={0.7}
           >
             <Text style={styles.buttonText}>Go to Sign In</Text>
-          </TouchableOpacity>
+          </ClayPressable>
         </View>
       </SafeAreaView>
     );
@@ -144,18 +144,17 @@ export default function ForgotPassword() {
               autoFocus
             />
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }, (!email.trim() || loading) && styles.disabled]}
+            <ClayPressable
+              style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary), (!email.trim() || loading) && styles.disabled]}
               onPress={handleSendCode}
               disabled={!email.trim() || loading}
-              activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Send Reset Code</Text>
               )}
-            </TouchableOpacity>
+            </ClayPressable>
           </View>
         ) : (
           <View style={styles.content}>
@@ -216,18 +215,17 @@ export default function ForgotPassword() {
               secureTextEntry={!showPassword}
             />
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }, (loading || !allValid || !passwordsMatch || code.length !== 6) && styles.disabled]}
+            <ClayPressable
+              style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary), (loading || !allValid || !passwordsMatch || code.length !== 6) && styles.disabled]}
               onPress={handleResetPassword}
               disabled={loading || !allValid || !passwordsMatch || code.length !== 6}
-              activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Reset Password</Text>
               )}
-            </TouchableOpacity>
+            </ClayPressable>
 
             <TouchableOpacity onPress={() => { hapticLight(); handleSendCode(); }}>
               <Text style={styles.resendText}>Didn't get the code? Resend</Text>
@@ -292,12 +290,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     lineHeight: 22,
@@ -306,27 +305,28 @@ const styles = StyleSheet.create({
   },
   emailHighlight: {
     color: '#D4845C',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
   },
   input: {
     width: '100%',
     backgroundColor: '#1c2128',
     borderWidth: 2,
-    borderRadius: 14,
+    borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 18,
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ffffff',
   },
   codeInput: {
     width: '100%',
     backgroundColor: '#1c2128',
     borderWidth: 2,
-    borderRadius: 14,
+    borderRadius: 20,
     paddingVertical: 18,
     paddingHorizontal: 24,
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     letterSpacing: 8,
   },
@@ -339,11 +339,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1c2128',
     borderWidth: 2,
-    borderRadius: 14,
+    borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 18,
     paddingRight: 50,
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ffffff',
   },
   eyeButton: {
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
   rulesBox: {
     width: '100%',
     backgroundColor: '#1c2128',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     gap: 8,
   },
@@ -365,6 +366,7 @@ const styles = StyleSheet.create({
   },
   ruleText: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#888',
   },
   ruleTextMet: {
@@ -373,7 +375,7 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     paddingVertical: 18,
-    borderRadius: 14,
+    borderRadius: 18,
     alignItems: 'center',
   },
   disabled: {
@@ -382,10 +384,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: FONTS.headingSemiBold,
   },
   resendText: {
     color: '#D4845C',
+    fontFamily: FONTS.bodyBold,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 4,

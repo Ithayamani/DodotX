@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow } from '../../src/constants';
 
 export default function ChildLayout() {
   const theme = useAppStore((state) => state.theme);
@@ -15,10 +15,12 @@ export default function ChildLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopWidth: 0,
-          elevation: 0,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
           height: 70,
           paddingBottom: 10,
           paddingTop: 10,
+          ...getClayShadow(colors.primary),
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: '#999',

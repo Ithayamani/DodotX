@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { familyAPI } from '../src/api/client';
 import { useAppStore } from '../src/stores';
-import { getThemeColors } from '../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../src/constants';
+import { ClayPressable } from '../src/utils/animations';
 
 export default function ParentPin() {
   const router = useRouter();
@@ -52,12 +53,12 @@ export default function ParentPin() {
           placeholderTextColor="#999"
         />
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.primary }]}
+        <ClayPressable
+          style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
           onPress={handleVerify}
         >
           <Text style={styles.buttonText}>Verify</Text>
-        </TouchableOpacity>
+        </ClayPressable>
       </View>
     </View>
   );
@@ -80,19 +81,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginBottom: 32,
   },
   input: {
     width: '100%',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 20,
     fontSize: 24,
     textAlign: 'center',
@@ -103,13 +105,13 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   backButton: {
     marginTop: 16,

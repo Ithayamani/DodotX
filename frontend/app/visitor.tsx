@@ -7,6 +7,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { visitorAPI } from '../src/api/client';
+import { getClayShadow, FONTS } from '../src/constants';
+import { ClayPressable } from '../src/utils/animations';
 import type { VisitorView as VisitorViewData } from '../src/types';
 
 export default function VisitorView() {
@@ -81,18 +83,17 @@ export default function VisitorView() {
               autoFocus
             />
 
-            <TouchableOpacity
-              style={[styles.viewButton, (!familyCode.trim() || loading) && styles.buttonDisabled]}
+            <ClayPressable
+              style={[styles.viewButton, getClayShadow('#5A8FA8'), (!familyCode.trim() || loading) && styles.buttonDisabled]}
               onPress={handleVerifyCode}
               disabled={!familyCode.trim() || loading}
-              activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.viewButtonText}>View Family Progress</Text>
               )}
-            </TouchableOpacity>
+            </ClayPressable>
 
             <Text style={styles.hint}>
               Ask the parent for the family code.{'\n'}No account needed — just view.
@@ -134,7 +135,7 @@ export default function VisitorView() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7EB8DA" />}
       >
         {/* Family Stats Bar */}
-        <View style={styles.statsBar}>
+        <View style={[styles.statsBar, getClayShadow('#000000')]}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{data?.total_tasks || 0}</Text>
             <Text style={styles.statLabel}>Tasks</Text>
@@ -160,7 +161,7 @@ export default function VisitorView() {
         )}
 
         {data?.children?.map((child, index) => (
-          <View key={index} style={styles.childCard}>
+          <View key={index} style={[styles.childCard, getClayShadow('#000000')]}>
             {/* Child Header */}
             <View style={styles.childHeader}>
               <View style={styles.avatarCircle}>
@@ -257,13 +258,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     lineHeight: 24,
@@ -274,11 +276,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c2128',
     borderWidth: 2,
     borderColor: '#7EB8DA',
-    borderRadius: 16,
+    borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 24,
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     letterSpacing: 8,
     marginBottom: 24,
@@ -287,20 +289,21 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#5A8FA8',
     paddingVertical: 18,
-    borderRadius: 14,
+    borderRadius: 18,
     alignItems: 'center',
     marginBottom: 16,
   },
   viewButtonText: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: FONTS.headingSemiBold,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   hint: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
   },
   headerFamily: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     marginBottom: 4,
   },
@@ -341,12 +344,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     color: '#7EB8DA',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
   },
   badgeText2: {
     fontSize: 11,
     color: '#D4845C',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
   },
 
   scrollView: {
@@ -360,7 +363,7 @@ const styles = StyleSheet.create({
   statsBar: {
     flexDirection: 'row',
     backgroundColor: '#1c2128',
-    borderRadius: 16,
+    borderRadius: 22,
     paddingVertical: 16,
     paddingHorizontal: 8,
     marginBottom: 20,
@@ -371,11 +374,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
   },
   statLabel: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     marginTop: 2,
   },
@@ -387,7 +391,7 @@ const styles = StyleSheet.create({
   // Child cards
   childCard: {
     backgroundColor: '#1c2128',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
@@ -415,14 +419,14 @@ const styles = StyleSheet.create({
   },
   childName: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     marginBottom: 2,
   },
   childLevel: {
     fontSize: 13,
     color: '#D4845C',
-    fontWeight: '500',
+    fontFamily: FONTS.bodyBold,
   },
   pointsBadge: {
     backgroundColor: 'rgba(212,132,92,0.12)',
@@ -433,13 +437,13 @@ const styles = StyleSheet.create({
   },
   pointsValue: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#D4845C',
   },
   pointsLabel: {
     fontSize: 10,
     color: '#D4845C',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
   },
 
   levelBarContainer: {
@@ -463,7 +467,7 @@ const styles = StyleSheet.create({
   levelProgressText: {
     fontSize: 11,
     color: '#b0b8c1',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     width: 36,
     textAlign: 'right',
   },
@@ -482,11 +486,12 @@ const styles = StyleSheet.create({
   },
   quickStatValue: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
   },
   quickStatLabel: {
     fontSize: 11,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     marginTop: 2,
   },
@@ -501,6 +506,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
   },
 
@@ -513,6 +519,7 @@ const styles = StyleSheet.create({
   },
   infoNoteText: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#7EB8DA',
     fontStyle: 'italic',
   },

@@ -4,7 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI } from '../../src/api/client';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
 import { AnimatedProgress } from '../../src/utils/animations';
 import type { RewardStatus } from '../../src/types';
 
@@ -69,7 +69,7 @@ export default function ChildShop() {
           </View>
         </View>
 
-        <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+        <View style={[styles.statsCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.statsText}>{unlockedCount} rewards unlocked! 🎉</Text>
         </View>
 
@@ -83,6 +83,7 @@ export default function ChildShop() {
                 style={[
                   styles.rewardCard,
                   { backgroundColor: colors.card },
+                  getClayShadow(colors.primary),
                   !reward.unlocked && styles.rewardCardLocked,
                 ]}
               >
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
   },
   pointsBadge: {
@@ -163,18 +164,18 @@ const styles = StyleSheet.create({
   },
   pointsText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
   },
   statsCard: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     marginBottom: 20,
     alignItems: 'center',
   },
   statsText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   rewardsList: {
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   },
   rewardCard: {
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 24,
   },
   rewardCardLocked: {
     opacity: 0.7,
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
   },
   unlockedText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
   },
   lockedBadge: {
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
   },
   rewardName: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   rewardNameLocked: {
@@ -226,6 +227,7 @@ const styles = StyleSheet.create({
   },
   rewardDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   progressContainer: {
@@ -244,6 +246,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   emptyState: {
@@ -256,12 +259,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
 });

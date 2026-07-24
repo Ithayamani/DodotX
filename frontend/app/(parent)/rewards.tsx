@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
 import { rewardsAPI } from '../../src/api/client';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
+import { ClayPressable } from '../../src/utils/animations';
 import type { Reward } from '../../src/types';
 
 export default function ParentRewards() {
@@ -141,17 +142,17 @@ export default function ParentRewards() {
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.title}>Rewards</Text>
-            <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: colors.primary }]}
+            <ClayPressable
+              style={[styles.addButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
               onPress={handleAdd}
             >
               <Ionicons name="add" size={24} color="#fff" />
-            </TouchableOpacity>
+            </ClayPressable>
           </View>
 
           <View style={styles.rewardsList}>
             {rewards.map((reward) => (
-              <View key={reward.id} style={[styles.rewardCard, { backgroundColor: colors.card }]}>
+              <View key={reward.id} style={[styles.rewardCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
                 <Text style={styles.rewardIcon}>{reward.icon}</Text>
                 
                 <View style={styles.rewardInfo}>
@@ -241,12 +242,12 @@ export default function ParentRewards() {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                <ClayPressable
+                  style={[styles.modalButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
                   onPress={handleSave}
                 >
                   <Text style={styles.modalButtonText}>Save</Text>
-                </TouchableOpacity>
+                </ClayPressable>
               </View>
             </View>
           </ScrollView>
@@ -272,7 +273,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
   },
   addButton: {
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     gap: 12,
   },
   rewardIcon: {
@@ -300,12 +301,13 @@ const styles = StyleSheet.create({
   },
   rewardName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   rewardDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginBottom: 8,
   },
@@ -317,7 +319,7 @@ const styles = StyleSheet.create({
   },
   pointsText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
   },
   rewardActions: {
@@ -334,12 +336,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   modalOverlay: {
@@ -351,20 +354,21 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 20,
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
     marginBottom: 16,
   },
@@ -376,9 +380,10 @@ const styles = StyleSheet.create({
   inputSmall: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
   },
   modalButtons: {
@@ -389,7 +394,7 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButton: {
@@ -398,11 +403,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
 });

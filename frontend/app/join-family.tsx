@@ -7,7 +7,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { familyAPI } from '../src/api/client';
 import { useAppStore, useAuthStore } from '../src/stores';
-import { getThemeColors } from '../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../src/constants';
+import { ClayPressable } from '../src/utils/animations';
 import type { Theme } from '../src/types';
 
 export default function JoinFamily() {
@@ -125,18 +126,17 @@ export default function JoinFamily() {
               autoFocus
             />
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#4A9B6B' }, (!familyCode.trim() || loading) && styles.buttonDisabled]}
+            <ClayPressable
+              style={[styles.button, { backgroundColor: '#4A9B6B' }, getClayShadow('#4A9B6B'), (!familyCode.trim() || loading) && styles.buttonDisabled]}
               onPress={handleVerifyCode}
               disabled={!familyCode.trim() || loading}
-              activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Verify Code</Text>
               )}
-            </TouchableOpacity>
+            </ClayPressable>
 
             <Text style={styles.hint}>
               Codes expire after 60 minutes.{'\n'}Ask your parent if you need a new one.
@@ -167,18 +167,17 @@ export default function JoinFamily() {
               Use a nickname for your privacy — no real names needed!
             </Text>
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#D4845C' }, (!petName.trim() || loading) && styles.buttonDisabled]}
+            <ClayPressable
+              style={[styles.button, { backgroundColor: '#D4845C' }, getClayShadow('#D4845C'), (!petName.trim() || loading) && styles.buttonDisabled]}
               onPress={handleJoinFamily}
               disabled={!petName.trim() || loading}
-              activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Join Family</Text>
               )}
-            </TouchableOpacity>
+            </ClayPressable>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -221,13 +220,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     lineHeight: 22,
@@ -236,12 +236,12 @@ const styles = StyleSheet.create({
   },
   familyName: {
     color: '#D4845C',
-    fontWeight: '700',
+    fontFamily: FONTS.bodyBold,
   },
   label: {
     fontSize: 16,
     color: '#fff',
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
@@ -250,11 +250,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c2128',
     borderWidth: 2,
     borderColor: '#4A9B6B',
-    borderRadius: 16,
+    borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 24,
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     letterSpacing: 8,
     marginBottom: 24,
@@ -264,15 +264,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c2128',
     borderWidth: 2,
     borderColor: '#D4845C',
-    borderRadius: 16,
+    borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 20,
     fontSize: 18,
+    fontFamily: FONTS.body,
     color: '#ffffff',
     marginBottom: 8,
   },
   privacyNote: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#7ec8e3',
     fontStyle: 'italic',
     textAlign: 'center',
@@ -281,7 +283,7 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     paddingVertical: 18,
-    borderRadius: 14,
+    borderRadius: 18,
     alignItems: 'center',
     marginBottom: 16,
   },
@@ -291,10 +293,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: FONTS.headingSemiBold,
   },
   hint: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,

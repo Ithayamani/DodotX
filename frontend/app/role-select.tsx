@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { useAuthStore, useAppStore } from '../src/stores';
 import { familyAPI, childrenAPI } from '../src/api/client';
-import { getThemeColors } from '../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../src/constants';
+import { ClayPressable } from '../src/utils/animations';
 import type { Child } from '../src/types';
 
 export default function RoleSelect() {
@@ -69,9 +70,9 @@ export default function RoleSelect() {
           <Text style={styles.sectionTitle}>Select Your Profile</Text>
           
           {children.map((child) => (
-            <TouchableOpacity
+            <ClayPressable
               key={child.id}
-              style={[styles.roleCard, { backgroundColor: colors.card }]}
+              style={[styles.roleCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}
               onPress={() => handleChildSelect(child)}
             >
               <Text style={styles.avatar}>{child.avatar}</Text>
@@ -80,11 +81,11 @@ export default function RoleSelect() {
                 <Text style={styles.roleDesc}>Tap to start your quest!</Text>
               </View>
               <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
+            </ClayPressable>
           ))}
 
-          <TouchableOpacity
-            style={[styles.roleCard, { backgroundColor: colors.card }]}
+          <ClayPressable
+            style={[styles.roleCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}
             onPress={handleParentSelect}
           >
             <Text style={styles.avatar}>👨‍👩‍👧</Text>
@@ -93,7 +94,7 @@ export default function RoleSelect() {
               <Text style={styles.roleDesc}>Manage tasks and rewards</Text>
             </View>
             <Text style={styles.arrow}>→</Text>
-          </TouchableOpacity>
+          </ClayPressable>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -118,12 +119,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   section: {
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 22,
     gap: 16,
   },
   avatar: {
@@ -150,12 +152,13 @@ const styles = StyleSheet.create({
   },
   roleName: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   roleDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   arrow: {
@@ -169,6 +172,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#fff',
     opacity: 0.7,
   },

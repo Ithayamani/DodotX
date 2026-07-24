@@ -5,8 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { childrenAPI, progressAPI } from '../../src/api/client';
-import { getThemeColors, AVATARS } from '../../src/constants';
+import { getThemeColors, getClayShadow, AVATARS, FONTS } from '../../src/constants';
 import { hapticHeavy, hapticLight } from '../../src/utils/haptics';
+import { ClayPressable } from '../../src/utils/animations';
 import type { Child } from '../../src/types';
 
 const MAX_IMAGE_BASE64_LENGTH = 4 * 1024 * 1024;
@@ -156,12 +157,12 @@ export default function ParentChildren() {
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.title}>Children</Text>
-            <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: colors.primary }]}
+            <ClayPressable
+              style={[styles.addButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
               onPress={() => setShowAddModal(true)}
             >
               <Ionicons name="add" size={24} color="#fff" />
-            </TouchableOpacity>
+            </ClayPressable>
           </View>
 
           <View style={styles.childrenList}>
@@ -169,7 +170,7 @@ export default function ParentChildren() {
               const progress = childrenProgress[child.id];
               
               return (
-                <View key={child.id} style={[styles.childCard, { backgroundColor: colors.card }]}>
+                <View key={child.id} style={[styles.childCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
                   <TouchableOpacity onPress={() => handlePickChildProfilePic(child)} activeOpacity={0.7}>
                     <View style={[styles.avatarContainer, { borderColor: colors.primary }]}>
                       {child.profile_picture ? (
@@ -202,7 +203,7 @@ export default function ParentChildren() {
                     )}
                   </View>
 
-                  <TouchableOpacity
+                  <ClayPressable
                     style={[styles.calendarButton, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
                     onPress={() => {
                       hapticLight();
@@ -211,7 +212,7 @@ export default function ParentChildren() {
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                  </TouchableOpacity>
+                  </ClayPressable>
 
                   <Pressable
                     style={({ pressed }) => [
@@ -301,12 +302,12 @@ export default function ParentChildren() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+              <ClayPressable
+                style={[styles.modalButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
                 onPress={handleAddChild}
               >
                 <Text style={styles.modalButtonText}>Add</Text>
-              </TouchableOpacity>
+              </ClayPressable>
             </View>
           </View>
         </View>
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
   },
   addButton: {
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     gap: 12,
   },
   avatar: {
@@ -386,12 +387,13 @@ const styles = StyleSheet.create({
   },
   childName: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   childAge: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginBottom: 8,
   },
@@ -402,6 +404,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   statDivider: {
@@ -438,12 +441,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   backButton: {
@@ -453,6 +457,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#fff',
     opacity: 0.7,
   },
@@ -463,30 +468,33 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 20,
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
     marginBottom: 16,
   },
   label: {
     fontSize: 16,
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 12,
   },
   privacyNote: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#7ec8e3',
     fontStyle: 'italic',
     marginTop: -4,
@@ -516,7 +524,7 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButton: {
@@ -525,11 +533,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
 });

@@ -4,8 +4,9 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
 import { tasksAPI, aiAPI, childrenAPI } from '../../src/api/client';
-import { getThemeColors, TASK_CATEGORIES } from '../../src/constants';
+import { getThemeColors, getClayShadow, TASK_CATEGORIES, FONTS } from '../../src/constants';
 import { hapticLight, hapticMedium, hapticSuccess, hapticHeavy, hapticSelection } from '../../src/utils/haptics';
+import { ClayPressable } from '../../src/utils/animations';
 import type { Task, TaskCategory } from '../../src/types';
 
 export default function ParentTasks() {
@@ -258,42 +259,40 @@ export default function ParentTasks() {
           <View style={styles.header}>
             <Text style={styles.title}>Tasks</Text>
             <View style={styles.headerButtons}>
-              <TouchableOpacity
-                style={[styles.aiButton, { backgroundColor: colors.primary }]}
+              <ClayPressable
+                style={[styles.aiButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
                 onPress={() => setShowAIModal(true)}
               >
                 <Ionicons name="sparkles" size={20} color="#fff" />
                 <Text style={styles.aiButtonText}>AI</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.primary }]}
+              </ClayPressable>
+              <ClayPressable
+                style={[styles.addButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
                 onPress={handleAdd}
               >
                 <Ionicons name="add" size={24} color="#fff" />
-              </TouchableOpacity>
+              </ClayPressable>
             </View>
           </View>
 
           {/* AI Smart Panel */}
-          <TouchableOpacity
+          <ClayPressable
             style={[styles.smartPanelToggle, { backgroundColor: colors.card }]}
             onPress={() => setShowSmartPanel(!showSmartPanel)}
-            activeOpacity={0.7}
           >
             <View style={styles.smartPanelHeader}>
               <Ionicons name="sparkles" size={18} color={colors.primary} />
               <Text style={styles.smartPanelTitle}>AI Smart Assistant</Text>
             </View>
             <Ionicons name={showSmartPanel ? 'chevron-up' : 'chevron-down'} size={18} color="#aaa" />
-          </TouchableOpacity>
+          </ClayPressable>
 
           {showSmartPanel && (
             <View style={[styles.smartPanelContent, { backgroundColor: colors.card }]}>
-              <TouchableOpacity
+              <ClayPressable
                 style={[styles.smartBtn, { borderColor: colors.primary }]}
                 onPress={handleAutoRoutines}
                 disabled={autoRoutineLoading}
-                activeOpacity={0.7}
               >
                 {autoRoutineLoading ? (
                   <ActivityIndicator size="small" color={colors.primary} />
@@ -304,13 +303,12 @@ export default function ParentTasks() {
                   <Text style={styles.smartBtnLabel}>Auto-Generate Routines</Text>
                   <Text style={styles.smartBtnDesc}>AI creates daily routines for your family</Text>
                 </View>
-              </TouchableOpacity>
+              </ClayPressable>
 
-              <TouchableOpacity
+              <ClayPressable
                 style={[styles.smartBtn, { borderColor: '#9B6DAE' }]}
                 onPress={handleAdjustDifficulty}
                 disabled={difficultyLoading}
-                activeOpacity={0.7}
               >
                 {difficultyLoading ? (
                   <ActivityIndicator size="small" color="#9B6DAE" />
@@ -321,13 +319,12 @@ export default function ParentTasks() {
                   <Text style={styles.smartBtnLabel}>Adjust Difficulty</Text>
                   <Text style={styles.smartBtnDesc}>Adapts tasks based on completion behavior</Text>
                 </View>
-              </TouchableOpacity>
+              </ClayPressable>
 
-              <TouchableOpacity
+              <ClayPressable
                 style={[styles.smartBtn, { borderColor: '#D4924A' }]}
                 onPress={handleSuggestRewards}
                 disabled={rewardSugLoading}
-                activeOpacity={0.7}
               >
                 {rewardSugLoading ? (
                   <ActivityIndicator size="small" color="#D4924A" />
@@ -338,7 +335,7 @@ export default function ParentTasks() {
                   <Text style={styles.smartBtnLabel}>Suggest Rewards</Text>
                   <Text style={styles.smartBtnDesc}>AI picks rewards your kids will love</Text>
                 </View>
-              </TouchableOpacity>
+              </ClayPressable>
 
               {difficultyResult && (
                 <View style={styles.resultBox}>
@@ -380,7 +377,7 @@ export default function ParentTasks() {
                 entering={FadeInDown.delay(index * 50).duration(250).springify()}
                 layout={Layout.springify()}
               >
-                <View style={[styles.taskCard, { backgroundColor: colors.card }]}>
+                <View style={[styles.taskCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
                 <Text style={styles.taskIcon}>{task.icon}</Text>
                 
                 <View style={styles.taskInfo}>
@@ -514,12 +511,12 @@ export default function ParentTasks() {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                <ClayPressable
+                  style={[styles.modalButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
                   onPress={handleSave}
                 >
                   <Text style={styles.modalButtonText}>Save</Text>
-                </TouchableOpacity>
+                </ClayPressable>
               </View>
             </View>
           </ScrollView>
@@ -563,8 +560,8 @@ export default function ParentTasks() {
                 numberOfLines={3}
               />
 
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: colors.primary }]}
+              <ClayPressable
+                style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
                 onPress={handleAISuggestions}
                 disabled={aiLoading}
               >
@@ -573,7 +570,7 @@ export default function ParentTasks() {
                 ) : (
                   <Text style={styles.buttonText}>Generate Suggestions</Text>
                 )}
-              </TouchableOpacity>
+              </ClayPressable>
 
               {aiSuggestions.length > 0 && (
                 <View style={styles.suggestions}>
@@ -634,7 +631,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
   },
   headerButtons: {
@@ -651,7 +648,7 @@ const styles = StyleSheet.create({
   },
   aiButtonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   addButton: {
     width: 48,
@@ -667,7 +664,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     gap: 12,
   },
   taskIcon: {
@@ -678,7 +675,7 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
@@ -689,6 +686,7 @@ const styles = StyleSheet.create({
   },
   taskMetaText: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   taskDivider: {
@@ -711,7 +709,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 4,
   },
   smartPanelHeader: {
@@ -721,12 +719,12 @@ const styles = StyleSheet.create({
   },
   smartPanelTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   smartPanelContent: {
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 16,
     marginTop: 4,
     gap: 10,
@@ -736,7 +734,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1.5,
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
@@ -745,29 +743,31 @@ const styles = StyleSheet.create({
   },
   smartBtnLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 2,
   },
   smartBtnDesc: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#888',
   },
   resultBox: {
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
     marginTop: 8,
     gap: 8,
   },
   resultTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   resultText: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#bbb',
     lineHeight: 18,
   },
@@ -783,11 +783,12 @@ const styles = StyleSheet.create({
   },
   suggestionTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#ddd',
   },
   suggestionReason: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#999',
     marginTop: 2,
   },
@@ -801,12 +802,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   modalOverlay: {
@@ -818,20 +820,21 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 20,
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
     marginBottom: 16,
   },
@@ -843,13 +846,15 @@ const styles = StyleSheet.create({
   inputSmall: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
   },
   label: {
     fontSize: 16,
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 12,
   },
@@ -862,7 +867,7 @@ const styles = StyleSheet.create({
   categoryButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.2)',
     flexDirection: 'row',
     alignItems: 'center',
@@ -873,6 +878,7 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#fff',
   },
   switchRow: {
@@ -883,6 +889,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#fff',
   },
   modalButtons: {
@@ -893,7 +900,7 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButton: {
@@ -902,23 +909,23 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   button: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     marginBottom: 16,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   aiHeader: {
     flexDirection: 'row',
@@ -931,7 +938,7 @@ const styles = StyleSheet.create({
   },
   suggestionsTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 12,
   },
@@ -940,7 +947,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 16,
     marginBottom: 8,
     gap: 12,
   },
@@ -952,12 +959,13 @@ const styles = StyleSheet.create({
   },
   suggestionCardTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 2,
   },
   suggestionMeta: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   addSuggestionButton: {

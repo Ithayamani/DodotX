@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { tasksAPI, progressAPI, familyAPI } from '../../src/api/client';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
 import { hapticSuccess, hapticLight, hapticMedium } from '../../src/utils/haptics';
-import { AnimatedProgress, AnimatedCheckmark } from '../../src/utils/animations';
+import { AnimatedProgress, AnimatedCheckmark, ClayPressable } from '../../src/utils/animations';
 import { isVacationActive } from '../../src/utils/vacation';
 import type { Task } from '../../src/types';
 
@@ -149,7 +149,8 @@ export default function ChildTasks() {
           {/* Mode Indicator */}
           <View style={[
             styles.modeIndicator,
-            { backgroundColor: isVacationMode ? '#D4924A' : colors.primary }
+            { backgroundColor: isVacationMode ? '#D4924A' : colors.primary },
+            getClayShadow(colors.primary),
           ]}>
             <Text style={styles.modeIcon}>
               {isVacationMode ? '🏝️' : '🏠'}
@@ -159,7 +160,7 @@ export default function ChildTasks() {
             </Text>
           </View>
 
-          <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.statsCard, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
             <Text style={styles.statsText}>
               {completedToday.length} / {tasks.length} completed today
             </Text>
@@ -177,14 +178,14 @@ export default function ChildTasks() {
                   entering={FadeInDown.delay(index * 60).duration(300).springify()}
                   layout={Layout.springify()}
                 >
-                  <TouchableOpacity
+                  <ClayPressable
                     style={[
                       styles.taskCard,
                       { backgroundColor: colors.card },
+                      getClayShadow(colors.primary),
                       isCompleted && styles.taskCardCompleted,
                     ]}
                     onPress={() => handleTaskToggle(task)}
-                    activeOpacity={0.7}
                   >
                     <View style={[
                       styles.checkbox,
@@ -193,9 +194,9 @@ export default function ChildTasks() {
                     ]}>
                       <AnimatedCheckmark visible={isCompleted} />
                     </View>
-                    
+
                     <Text style={styles.taskIcon}>{task.icon}</Text>
-                    
+
                     <View style={styles.taskInfo}>
                       <Text style={[
                         styles.taskTitle,
@@ -205,11 +206,11 @@ export default function ChildTasks() {
                       </Text>
                       <Text style={styles.taskCategory}>{task.cat}</Text>
                     </View>
-                    
+
                     <View style={[styles.pointsBadgeSmall, { backgroundColor: colors.primary }]}>
                       <Text style={styles.pointsBadgeText}>{task.pts}</Text>
                     </View>
-                  </TouchableOpacity>
+                  </ClayPressable>
                 </Animated.View>
               );
             })}
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
   },
   pointsBadge: {
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   },
   pointsText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
   },
   modeIndicator: {
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 16,
   },
   modeIcon: {
@@ -271,23 +272,24 @@ const styles = StyleSheet.create({
   },
   modeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
   },
   statsCard: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     marginBottom: 20,
     alignItems: 'center',
   },
   statsText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 4,
   },
   statsSubtext: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   tasksList: {
@@ -297,7 +299,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     gap: 12,
   },
   taskCardCompleted: {
@@ -324,7 +326,7 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 2,
   },
@@ -333,6 +335,7 @@ const styles = StyleSheet.create({
   },
   taskCategory: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#ccc',
     textTransform: 'capitalize',
   },
@@ -343,7 +346,7 @@ const styles = StyleSheet.create({
   },
   pointsBadgeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     color: '#fff',
   },
   emptyState: {
@@ -356,12 +359,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
 });

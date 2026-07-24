@@ -4,7 +4,7 @@ import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';
 import { progressAPI } from '../../src/api/client';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
 import type { Trophy } from '../../src/types';
 
 export default function ChildTrophies() {
@@ -72,6 +72,7 @@ export default function ChildTrophies() {
               style={[
                 styles.trophyCard,
                 { backgroundColor: colors.card },
+                getClayShadow(colors.primary),
                 !trophy.earned && styles.trophyCardLocked,
               ]}
             >
@@ -126,12 +127,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   grid: {
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
   trophyCard: {
     width: '48%',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 24,
     alignItems: 'center',
     minHeight: 180,
   },
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   },
   trophyName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
@@ -184,6 +186,7 @@ const styles = StyleSheet.create({
   },
   trophyCondition: {
     fontSize: 12,
+    fontFamily: FONTS.body,
     color: '#ccc',
     textAlign: 'center',
   },

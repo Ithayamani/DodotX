@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../src/api/client';
 import { useAuthStore } from '../../src/stores';
-import { getThemeColors } from '../../src/constants';
+import { getThemeColors, getClayShadow, FONTS } from '../../src/constants';
+import { ClayPressable } from '../../src/utils/animations';
 
 function validatePassword(pw: string) {
   return {
@@ -103,8 +104,8 @@ export default function Signup() {
               </View>
             )}
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }]}
+            <ClayPressable
+              style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
               onPress={handleSignup}
               disabled={loading}
             >
@@ -113,7 +114,7 @@ export default function Signup() {
               ) : (
                 <Text style={styles.buttonText}>Create Account</Text>
               )}
-            </TouchableOpacity>
+            </ClayPressable>
 
             <TouchableOpacity onPress={() => router.back()}>
               <Text style={styles.linkText}>Already have an account? Sign In</Text>
@@ -138,12 +139,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginBottom: 32,
   },
@@ -152,24 +154,26 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
   },
   button: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     marginTop: 8,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   linkText: {
     color: '#fff',
+    fontFamily: FONTS.body,
     textAlign: 'center',
     marginTop: 8,
   },

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../src/stores';
+import { getClayShadow, FONTS } from '../src/constants';
+import { ClayPressable } from '../src/utils/animations';
 
 const { width } = Dimensions.get('window');
 
@@ -55,19 +57,19 @@ export default function Index() {
           </Text>
           
           <View style={styles.heroButtons}>
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <ClayPressable
+              style={[styles.primaryButton, getClayShadow('#D4845C')]}
               onPress={() => router.push('/auth/signup')}
             >
               <Text style={styles.primaryButtonText}>Sign Up as a Parent</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
+            </ClayPressable>
+
+            <ClayPressable
               style={styles.secondaryButton}
               onPress={() => router.push('/auth/login')}
             >
               <Text style={styles.secondaryButtonText}>Sign In as a Parent</Text>
-            </TouchableOpacity>
+            </ClayPressable>
           </View>
 
           <Text style={styles.aiLine}>Smart routines, powered by AI.</Text>
@@ -82,18 +84,18 @@ export default function Index() {
         <Text style={styles.joinDesc}>
           Your parent will share a 6-digit code with you.{'\n'}Use it to join your family and start your quest!
         </Text>
-        <TouchableOpacity
-          style={styles.joinButton}
+        <ClayPressable
+          style={[styles.joinButton, getClayShadow('#4A9B6B')]}
           onPress={() => router.push('/join-family')}
         >
           <Text style={styles.joinButtonText}>Join Your Family</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </ClayPressable>
+        <ClayPressable
           style={styles.visitorButton}
           onPress={() => router.push('/visitor')}
         >
           <Text style={styles.visitorButtonText}>View as Visitor</Text>
-        </TouchableOpacity>
+        </ClayPressable>
       </View>
 
       {/* Features Section */}
@@ -213,12 +215,12 @@ export default function Index() {
           Join families building better habits through gamification
         </Text>
         
-        <TouchableOpacity
+        <ClayPressable
           style={styles.ctaButton}
           onPress={() => router.push('/auth/signup')}
         >
           <Text style={styles.ctaButtonText}>Create Free Account</Text>
-        </TouchableOpacity>
+        </ClayPressable>
       </View>
 
       {/* Footer */}
@@ -290,13 +292,13 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 38,
-    fontWeight: '800',
+    fontFamily: FONTS.headingExtraBold,
     color: '#ffffff',
     letterSpacing: 0.5,
   },
   logoX: {
     fontSize: 42,
-    fontWeight: '900',
+    fontFamily: FONTS.headingExtraBold,
     color: '#00E5A0',
     letterSpacing: 0.5,
   },
@@ -307,14 +309,14 @@ const styles = StyleSheet.create({
   aiLine: {
     fontSize: 14,
     color: '#00E5A0',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
     fontStyle: 'italic',
     marginTop: 12,
     marginBottom: 4,
   },
   heroTitle: {
     fontSize: width > 768 ? 56 : 40,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
@@ -322,6 +324,7 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 18,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     marginBottom: 40,
@@ -339,20 +342,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#D4845C',
     paddingVertical: 18,
     paddingHorizontal: 32,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   secondaryButton: {
     flex: 1,
     backgroundColor: 'transparent',
     paddingVertical: 18,
     paddingHorizontal: 32,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#D4845C',
@@ -360,10 +363,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#D4845C',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   heroNote: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#6b7280',
     textAlign: 'center',
   },
@@ -376,7 +380,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 48,
@@ -393,8 +397,9 @@ const styles = StyleSheet.create({
     minWidth: width > 768 ? 300 : '100%',
     backgroundColor: '#1c2128',
     padding: 32,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
+    ...getClayShadow('#000000'),
   },
   featureIcon: {
     fontSize: 48,
@@ -402,13 +407,14 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#ffffff',
     marginBottom: 8,
     textAlign: 'center',
   },
   featureDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     lineHeight: 22,
@@ -431,18 +437,19 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#ffffff',
     marginBottom: 8,
     textAlign: 'center',
   },
   stepDesc: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     lineHeight: 24,
@@ -458,12 +465,13 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 56,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingExtraBold,
     color: '#D4845C',
     marginBottom: 8,
   },
   statLabel: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
   },
@@ -487,13 +495,14 @@ const styles = StyleSheet.create({
   },
   joinTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   joinDesc: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     textAlign: 'center',
     lineHeight: 24,
@@ -504,18 +513,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A9B6B',
     paddingVertical: 16,
     paddingHorizontal: 40,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   joinButtonText: {
     color: '#ffffff',
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   visitorButton: {
     backgroundColor: 'transparent',
     paddingVertical: 14,
     paddingHorizontal: 32,
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#5A8FA8',
     marginTop: 12,
@@ -523,17 +532,18 @@ const styles = StyleSheet.create({
   visitorButtonText: {
     color: '#7EB8DA',
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   ctaTitle: {
     fontSize: 40,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
   },
   ctaSubtitle: {
     fontSize: 18,
+    fontFamily: FONTS.body,
     color: '#ffffff',
     opacity: 0.9,
     textAlign: 'center',
@@ -543,12 +553,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     paddingVertical: 18,
     paddingHorizontal: 48,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   ctaButtonText: {
     color: '#D4845C',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   footer: {
     padding: 40,
@@ -558,6 +568,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#b0b8c1',
     marginBottom: 8,
   },
@@ -569,6 +580,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#D4845C',
     textDecorationLine: 'underline',
   },
@@ -578,6 +590,7 @@ const styles = StyleSheet.create({
   },
   footerCopy: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#6b7280',
   },
 });

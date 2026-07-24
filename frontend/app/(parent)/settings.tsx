@@ -5,7 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useAppStore } from '../../src/stores';
 import { familyAPI, aiAPI, authAPI } from '../../src/api/client';
-import { getThemeColors, THEMES } from '../../src/constants';
+import { getThemeColors, getClayShadow, THEMES, FONTS } from '../../src/constants';
+import { ClayPressable } from '../../src/utils/animations';
 import type { Theme, Family } from '../../src/types';
 import { parseISO } from 'date-fns';
 
@@ -353,7 +354,7 @@ export default function ParentSettings() {
         <Text style={styles.title}>Settings</Text>
 
         {/* Profile Picture Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Profile Picture</Text>
           <View style={styles.profileSection}>
             <TouchableOpacity onPress={handlePickProfileImage} activeOpacity={0.7} disabled={uploadingImage}>
@@ -377,7 +378,7 @@ export default function ParentSettings() {
         </View>
 
         {/* Mode Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Task Mode</Text>
           
           <View style={styles.modeToggleRow}>
@@ -420,7 +421,7 @@ export default function ParentSettings() {
         </View>
 
         {/* Family Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Family</Text>
           
           <View style={styles.settingRow}>
@@ -442,7 +443,7 @@ export default function ParentSettings() {
         </View>
 
         {/* Theme Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Theme</Text>
           <View style={styles.themeGrid}>
             {THEMES.map((t) => (
@@ -462,20 +463,19 @@ export default function ParentSettings() {
             ))}
           </View>
 
-          <TouchableOpacity
+          <ClayPressable
             style={[styles.aiThemeButton, { borderColor: colors.primary }]}
             onPress={() => setShowAIThemeModal(true)}
-            activeOpacity={0.7}
           >
             <Ionicons name="sparkles" size={20} color={colors.primary} />
             <Text style={[styles.aiThemeButtonText, { color: colors.primary }]}>
               Generate Custom Theme with AI
             </Text>
-          </TouchableOpacity>
+          </ClayPressable>
         </View>
 
         {/* Security Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Security</Text>
           
           <TouchableOpacity
@@ -490,7 +490,7 @@ export default function ParentSettings() {
         </View>
 
         {/* Family Invite Code Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Family Invite Code</Text>
           
           {(() => {
@@ -517,25 +517,23 @@ export default function ParentSettings() {
                 </Text>
 
                 <View style={styles.codeActions}>
-                  <TouchableOpacity
+                  <ClayPressable
                     style={[styles.codeActionButton, { backgroundColor: colors.primary }]}
                     onPress={handleShareFamilyCode}
-                    activeOpacity={0.7}
                   >
                     <Ionicons name="share-outline" size={18} color="#fff" />
                     <Text style={styles.codeActionText}>Share</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
+                  </ClayPressable>
+
+                  <ClayPressable
                     style={[styles.codeActionButton, { backgroundColor: expired ? '#D4924A' : '#555' }]}
                     onPress={handleRegenerateCode}
-                    activeOpacity={0.7}
                   >
                     <Ionicons name="refresh" size={18} color="#fff" />
                     <Text style={styles.codeActionText}>
                       {expired ? 'Generate New Code' : 'Regenerate'}
                     </Text>
-                  </TouchableOpacity>
+                  </ClayPressable>
                 </View>
               </View>
             );
@@ -543,7 +541,7 @@ export default function ParentSettings() {
         </View>
 
         {/* Account Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Account</Text>
           
           <TouchableOpacity
@@ -572,7 +570,7 @@ export default function ParentSettings() {
         </View>
 
         {/* Legal & Support Section */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Legal & Support</Text>
           
           <TouchableOpacity
@@ -651,7 +649,7 @@ export default function ParentSettings() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity
+              <ClayPressable
                 style={[styles.modalButton, { backgroundColor: colors.primary }]}
                 onPress={handleGenerateAITheme}
                 disabled={generatingTheme}
@@ -661,7 +659,7 @@ export default function ParentSettings() {
                 ) : (
                   <Text style={styles.modalButtonText}>Generate</Text>
                 )}
-              </TouchableOpacity>
+              </ClayPressable>
             </View>
           </View>
         </View>
@@ -700,12 +698,12 @@ export default function ParentSettings() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity
+              <ClayPressable
                 style={[styles.modalButton, { backgroundColor: '#D4924A' }]}
                 onPress={handleSaveVacationMode}
               >
                 <Text style={styles.modalButtonText}>Enable</Text>
-              </TouchableOpacity>
+              </ClayPressable>
             </View>
           </View>
         </View>
@@ -763,12 +761,12 @@ export default function ParentSettings() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <ClayPressable
                 style={[styles.modalButton, { backgroundColor: colors.primary }]}
                 onPress={handleChangePin}
               >
                 <Text style={styles.modalButtonText}>Save</Text>
-              </TouchableOpacity>
+              </ClayPressable>
             </View>
           </View>
         </View>
@@ -804,7 +802,7 @@ export default function ParentSettings() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <ClayPressable
                 style={[
                   styles.modalButton,
                   { backgroundColor: '#C47070' },
@@ -814,7 +812,7 @@ export default function ParentSettings() {
                 disabled={deleteConfirmText.trim().toLowerCase() !== (user?.email || '').toLowerCase()}
               >
                 <Text style={styles.modalButtonText}>Delete Everything</Text>
-              </TouchableOpacity>
+              </ClayPressable>
             </View>
           </View>
         </View>
@@ -833,18 +831,18 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 20,
   },
   section: {
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 22,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 16,
   },
@@ -886,6 +884,7 @@ const styles = StyleSheet.create({
   },
   profileHint: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#aaa',
   },
   // Mode Toggle Styles
@@ -906,17 +905,18 @@ const styles = StyleSheet.create({
   },
   modeToggleLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 2,
   },
   modeToggleDesc: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#aaa',
   },
   modeCard: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 16,
   },
   modeInfo: {
@@ -929,23 +929,24 @@ const styles = StyleSheet.create({
   },
   modeName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 2,
   },
   modeDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#fff',
     opacity: 0.9,
   },
   modeButton: {
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
   },
   modeButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   // AI Theme Button
@@ -956,13 +957,13 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderStyle: 'dashed',
   },
   aiThemeButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   aiHeader: {
     flexDirection: 'row',
@@ -978,11 +979,12 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   settingValue: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   codeContainer: {
@@ -992,11 +994,11 @@ const styles = StyleSheet.create({
   },
   code: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     letterSpacing: 2,
   },
   settingButton: {
@@ -1011,6 +1013,7 @@ const styles = StyleSheet.create({
   },
   settingButtonText: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#fff',
   },
   themeGrid: {
@@ -1021,7 +1024,7 @@ const styles = StyleSheet.create({
   themeButton: {
     width: '48%',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   themeButtonSelected: {
@@ -1034,7 +1037,7 @@ const styles = StyleSheet.create({
   },
   themeLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   backButton: {
@@ -1044,6 +1047,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#fff',
     opacity: 0.7,
   },
@@ -1054,31 +1058,34 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 12,
   },
   modalDesc: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginBottom: 20,
     lineHeight: 20,
   },
   inputLabel: {
     fontSize: 14,
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginBottom: 8,
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
     marginBottom: 16,
   },
@@ -1090,7 +1097,7 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButton: {
@@ -1099,12 +1106,12 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   buttonDisabled: {
     opacity: 0.4,
@@ -1120,7 +1127,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 16,
     backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: 12,
+    borderRadius: 18,
   },
   codeText: {
     fontSize: 28,
@@ -1136,7 +1143,7 @@ const styles = StyleSheet.create({
   codeTimer: {
     fontSize: 13,
     color: '#5E9E62',
-    fontWeight: '600',
+    fontFamily: FONTS.bodyBold,
   },
   expiredBadge: {
     backgroundColor: '#C47070',
@@ -1147,10 +1154,11 @@ const styles = StyleSheet.create({
   expiredBadgeText: {
     color: '#fff',
     fontSize: 11,
-    fontWeight: 'bold',
+    fontFamily: FONTS.bodyBold,
   },
   codeHint: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#aaa',
     textAlign: 'center',
     lineHeight: 18,
@@ -1166,12 +1174,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 16,
   },
   codeActionText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
   versionRow: {
     paddingTop: 12,
@@ -1179,6 +1187,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#666',
   },
 });

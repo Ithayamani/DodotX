@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { useRouter } from 'expo-router';
 import { familyAPI, childrenAPI } from '../../src/api/client';
 import { useAppStore, useAuthStore } from '../../src/stores';
-import { getThemeColors, THEMES, AVATARS } from '../../src/constants';
+import { getThemeColors, getClayShadow, THEMES, AVATARS, FONTS } from '../../src/constants';
+import { ClayPressable } from '../../src/utils/animations';
 import type { Theme } from '../../src/types';
 
 export default function Onboarding() {
@@ -115,13 +116,13 @@ export default function Onboarding() {
           </TouchableOpacity>
         ))}
       </View>
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.primary }]}
+      <ClayPressable
+        style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
         onPress={() => setStep(2)}
         disabled={!familyName || !childName}
       >
         <Text style={styles.buttonText}>Next</Text>
-      </TouchableOpacity>
+      </ClayPressable>
     </View>
   );
 
@@ -144,12 +145,12 @@ export default function Onboarding() {
           </TouchableOpacity>
         ))}
       </View>
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.primary }]}
+      <ClayPressable
+        style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
         onPress={() => setStep(3)}
       >
         <Text style={styles.buttonText}>Next</Text>
-      </TouchableOpacity>
+      </ClayPressable>
     </View>
   );
 
@@ -177,8 +178,8 @@ export default function Onboarding() {
         maxLength={4}
         secureTextEntry
       />
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.primary }]}
+      <ClayPressable
+        style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
         onPress={handleComplete}
         disabled={loading || !pin || !pinConfirm}
       >
@@ -187,7 +188,7 @@ export default function Onboarding() {
         ) : (
           <Text style={styles.buttonText}>Complete Setup</Text>
         )}
-      </TouchableOpacity>
+      </ClayPressable>
     </View>
   );
 
@@ -214,11 +215,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: FONTS.body,
     color: '#ccc',
     marginTop: 4,
   },
@@ -228,30 +230,34 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.headingBold,
     color: '#fff',
     marginBottom: 8,
   },
   description: {
     fontSize: 14,
+    fontFamily: FONTS.body,
     color: '#ccc',
   },
   privacyNote: {
     fontSize: 13,
+    fontFamily: FONTS.body,
     color: '#7ec8e3',
     fontStyle: 'italic',
     marginTop: -8,
   },
   label: {
     fontSize: 16,
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
     marginTop: 8,
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
+    fontFamily: FONTS.body,
     borderWidth: 2,
   },
   avatarGrid: {
@@ -278,7 +284,7 @@ const styles = StyleSheet.create({
   themeButton: {
     width: '48%',
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
   },
   themeButtonSelected: {
@@ -291,18 +297,18 @@ const styles = StyleSheet.create({
   },
   themeLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
     color: '#fff',
   },
   button: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     marginTop: 16,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: FONTS.headingSemiBold,
   },
 });

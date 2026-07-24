@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../src/stores';
-import { getThemeColors } from '../src/constants';
+import { getThemeColors, FONTS } from '../src/constants';
 import CalendarView from '../src/components/CalendarView';
 
 export default function ChildCalendarScreen() {
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600', color: '#fff' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: FONTS.headingSemiBold, color: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  text: { color: '#fff', fontSize: 16 },
+  text: { color: '#fff', fontSize: 16, fontFamily: FONTS.body },
 });
