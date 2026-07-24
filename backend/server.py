@@ -99,6 +99,26 @@ async def _repair_demo_family_code(db, family_id, expected_code: str):
         logger.warning(f"Demo family {family_id} code had drifted — reset to {expected_code}")
 
 
+async def _repair_demo_family_pin(db, family_id, expected_pin: str):
+    """Reset a demo family's parent PIN back to its documented value if it has drifted
+    (e.g. a reviewer changed it via Settings, or the past onboarding bug overwrote it with
+    an empty/different PIN). Without this, the PIN can break permanently -- a backend
+    restart alone never fixes it, unlike the family code repair above."""
+    import bcrypt
+    if not family_id:
+        return
+    family = await db.families.find_one({"id": family_id})
+    if not family:
+        return
+    current_hash = family.get("pin")
+    if not current_hash or not bcrypt.checkpw(expected_pin.encode('utf-8'), current_hash.encode('utf-8')):
+        await db.families.update_one(
+            {"id": family_id},
+            {"$set": {"pin": bcrypt.hashpw(expected_pin.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')}},
+        )
+        logger.warning(f"Demo family {family_id} PIN had drifted — reset to documented value")
+
+
 # =======================================
 # INLINE DEMO SEED (No subprocess needed)
 # =======================================
@@ -141,8 +161,10 @@ async def seed_demo_accounts_inline():
                 # future reviewer/tester. Repair it in place on every startup, without touching
                 # anything else (no destructive re-seed, so demo streak history survives).
                 await _repair_demo_family_code(db, review_user.get("family_id"), "REVIEW")
+                await _repair_demo_family_pin(db, review_user.get("family_id"), FAMILY_PIN)
                 if test_user:
                     await _repair_demo_family_code(db, test_user.get("family_id"), "TEST01")
+                    await _repair_demo_family_pin(db, test_user.get("family_id"), FAMILY_PIN)
                 return
             else:
                 logger.warning(f"Demo account {PARENT_EMAIL} exists but password FAILED — re-seeding!")
