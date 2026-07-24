@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { Alert } from '../../src/utils/alert';
 import { useRouter } from 'expo-router';
 import { familyAPI, childrenAPI } from '../../src/api/client';
 import { useAppStore, useAuthStore } from '../../src/stores';

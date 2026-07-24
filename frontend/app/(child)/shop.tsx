@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { Alert } from '../../src/utils/alert';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Redirect } from 'expo-router';
 import { useAppStore } from '../../src/stores';

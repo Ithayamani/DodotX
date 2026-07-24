@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI, familyAPI } from '../src/api/client';
 import { useAppStore, useAuthStore } from '../src/stores';
 import { getThemeColors, getClayShadow, FONTS } from '../src/constants';
 import { ClayPressable } from '../src/utils/animations';
+import { Alert } from '../src/utils/alert';
 
 export default function ParentPin() {
   const router = useRouter();

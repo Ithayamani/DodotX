@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, SafeAreaView
+  KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView
 } from 'react-native';
+import { Alert } from '../src/utils/alert';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { familyAPI } from '../src/api/client';

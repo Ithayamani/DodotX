@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
   SafeAreaView, ScrollView, RefreshControl
 } from 'react-native';
+import { Alert } from '../src/utils/alert';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { visitorAPI } from '../src/api/client';

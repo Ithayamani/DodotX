@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Switch } from 'react-native';
+import { Alert } from '../../src/utils/alert';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';

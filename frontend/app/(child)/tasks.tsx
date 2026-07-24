@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { Alert } from '../../src/utils/alert';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { Redirect } from 'expo-router';
