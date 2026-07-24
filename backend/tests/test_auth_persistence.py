@@ -13,7 +13,7 @@ import requests
 BASE_URL = os.environ.get("EXPO_BACKEND_URL", "https://family-quest-15.preview.emergentagent.com").rstrip("/")
 EMAIL = "review@dodotx.net"
 PASSWORD = "Review123!"
-CORRECT_PIN = "1234"
+CORRECT_PIN = "123456"
 WRONG_PIN = "9999"
 
 

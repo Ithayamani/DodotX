@@ -17,7 +17,7 @@ DodotX is a **family gamified task-management app**. Parents create tasks and re
 ### 1.2 Personas / Roles
 | Role | Access | Auth |
 |------|--------|------|
-| **Parent** | Full control: tasks, rewards, children, family settings, AI tools. Protected by a 4-digit PIN. | Email + password (JWT) |
+| **Parent** | Full control: tasks, rewards, children, family settings, AI tools. Protected by a 6-digit PIN. | Email + password (JWT) |
 | **Child** | Complete tasks, view Home/Tasks/Trophies/Shop/Calendar. | Family code + child name → JWT (role `child`) |
 | **Visitor** | Read-only view of a family's children progress; send cheer messages. | Family code only (no login) |
 
@@ -109,7 +109,7 @@ Earned milestones are persisted to `progress.streak_milestones` (based on longes
 
 ### 6.2 Role selection & PIN
 - **Role select** (`/role-select`): child cards + "Parent Dashboard" card.
-- **Parent PIN** (`/parent-pin`): 4-digit PIN gate to enter parent area. Wrong PIN → error (403), does NOT log out. Correct PIN → parent tabs.
+- **Parent PIN** (`/parent-pin`): 6-digit PIN gate to enter parent area. Wrong PIN → error (403), does NOT log out. Correct PIN → parent tabs. **Forgot PIN?** link → re-verify account password → set a new PIN, for when the PIN itself is lost (Settings' "Change PIN" requires the *current* PIN, so it can't help here since Settings sits behind this same gate).
 
 ### 6.3 Parent area (tab layout `(parent)`)
 - **Children** (`/index`): list children (avatar, name, age); add / edit (name, avatar, photo, age) / delete child; **calendar icon** per child → child-calendar; AI assistant entry.
@@ -171,7 +171,7 @@ Earned milestones are persisted to `progress.streak_milestones` (based on longes
 
 ## 9. Demo / Review Account
 
-- **Parent:** `review@dodotx.net` / `Review123!` · **PIN:** `1234` · **Family code:** `REVIEW` (never expires) · **Children:** Emma, Liam.
+- **Parent:** `review@dodotx.net` / `Review123!` · **PIN:** `123456` · **Family code:** `REVIEW` (never expires) · **Children:** Emma, Liam.
 - Internal test: `parent@test.com` / `Parent123!` · code `TEST01`.
 - Seeded demo streak history via `seed_calendar_demo.py` (do NOT run `/api/admin/seed`, it wipes it).
 

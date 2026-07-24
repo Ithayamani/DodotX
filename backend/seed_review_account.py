@@ -18,7 +18,7 @@ DB_NAME = os.getenv("DB_NAME", "kidquest_db")
 PARENT_EMAIL = "review@dodotx.net"
 PARENT_PASSWORD = "Review123!"
 PARENT_NAME = "Demo Parent"
-FAMILY_PIN = "1234"
+FAMILY_PIN = "123456"
 
 # Test parent credentials
 TEST_PARENT_EMAIL = "parent@test.com"

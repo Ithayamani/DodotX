@@ -140,7 +140,7 @@ async def seed_demo_accounts_inline():
     PARENT_PASSWORD = "Review123!"
     TEST_EMAIL = "parent@test.com"
     TEST_PASSWORD = "Parent123!"
-    FAMILY_PIN = "1234"
+    FAMILY_PIN = "123456"
 
     # --- REVIEW FAMILY ---
     review_user = await db.users.find_one({"email": PARENT_EMAIL})

@@ -44,8 +44,8 @@ export default function Onboarding() {
       return;
     }
 
-    if (pin.length !== 4) {
-      Alert.alert('Error', 'PIN must be exactly 4 digits');
+    if (pin.length !== 6) {
+      Alert.alert('Error', 'PIN must be exactly 6 digits');
       return;
     }
 
@@ -157,15 +157,15 @@ export default function Onboarding() {
   const renderStep3 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Parent PIN</Text>
-      <Text style={styles.description}>Create a 4-digit PIN to access parent settings</Text>
+      <Text style={styles.description}>Create a 6-digit PIN to access parent settings</Text>
       <TextInput
         style={[styles.input, { borderColor: colors.primary }]}
-        placeholder="Enter 4-digit PIN"
+        placeholder="Enter 6-digit PIN"
         placeholderTextColor="#999"
         value={pin}
         onChangeText={setPin}
         keyboardType="number-pad"
-        maxLength={4}
+        maxLength={6}
         secureTextEntry
       />
       <TextInput
@@ -175,7 +175,7 @@ export default function Onboarding() {
         value={pinConfirm}
         onChangeText={setPinConfirm}
         keyboardType="number-pad"
-        maxLength={4}
+        maxLength={6}
         secureTextEntry
       />
       <ClayPressable

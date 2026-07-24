@@ -225,13 +225,13 @@ export default function ParentSettings() {
   };
 
   const handleChangePin = async () => {
-    if (currentPin.length !== 4) {
-      Alert.alert('Error', 'Please enter your current 4-digit PIN');
+    if (currentPin.length !== 6) {
+      Alert.alert('Error', 'Please enter your current 6-digit PIN');
       return;
     }
 
-    if (newPin.length !== 4 || confirmPin.length !== 4) {
-      Alert.alert('Error', 'PIN must be exactly 4 digits');
+    if (newPin.length !== 6 || confirmPin.length !== 6) {
+      Alert.alert('Error', 'PIN must be exactly 6 digits');
       return;
     }
 
@@ -722,18 +722,18 @@ export default function ParentSettings() {
               value={currentPin}
               onChangeText={setCurrentPin}
               keyboardType="number-pad"
-              maxLength={4}
+              maxLength={6}
               secureTextEntry
             />
 
             <TextInput
               style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="New 4-digit PIN"
+              placeholder="New 6-digit PIN"
               placeholderTextColor="#999"
               value={newPin}
               onChangeText={setNewPin}
               keyboardType="number-pad"
-              maxLength={4}
+              maxLength={6}
               secureTextEntry
             />
 
@@ -744,7 +744,7 @@ export default function ParentSettings() {
               value={confirmPin}
               onChangeText={setConfirmPin}
               keyboardType="number-pad"
-              maxLength={4}
+              maxLength={6}
               secureTextEntry
             />
 

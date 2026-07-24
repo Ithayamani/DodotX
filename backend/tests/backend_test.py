@@ -174,10 +174,10 @@ class TestFamilyFlows:
         assert "access_token" in j
         assert j["user"]["role"] == "child"
 
-    def test_verify_pin_1234(self, api, review_token):
+    def test_verify_pin_123456(self, api, review_token):
         headers = {"Authorization": f"Bearer {review_token}"}
         # Endpoint uses query param `pin`
-        r = api.post(f"{BASE_URL}/api/family/verify-pin?pin=1234", headers=headers)
+        r = api.post(f"{BASE_URL}/api/family/verify-pin?pin=123456", headers=headers)
         assert r.status_code == 200, r.text
         assert r.json().get("success") is True
 
