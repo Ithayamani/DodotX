@@ -1,6 +1,18 @@
 """
-Seed script to create Apple Review demo accounts with full data.
+Standalone, one-off seed script to create Apple Review demo accounts with full data.
 Run: python3 seed_review_account.py
+
+DESTRUCTIVE -- unconditionally wipes every document in users/families/children/tasks/
+rewards/progress/task_completions/cheers before reseeding (see the delete_many calls
+below). Never run this against a database that has real user/family data; it will not
+just refresh the demo accounts, it will delete everyone's data.
+
+This is NOT what keeps the live/production demo accounts (review@dodotx.net,
+parent@test.com) in sync day to day -- that's seed_demo_accounts_inline() in server.py,
+which runs automatically and safely on every backend startup: it only verifies/repairs
+the two demo accounts in place (password check, family-code drift repair) and never
+touches real family data. This script exists only for standing up a brand-new, empty
+database from scratch.
 """
 import asyncio
 import bcrypt
