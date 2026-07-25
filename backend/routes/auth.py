@@ -3,9 +3,10 @@ from routes import db, get_current_user
 from models import User, UserSignup, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm
 from auth import get_password_hash, verify_password, create_access_token
 from utils import generate_id
+from email_utils import send_email
 from datetime import datetime, timedelta
 from collections import defaultdict
-import os, logging, random, re, time
+import logging, random, re, time
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -70,26 +71,51 @@ def validate_password(password: str) -> str | None:
         return "Password must contain at least 1 special character (!@#$%^&*...)"
     return None
 
+def send_welcome_email(to: str, name: str) -> None:
+    """Best-effort welcome email on signup. Never raises -- a failed/unconfigured send
+    must not fail account creation, same reasoning as the reset-code email below."""
+    html_body = f'''<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:20px;">
+<h2 style="color:#D4845C;">Welcome to DodotX, {name}! 🎉</h2>
+<p>Your account is ready. Here's what's next:</p>
+<ul style="color:#444;line-height:1.8;">
+<li>Set up your family and add your first child</li>
+<li>Create tasks and rewards (or let our AI suggest some)</li>
+<li>Set a PIN to protect the parent dashboard</li>
+<li>Share your family code so your kids can join</li>
+</ul>
+<p style="color:#888;font-size:14px;">Questions? Just reply to this email.</p>
+</div>'''
+    try:
+        send_email(to, "Welcome to DodotX! 🎉", html_body)
+    except Exception as e:
+        logging.error(f"Welcome email failed for {to}: {e}")
+
+
 @router.post("/signup", response_model=Token)
 async def signup(user_data: UserSignup, request: Request):
     check_signup_rate_limit(request)
     pwd_error = validate_password(user_data.password)
     if pwd_error:
         raise HTTPException(status_code=400, detail=pwd_error)
-    existing_user = await db.users.find_one({"email": user_data.email})
+    # Normalize to lowercase at the point of creation -- login and forgot-password both
+    # look up by lowercased email, so a mixed-case signup (e.g. "John@Example.com") would
+    # otherwise be a different, unfindable account from the user's own perspective.
+    email = user_data.email.lower().strip()
+    existing_user = await db.users.find_one({"email": email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     user_id = generate_id()
     hashed_password = get_password_hash(user_data.password)
-    user = User(id=user_id, email=user_data.email, hashed_password=hashed_password, name=user_data.name, role="parent")
+    user = User(id=user_id, email=email, hashed_password=hashed_password, name=user_data.name, role="parent")
     await db.users.insert_one(user.dict())
     access_token = create_access_token(data={"sub": user_id})
+    send_welcome_email(email, user_data.name)
     return Token(access_token=access_token, user={"id": user.id, "email": user.email, "name": user.name, "role": user.role, "family_id": user.family_id})
 
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, request: Request):
     check_login_rate_limit(credentials.email)
-    user = await db.users.find_one({"email": credentials.email})
+    user = await db.users.find_one({"email": credentials.email.lower().strip()})
     if not user or not verify_password(credentials.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     user_obj = User(**user)
@@ -103,39 +129,17 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/forgot-password")
 async def forgot_password(data: PasswordResetRequest, request: Request):
     check_reset_rate_limit(data.email)
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-    user = await db.users.find_one({"email": data.email.lower().strip()})
+    email = data.email.lower().strip()
+    user = await db.users.find_one({"email": email})
     if not user:
         return {"message": "If an account exists with this email, a reset code has been sent."}
     code = str(random.randint(100000, 999999))
     expires_at = datetime.utcnow() + timedelta(minutes=15)
-    await db.password_resets.delete_many({"email": data.email.lower().strip()})
-    await db.password_resets.insert_one({"email": data.email.lower().strip(), "code": code, "expires_at": expires_at, "used": False})
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
-    smtp_from = os.getenv("SMTP_FROM", smtp_user)
-    if smtp_host and smtp_user and smtp_pass:
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = "DodotX - Password Reset Code"
-            msg["From"] = smtp_from
-            msg["To"] = data.email
-            html_body = f'<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#D4845C;">DodotX Password Reset</h2><p>Your code is:</p><div style="background:#f5f5f5;padding:20px;text-align:center;border-radius:12px;margin:20px 0;"><span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#333;">{code}</span></div><p style="color:#888;font-size:14px;">Expires in 15 minutes.</p></div>'
-            msg.attach(MIMEText(html_body, "html"))
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.send_message(msg)
-            logging.info(f"Password reset email sent to {data.email}")
-        except Exception as e:
-            logging.error(f"Failed to send email: {str(e)}")
-            logging.info(f"PASSWORD RESET CODE for {data.email}: {code}")
-    else:
-        logging.info(f"PASSWORD RESET CODE for {data.email}: {code}")
+    await db.password_resets.delete_many({"email": email})
+    await db.password_resets.insert_one({"email": email, "code": code, "expires_at": expires_at, "used": False})
+    html_body = f'<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#D4845C;">DodotX Password Reset</h2><p>Your code is:</p><div style="background:#f5f5f5;padding:20px;text-align:center;border-radius:12px;margin:20px 0;"><span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#333;">{code}</span></div><p style="color:#888;font-size:14px;">Expires in 15 minutes.</p></div>'
+    if not send_email(email, "DodotX - Password Reset Code", html_body):
+        logging.info(f"PASSWORD RESET CODE for {email}: {code}")
     return {"message": "If an account exists with this email, a reset code has been sent."}
 
 @router.post("/reset-password")
