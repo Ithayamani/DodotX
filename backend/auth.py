@@ -20,17 +20,6 @@ def get_password_hash(password: str) -> str:
     """Hash a password"""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
-    """Verify a 6-digit PIN"""
-    try:
-        return bcrypt.checkpw(plain_pin.encode('utf-8'), hashed_pin.encode('utf-8'))
-    except Exception:
-        return False
-
-def get_pin_hash(pin: str) -> str:
-    """Hash a 6-digit PIN"""
-    return bcrypt.hashpw(pin.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create a JWT access token"""
     to_encode = data.copy()

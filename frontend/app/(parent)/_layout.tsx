@@ -9,10 +9,10 @@ export default function ParentLayout() {
   const parentUnlocked = useAppStore((state) => state.parentUnlocked);
   const colors = getThemeColors(theme);
 
-  // Require the PIN to be re-verified every session — direct navigation, deep links,
-  // or a page reload must not be able to bypass the parent-pin screen.
+  // Require the account password to be re-verified every session — direct navigation,
+  // deep links, or a page reload must not be able to bypass the parent-password screen.
   if (!parentUnlocked) {
-    return <Redirect href="/parent-pin" />;
+    return <Redirect href="/parent-password" />;
   }
 
   return (

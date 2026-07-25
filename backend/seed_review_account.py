@@ -18,7 +18,6 @@ DB_NAME = os.getenv("DB_NAME", "kidquest_db")
 PARENT_EMAIL = "review@dodotx.net"
 PARENT_PASSWORD = "Review123!"
 PARENT_NAME = "Demo Parent"
-FAMILY_PIN = "123456"
 
 # Test parent credentials
 TEST_PARENT_EMAIL = "parent@test.com"
@@ -57,7 +56,6 @@ async def seed():
         "name": "Demo Family",
         "code": family_code,
         "code_generated_at": None,
-        "pin": hash_pw(FAMILY_PIN),
         "theme": "gaming",
         "custom_theme": None,
         "vacation_mode": False,
@@ -183,7 +181,6 @@ async def seed():
         "name": "Test Family",
         "code": test_family_code,
         "code_generated_at": None,
-        "pin": hash_pw(FAMILY_PIN),
         "theme": "football",
         "custom_theme": None,
         "vacation_mode": False,
@@ -281,13 +278,11 @@ async def seed():
     print(f"\n--- APPLE REVIEWER ACCOUNT ---")
     print(f"Parent Email:    {PARENT_EMAIL}")
     print(f"Parent Password: {PARENT_PASSWORD}")
-    print(f"Family PIN:      {FAMILY_PIN}")
     print(f"Family Code:     {family_code}")
     print(f"Children:        Emma (8yr), Liam (6yr)")
     print(f"\n--- TEST ACCOUNT ---")
     print(f"Parent Email:    {TEST_PARENT_EMAIL}")
     print(f"Parent Password: {TEST_PARENT_PASSWORD}")
-    print(f"Family PIN:      {FAMILY_PIN}")
     print(f"Family Code:     {test_family_code}")
     print(f"Children:        Alex (8yr)")
     print(f"{'='*50}")

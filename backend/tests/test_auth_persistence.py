@@ -1,7 +1,8 @@
 """
 Regression suite for the DodotX auth-persistence fix.
 Validates:
-- Wrong PIN now returns 403 (not 401) -> frontend interceptor will not wipe token
+- Wrong parent-dashboard password returns 401 from /auth/login, which the frontend
+  interceptor exempts from wiping the session token (see CREDENTIAL_ENDPOINTS)
 - Add multiple children in a row does not require re-auth
 - Delete task / toggle-complete task never returns 401
 - Visitor endpoint remains public
@@ -13,8 +14,7 @@ import requests
 BASE_URL = os.environ.get("EXPO_BACKEND_URL", "https://family-quest-15.preview.emergentagent.com").rstrip("/")
 EMAIL = "review@dodotx.net"
 PASSWORD = "Review123!"
-CORRECT_PIN = "123456"
-WRONG_PIN = "9999"
+WRONG_PASSWORD = "not-the-password"
 
 
 @pytest.fixture(scope="module")
@@ -30,32 +30,29 @@ def h(token):
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 
-# --- PIN screen -----------------------------------------------------------
+# --- Parent dashboard password gate ----------------------------------------
 
-class TestPinPersistence:
-    def test_wrong_pin_returns_403_not_401(self, token):
-        r = requests.post(f"{BASE_URL}/api/family/verify-pin",
-                          params={"pin": WRONG_PIN},
-                          headers={"Authorization": f"Bearer {token}"}, timeout=10)
-        # MUST be 403 so frontend interceptor does not delete auth_token
-        assert r.status_code == 403, f"Wrong PIN returned {r.status_code}"
+class TestParentPasswordPersistence:
+    def test_wrong_password_returns_401(self, token):
+        r = requests.post(f"{BASE_URL}/api/auth/login",
+                          json={"email": EMAIL, "password": WRONG_PASSWORD}, timeout=10)
+        # /auth/login is in the frontend's CREDENTIAL_ENDPOINTS exemption list, so a 401
+        # here is fine -- it will not wipe the caller's separate, already-held auth_token.
+        assert r.status_code == 401, f"Wrong password returned {r.status_code}"
 
-    def test_correct_pin_after_wrong(self, token):
-        # simulate: wrong PIN then correct PIN, same session
-        w = requests.post(f"{BASE_URL}/api/family/verify-pin",
-                         params={"pin": WRONG_PIN},
-                         headers={"Authorization": f"Bearer {token}"}, timeout=10)
-        assert w.status_code == 403
-        c = requests.post(f"{BASE_URL}/api/family/verify-pin",
-                         params={"pin": CORRECT_PIN},
-                         headers={"Authorization": f"Bearer {token}"}, timeout=10)
+    def test_correct_password_after_wrong(self, token):
+        # simulate: wrong password then correct password, same session
+        w = requests.post(f"{BASE_URL}/api/auth/login",
+                         json={"email": EMAIL, "password": WRONG_PASSWORD}, timeout=10)
+        assert w.status_code == 401
+        c = requests.post(f"{BASE_URL}/api/auth/login",
+                         json={"email": EMAIL, "password": PASSWORD}, timeout=10)
         assert c.status_code == 200
-        assert c.json().get("success") is True
+        assert "access_token" in c.json()
 
-    def test_session_still_valid_after_wrong_pin(self, token):
-        requests.post(f"{BASE_URL}/api/family/verify-pin",
-                     params={"pin": WRONG_PIN},
-                     headers={"Authorization": f"Bearer {token}"}, timeout=10)
+    def test_session_still_valid_after_wrong_password(self, token):
+        requests.post(f"{BASE_URL}/api/auth/login",
+                     json={"email": EMAIL, "password": WRONG_PASSWORD}, timeout=10)
         me = requests.get(f"{BASE_URL}/api/auth/me",
                          headers={"Authorization": f"Bearer {token}"}, timeout=10)
         assert me.status_code == 200

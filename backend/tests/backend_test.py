@@ -3,7 +3,7 @@ DodotX backend regression + bug-fix verification tests.
 Covers:
 - Auth (login/signup, per-account rate limit, cross-account isolation)
 - Admin verify-demo (seed integrity)
-- Family verify-code / verify-pin / join-child
+- Family verify-code / join-child
 - Visitor view
 - Task creation validation (BUG4)
 - AI suggest-tasks category fix (BUG2)
@@ -174,12 +174,15 @@ class TestFamilyFlows:
         assert "access_token" in j
         assert j["user"]["role"] == "child"
 
-    def test_verify_pin_123456(self, api, review_token):
-        headers = {"Authorization": f"Bearer {review_token}"}
-        # Endpoint uses query param `pin`
-        r = api.post(f"{BASE_URL}/api/family/verify-pin?pin=123456", headers=headers)
+    def test_parent_dashboard_password_reverify(self, api):
+        # The parent-dashboard gate now re-verifies the account password (via /auth/login)
+        # instead of a separate PIN -- confirm the correct password re-auths successfully
+        # and a wrong one is rejected without disturbing the original session.
+        r = api.post(f"{BASE_URL}/api/auth/login", json={"email": REVIEW_EMAIL, "password": REVIEW_PASSWORD})
         assert r.status_code == 200, r.text
-        assert r.json().get("success") is True
+
+        wrong = api.post(f"{BASE_URL}/api/auth/login", json={"email": REVIEW_EMAIL, "password": "wrong-password"})
+        assert wrong.status_code == 401, wrong.text
 
 
 # ---------- BUG1 & BUG2: AI endpoints ----------

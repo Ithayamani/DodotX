@@ -53,8 +53,8 @@ interface AppState {
   currentChild: Child | null;
   children: Child[];
   theme: Theme;
-  // Session-scoped: whether the parent PIN has been verified since app launch/login.
-  // Never persisted, so it's re-required on every fresh app start.
+  // Session-scoped: whether the parent dashboard password has been re-verified since
+  // app launch/login. Never persisted, so it's re-required on every fresh app start.
   parentUnlocked: boolean;
   setFamily: (family: Family) => void;
   setCurrentChild: (child: Child | null) => void;

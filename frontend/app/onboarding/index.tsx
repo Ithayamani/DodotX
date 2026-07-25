@@ -17,8 +17,6 @@ export default function Onboarding() {
   const [childName, setChildName] = useState('');
   const [childAvatar, setChildAvatar] = useState('👦');
   const [theme, setTheme] = useState<Theme>('gaming');
-  const [pin, setPin] = useState('');
-  const [pinConfirm, setPinConfirm] = useState('');
   const [loading, setLoading] = useState(false);
 
   const colors = getThemeColors(theme);
@@ -40,29 +38,18 @@ export default function Onboarding() {
   }, [user]);
 
   const handleComplete = async () => {
-    if (pin !== pinConfirm) {
-      Alert.alert('Error', 'PINs do not match');
-      return;
-    }
-
-    if (pin.length !== 6) {
-      Alert.alert('Error', 'PIN must be exactly 6 digits');
-      return;
-    }
-
     setLoading(true);
     try {
       // Try to create family
       try {
-        const family = await familyAPI.create({ name: familyName, pin, theme });
+        const family = await familyAPI.create({ name: familyName, theme });
         setFamily(family);
       } catch (familyError: any) {
         // A family already exists for this account (e.g. an earlier onboarding attempt
         // partially completed). Apply what was just entered on this screen to it instead
-        // of silently keeping whatever PIN/theme happened to be set the first time --
-        // otherwise the user believes the PIN they just typed is active when it isn't.
+        // of silently keeping whatever theme happened to be set the first time.
         if (familyError.response?.status === 400) {
-          const existingFamily = await familyAPI.update({ name: familyName, pin, theme });
+          const existingFamily = await familyAPI.update({ name: familyName, theme });
           setFamily(existingFamily);
         } else {
           throw familyError;
@@ -148,41 +135,8 @@ export default function Onboarding() {
       </View>
       <ClayPressable
         style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
-        onPress={() => setStep(3)}
-      >
-        <Text style={styles.buttonText}>Next</Text>
-      </ClayPressable>
-    </View>
-  );
-
-  const renderStep3 = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Parent PIN</Text>
-      <Text style={styles.description}>Create a 6-digit PIN to access parent settings</Text>
-      <TextInput
-        style={[styles.input, { borderColor: colors.primary }]}
-        placeholder="Enter 6-digit PIN"
-        placeholderTextColor="#999"
-        value={pin}
-        onChangeText={setPin}
-        keyboardType="number-pad"
-        maxLength={6}
-        secureTextEntry
-      />
-      <TextInput
-        style={[styles.input, { borderColor: colors.primary }]}
-        placeholder="Confirm PIN"
-        placeholderTextColor="#999"
-        value={pinConfirm}
-        onChangeText={setPinConfirm}
-        keyboardType="number-pad"
-        maxLength={6}
-        secureTextEntry
-      />
-      <ClayPressable
-        style={[styles.button, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
         onPress={handleComplete}
-        disabled={loading || !pin || !pinConfirm}
+        disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
@@ -197,11 +151,10 @@ export default function Onboarding() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Setup DodotX</Text>
-        <Text style={styles.subtitle}>Step {step} of 3</Text>
+        <Text style={styles.subtitle}>Step {step} of 2</Text>
       </View>
       {step === 1 && renderStep1()}
       {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
     </ScrollView>
   );
 }

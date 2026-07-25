@@ -32,14 +32,13 @@ api.interceptors.request.use(async (config) => {
 });
 
 // Handle 401 errors — only clear the session for genuine token-invalidation failures.
-// Credential/PIN/code checks can legitimately return 401/403 and must NOT wipe the auth token
-// (a wrong PIN was logging users out of the whole app).
+// Credential/code checks can legitimately return 401/403 and must NOT wipe the auth token
+// (a wrong password re-verify was logging users out of the whole app).
 const CREDENTIAL_ENDPOINTS = [
   '/auth/login',
   '/auth/signup',
   '/auth/forgot-password',
   '/auth/reset-password',
-  '/family/verify-pin',
   '/family/verify-code',
   '/family/join-child',
 ];
@@ -109,11 +108,6 @@ export const familyAPI = {
   
   regenerateCode: async (): Promise<{ code: string; generated_at: string; expires_at: string }> => {
     const response = await api.post('/family/regenerate-code');
-    return response.data;
-  },
-  
-  verifyPin: async (pin: string): Promise<{ success: boolean }> => {
-    const response = await api.post('/family/verify-pin', { pin });
     return response.data;
   },
   

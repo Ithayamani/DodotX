@@ -29,7 +29,6 @@ export interface Family {
   name: string;
   code: string;
   code_generated_at?: string;
-  // The backend never returns the PIN (or its hash) in API responses.
   theme: Theme;
   custom_theme?: CustomTheme;
   vacation_mode: boolean;
@@ -42,12 +41,10 @@ export interface Family {
 
 export interface FamilyCreate {
   name: string;
-  pin: string;
   theme: Theme;
 }
 
-// PUT /family accepts a write-only `pin` the API never echoes back in `Family` responses.
-export type FamilyUpdatePayload = Partial<Family> & { pin?: string };
+export type FamilyUpdatePayload = Partial<Family>;
 
 export interface CustomTheme {
   name: string;

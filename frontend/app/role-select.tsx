@@ -42,7 +42,7 @@ export default function RoleSelect() {
   };
 
   const handleParentSelect = () => {
-    router.push('/parent-pin');
+    router.push('/parent-password');
   };
 
   const handleLogout = async () => {

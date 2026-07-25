@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from routes import db, get_current_user, FAMILY_CODE_EXPIRY_MINUTES
-from models import User, Family, FamilyCreate, FamilyUpdate, FamilyCodeVerify, PinVerify, ChildInvite, Child, Task, Reward, Progress
-from auth import get_pin_hash, verify_pin, create_access_token
+from models import User, Family, FamilyCreate, FamilyUpdate, FamilyCodeVerify, ChildInvite, Child, Task, Reward, Progress
+from auth import create_access_token
 from utils import generate_id, generate_family_code, DEFAULT_TASKS, DEFAULT_REWARDS
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -31,14 +31,13 @@ def ensure_utc_timestamps(family_dict: dict) -> dict:
                 family_dict[key] = val + "Z"
     return family_dict
 
-@router.post("", response_model=Family, response_model_exclude={"pin"})
+@router.post("", response_model=Family)
 async def create_family(family_data: FamilyCreate, current_user: User = Depends(get_current_user)):
     if current_user.family_id:
         raise HTTPException(status_code=400, detail="User already has a family")
     family_id = generate_id()
     family_code = generate_family_code()
-    hashed_pin = get_pin_hash(family_data.pin)
-    family = Family(id=family_id, name=family_data.name, code=family_code, code_generated_at=datetime.utcnow(), pin=hashed_pin, theme=family_data.theme, parent_id=current_user.id)
+    family = Family(id=family_id, name=family_data.name, code=family_code, code_generated_at=datetime.utcnow(), theme=family_data.theme, parent_id=current_user.id)
     await db.families.insert_one(family.dict())
     await db.users.update_one({"id": current_user.id}, {"$set": {"family_id": family_id}})
     for task_data in DEFAULT_TASKS:
@@ -49,7 +48,7 @@ async def create_family(family_data: FamilyCreate, current_user: User = Depends(
         await db.rewards.insert_one(reward.dict())
     return family
 
-@router.get("", response_model=Family, response_model_exclude={"pin"})
+@router.get("", response_model=Family)
 async def get_family(current_user: User = Depends(get_current_user)):
     if not current_user.family_id:
         raise HTTPException(status_code=404, detail="User has no family")
@@ -59,7 +58,7 @@ async def get_family(current_user: User = Depends(get_current_user)):
     family = ensure_utc_timestamps(family)
     return Family(**family)
 
-@router.put("", response_model=Family, response_model_exclude={"pin"})
+@router.put("", response_model=Family)
 async def update_family(family_data: FamilyUpdate, current_user: User = Depends(get_current_user)):
     if not current_user.family_id:
         raise HTTPException(status_code=404, detail="User has no family")
@@ -67,24 +66,11 @@ async def update_family(family_data: FamilyUpdate, current_user: User = Depends(
     if not family:
         raise HTTPException(status_code=404, detail="Family not found")
     update_data = family_data.dict(exclude_unset=True)
-    if "pin" in update_data and update_data["pin"] is not None:
-        update_data["pin"] = get_pin_hash(update_data["pin"])
     if update_data:
         await db.families.update_one({"id": current_user.family_id}, {"$set": update_data})
     updated_family = await db.families.find_one({"id": current_user.family_id})
     updated_family = ensure_utc_timestamps(updated_family)
     return Family(**updated_family)
-
-@router.post("/verify-pin")
-async def verify_family_pin(pin_data: PinVerify, current_user: User = Depends(get_current_user)):
-    if not current_user.family_id:
-        raise HTTPException(status_code=404, detail="User has no family")
-    family = await db.families.find_one({"id": current_user.family_id})
-    if not family:
-        raise HTTPException(status_code=404, detail="Family not found")
-    if not verify_pin(pin_data.pin, family["pin"]):
-        raise HTTPException(status_code=403, detail="Incorrect PIN")
-    return {"success": True}
 
 @router.post("/verify-code", response_model=dict)
 async def verify_family_code(code_data: FamilyCodeVerify):

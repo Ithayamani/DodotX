@@ -17,7 +17,7 @@ DodotX is a **family gamified task-management app**. Parents create tasks and re
 ### 1.2 Personas / Roles
 | Role | Access | Auth |
 |------|--------|------|
-| **Parent** | Full control: tasks, rewards, children, family settings, AI tools. Protected by a 6-digit PIN. | Email + password (JWT) |
+| **Parent** | Full control: tasks, rewards, children, family settings, AI tools. Protected by re-entering the account password. | Email + password (JWT) |
 | **Child** | Complete tasks, view Home/Tasks/Trophies/Shop/Calendar. | Family code + child name → JWT (role `child`) |
 | **Visitor** | Read-only view of a family's children progress; send cheer messages. | Family code only (no login) |
 
@@ -26,10 +26,10 @@ DodotX is a **family gamified task-management app**. Parents create tasks and re
 ## 2. Tech Architecture
 
 - **Frontend:** Expo Router (file-based routing), Zustand store, Axios API client, React Native Reanimated, Confetti, AsyncStorage/SecureStore for token, theme system.
-- **Backend:** FastAPI, routers mounted under `/api`, Motor (async MongoDB). JWT auth (7-day expiry), bcrypt password + PIN hashing.
+- **Backend:** FastAPI, routers mounted under `/api`, Motor (async MongoDB). JWT auth (7-day expiry), bcrypt password hashing.
 - **AI:** Emergent LLM key via `emergentintegrations` (`LlmChat`, OpenAI `gpt-5.2`) for task/routine/reward/theme generation.
 - **Email:** Gmail SMTP for password-reset codes.
-- **Auth token:** stored in AsyncStorage; axios attaches `Authorization: Bearer`. Interceptor clears the token only on genuine 401s (NOT for credential/PIN/code endpoints).
+- **Auth token:** stored in AsyncStorage; axios attaches `Authorization: Bearer`. Interceptor clears the token only on genuine 401s (NOT for credential/code endpoints).
 
 ### 2.1 Rate limiting (auth)
 - **Login:** per-account (email) — 10 attempts / 60s → 429 (avoids shared-proxy lockout).
@@ -41,7 +41,7 @@ DodotX is a **family gamified task-management app**. Parents create tasks and re
 ## 3. Data Models (fields)
 
 ### Family
-`id`, `name`, `code` (6-char invite code), `code_generated_at` (None = never expires, e.g. demo), `pin` (hashed 4-digit), `theme` (enum), `custom_theme` (optional), `vacation_mode` (bool), `vacation_start_date` (YYYY-MM-DD), `vacation_end_date` (YYYY-MM-DD), `parent_id`, `parent_profile_picture` (base64), `created_at`.
+`id`, `name`, `code` (6-char invite code), `code_generated_at` (None = never expires, e.g. demo), `theme` (enum), `custom_theme` (optional), `vacation_mode` (bool), `vacation_start_date` (YYYY-MM-DD), `vacation_end_date` (YYYY-MM-DD), `parent_id`, `parent_profile_picture` (base64), `created_at`.
 
 ### User
 `id`, `email`, `hashed_password`, `name`, `role` (`parent`|`child`|`visitor`), `family_id`, `created_at`.
@@ -107,15 +107,15 @@ Earned milestones are persisted to `progress.streak_milestones` (based on longes
 - **Forgot password** (`/auth/forgot-password`): request reset code via email → confirm code + new password.
 - **Onboarding** (`/onboarding`): first-time parent wizard — family name, theme, add first child, seed default tasks/rewards.
 
-### 6.2 Role selection & PIN
+### 6.2 Role selection & parent access
 - **Role select** (`/role-select`): child cards + "Parent Dashboard" card.
-- **Parent PIN** (`/parent-pin`): 6-digit PIN gate to enter parent area. Wrong PIN → error (403), does NOT log out. Correct PIN → parent tabs. **Forgot PIN?** link → re-verify account password → set a new PIN, for when the PIN itself is lost (Settings' "Change PIN" requires the *current* PIN, so it can't help here since Settings sits behind this same gate).
+- **Parent Access** (`/parent-password`): gate to enter parent area, re-verifying the account password via `POST /auth/login` (no separate PIN). Wrong password → error (401 from `/auth/login`, exempted from the auth-clearing interceptor), does NOT log out. Correct password → parent tabs. **Forgot Password?** link → `/auth/forgot-password` (the existing email-code reset flow). Replaced an earlier separate PIN (4-digit, later 6-digit) after repeated drift/desync bugs; re-using the account password removes that whole class of bug since there's nothing separate to fall out of sync.
 
 ### 6.3 Parent area (tab layout `(parent)`)
 - **Children** (`/index`): list children (avatar, name, age); add / edit (name, avatar, photo, age) / delete child; **calendar icon** per child → child-calendar; AI assistant entry.
 - **Tasks** (`/tasks`): list/create/edit/delete tasks (title, icon, points, category, daily & vacation toggles); **AI Smart Assistant**: Auto-Generate Routines (age-aware), Suggest Tasks, Adjust Difficulty, Suggest Rewards.
 - **Rewards** (`/rewards`): list/create/edit/delete rewards (name, icon, points, description).
-- **Settings** (`/settings`): family code (share, regenerate), theme switch, vacation mode toggle + date range, parent profile picture, PIN change, legal/support links, **Delete Account** (confirm).
+- **Settings** (`/settings`): family code (share, regenerate), theme switch, vacation mode toggle + date range, parent profile picture, a Security section that explains the dashboard is password-protected and links to `/auth/forgot-password` to change it, legal/support links, **Delete Account** (confirm).
 
 ### 6.4 Child area (tab layout `(child)`)
 - **Home** (`/index`): greeting, points, level + progress, streak, stats, trophy preview.
@@ -137,7 +137,7 @@ Earned milestones are persisted to `progress.streak_milestones` (based on longes
 `POST /signup` · `POST /login` · `GET /me` · `POST /forgot-password` · `POST /reset-password` · `DELETE /delete-account`
 
 ### Family (`/family`)
-`POST /` (create) · `GET /` · `PUT /` (update: name, theme, custom_theme, vacation_mode + dates, pin, parent picture) · `POST /verify-pin?pin=` (403 on wrong) · `POST /verify-code` · `POST /join-child` · `POST /regenerate-code`
+`POST /` (create) · `GET /` · `PUT /` (update: name, theme, custom_theme, vacation_mode + dates, parent picture) · `POST /verify-code` · `POST /join-child` · `POST /regenerate-code`
 
 ### Children (`/children`)
 `POST /` · `GET /` · `GET /{child_id}` · `PUT /{child_id}` · `DELETE /{child_id}`
@@ -171,7 +171,7 @@ Earned milestones are persisted to `progress.streak_milestones` (based on longes
 
 ## 9. Demo / Review Account
 
-- **Parent:** `review@dodotx.net` / `Review123!` · **PIN:** `123456` · **Family code:** `REVIEW` (never expires) · **Children:** Emma, Liam.
+- **Parent:** `review@dodotx.net` / `Review123!` (also used to unlock the parent dashboard) · **Family code:** `REVIEW` (never expires) · **Children:** Emma, Liam.
 - Internal test: `parent@test.com` / `Parent123!` · code `TEST01`.
 - Seeded demo streak history via `seed_calendar_demo.py` (do NOT run `/api/admin/seed`, it wipes it).
 

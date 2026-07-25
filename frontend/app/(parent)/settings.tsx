@@ -24,13 +24,9 @@ export default function ParentSettings() {
   const { user, clearAuth } = useAuthStore();
   const { family, setFamily, theme, setTheme, reset: resetAppStore } = useAppStore();
   const [localFamily, setLocalFamily] = useState<Family | null>(family);
-  const [showPinModal, setShowPinModal] = useState(false);
   const [showVacationModal, setShowVacationModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [currentPin, setCurrentPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [parentProfilePic, setParentProfilePic] = useState<string | null>(null);
@@ -222,41 +218,6 @@ export default function ParentSettings() {
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to enable vacation mode');
-    }
-  };
-
-  const handleChangePin = async () => {
-    if (currentPin.length !== 6) {
-      Alert.alert('Error', 'Please enter your current 6-digit PIN');
-      return;
-    }
-
-    if (newPin.length !== 6 || confirmPin.length !== 6) {
-      Alert.alert('Error', 'PIN must be exactly 6 digits');
-      return;
-    }
-
-    if (newPin !== confirmPin) {
-      Alert.alert('Error', 'PINs do not match');
-      return;
-    }
-
-    try {
-      await familyAPI.verifyPin(currentPin);
-    } catch (error) {
-      Alert.alert('Error', 'Current PIN is incorrect');
-      return;
-    }
-
-    try {
-      await familyAPI.update({ pin: newPin });
-      setShowPinModal(false);
-      setCurrentPin('');
-      setNewPin('');
-      setConfirmPin('');
-      Alert.alert('Success', 'PIN updated successfully!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update PIN');
     }
   };
 
@@ -478,13 +439,16 @@ export default function ParentSettings() {
         {/* Security Section */}
         <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
           <Text style={styles.sectionTitle}>Security</Text>
-          
+          <Text style={styles.securityNote}>
+            The parent dashboard is protected by your account password.
+          </Text>
+
           <TouchableOpacity
             style={styles.settingButton}
-            onPress={() => setShowPinModal(true)}
+            onPress={() => router.push('/auth/forgot-password')}
           >
             <View style={styles.settingButtonContent}>
-              <Text style={styles.settingButtonText}>🔒 Change PIN</Text>
+              <Text style={styles.settingButtonText}>🔒 Change Password</Text>
               <Ionicons name="chevron-forward" size={20} color="#ccc" />
             </View>
           </TouchableOpacity>
@@ -710,69 +674,6 @@ export default function ParentSettings() {
         </View>
       </Modal>
 
-      {/* Change PIN Modal */}
-      <Modal visible={showPinModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <Text style={styles.modalTitle}>Change PIN</Text>
-
-            <TextInput
-              style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="Current PIN"
-              placeholderTextColor="#999"
-              value={currentPin}
-              onChangeText={setCurrentPin}
-              keyboardType="number-pad"
-              maxLength={6}
-              secureTextEntry
-            />
-
-            <TextInput
-              style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="New 6-digit PIN"
-              placeholderTextColor="#999"
-              value={newPin}
-              onChangeText={setNewPin}
-              keyboardType="number-pad"
-              maxLength={6}
-              secureTextEntry
-            />
-
-            <TextInput
-              style={[styles.input, { borderColor: colors.primary }]}
-              placeholder="Confirm PIN"
-              placeholderTextColor="#999"
-              value={confirmPin}
-              onChangeText={setConfirmPin}
-              keyboardType="number-pad"
-              maxLength={6}
-              secureTextEntry
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowPinModal(false);
-                  setCurrentPin('');
-                  setNewPin('');
-                  setConfirmPin('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <ClayPressable
-                style={[styles.modalButton, { backgroundColor: colors.primary }]}
-                onPress={handleChangePin}
-              >
-                <Text style={styles.modalButtonText}>Save</Text>
-              </ClayPressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Delete Account Confirmation Modal */}
       <Modal visible={showDeleteModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -845,6 +746,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: FONTS.headingSemiBold,
     color: '#fff',
+    marginBottom: 16,
+  },
+  securityNote: {
+    fontSize: 13,
+    fontFamily: FONTS.body,
+    color: '#ccc',
+    marginTop: -8,
     marginBottom: 16,
   },
   // Profile Picture Styles

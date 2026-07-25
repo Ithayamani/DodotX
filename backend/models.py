@@ -141,7 +141,6 @@ class Family(BaseModel):
     name: str
     code: str  # 6-char invite code
     code_generated_at: Optional[datetime] = None  # None = never expires (for demo accounts)
-    pin: str  # Hashed 6-digit PIN
     theme: Theme = Theme.FOOTBALL
     custom_theme: Optional[CustomTheme] = None  # AI-generated or user-created
     vacation_mode: bool = False
@@ -153,7 +152,6 @@ class Family(BaseModel):
 
 class FamilyCreate(BaseModel):
     name: str
-    pin: str  # 6 digits
     theme: Theme = Theme.GAMING
 
 class FamilyUpdate(BaseModel):
@@ -163,7 +161,6 @@ class FamilyUpdate(BaseModel):
     vacation_mode: Optional[bool] = None
     vacation_start_date: Optional[str] = None
     vacation_end_date: Optional[str] = None
-    pin: Optional[str] = None
     parent_profile_picture: Optional[str] = None
 
 class User(BaseModel):
@@ -194,9 +191,6 @@ class TokenData(BaseModel):
 
 class FamilyCodeVerify(BaseModel):
     code: str
-
-class PinVerify(BaseModel):
-    pin: str
 
 class ChildInvite(BaseModel):
     family_code: str

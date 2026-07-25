@@ -80,7 +80,6 @@ def send_welcome_email(to: str, name: str) -> None:
 <ul style="color:#444;line-height:1.8;">
 <li>Set up your family and add your first child</li>
 <li>Create tasks and rewards (or let our AI suggest some)</li>
-<li>Set a PIN to protect the parent dashboard</li>
 <li>Share your family code so your kids can join</li>
 </ul>
 <p style="color:#888;font-size:14px;">Questions? Just reply to this email.</p>
