@@ -12,6 +12,13 @@ export default function ParentPassword() {
   const router = useRouter();
   const theme = useAppStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
+  const setAuth = useAuthStore((state) => state.setAuth);
+  // Pre-fill when the active session already is the parent (the common case), but this
+  // is editable and required -- on a shared family device, a child may have joined from
+  // this same app since the parent last logged in, which replaces the active session
+  // with the child's (whose account has no email at all), so we can't just trust
+  // useAuthStore().user here.
+  const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const colors = getThemeColors(theme);
@@ -19,12 +26,8 @@ export default function ParentPassword() {
   const setParentUnlocked = useAppStore((state) => state.setParentUnlocked);
 
   const handleVerify = async () => {
-    if (!password) {
-      Alert.alert('Error', 'Enter your account password');
-      return;
-    }
-    if (!user?.email) {
-      Alert.alert('Error', 'Could not determine your account email. Please log in again.');
+    if (!email || !password) {
+      Alert.alert('Error', 'Enter your parent account email and password');
       return;
     }
 
@@ -32,12 +35,14 @@ export default function ParentPassword() {
     try {
       // Re-verifies identity via the account password itself, rather than a separate
       // PIN -- one less secret to remember, and it can't drift out of sync the way a
-      // standalone PIN could.
-      await authAPI.login({ email: user.email, password });
+      // standalone PIN could. Also re-establishes the session as the parent (via
+      // setAuth), overriding a child session that may currently be active.
+      const response = await authAPI.login({ email: email.trim().toLowerCase(), password });
+      await setAuth(response.user, response.access_token);
       setParentUnlocked(true);
       router.replace('/(parent)');
     } catch (error) {
-      Alert.alert('Incorrect Password', 'Please try again');
+      Alert.alert('Incorrect Password', 'Please check your email and password and try again.');
       setPassword('');
     } finally {
       setLoading(false);
@@ -53,7 +58,17 @@ export default function ParentPassword() {
       <View style={styles.content}>
         <Text style={styles.icon}>🔒</Text>
         <Text style={styles.title}>Parent Access</Text>
-        <Text style={styles.subtitle}>Enter your account password</Text>
+        <Text style={styles.subtitle}>Enter your parent account email and password</Text>
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.primary }]}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="Email"
+          placeholderTextColor="#999"
+        />
 
         <TextInput
           style={[styles.input, { borderColor: colors.primary }]}
