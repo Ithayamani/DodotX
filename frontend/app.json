@@ -57,7 +57,6 @@
       "typedRoutes": true
     },
     "extra": {
-      "backendUrl": "https://app-store-setup-2.emergent.host",
       "router": {
         "origin": false
       },

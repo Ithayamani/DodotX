@@ -5,7 +5,9 @@ from typing import Optional
 import os
 from models import TokenData
 
-SECRET_KEY = os.getenv("JWT_SECRET", "kq_82287432016bab80217728b3bcb579a5ccf87288d72ed0321744edd586919237")
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET environment variable is required")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
