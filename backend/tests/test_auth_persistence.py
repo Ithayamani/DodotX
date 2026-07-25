@@ -11,7 +11,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("EXPO_BACKEND_URL", "https://family-quest-15.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("EXPO_BACKEND_URL", "https://code-deploy-128.preview.emergentagent.com").rstrip("/")
 EMAIL = "review@dodotx.net"
 PASSWORD = "Review123!"
 WRONG_PASSWORD = "not-the-password"

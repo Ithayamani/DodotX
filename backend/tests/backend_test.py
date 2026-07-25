@@ -15,7 +15,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://family-quest-15.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://code-deploy-128.preview.emergentagent.com").rstrip("/")
 
 REVIEW_EMAIL = "review@dodotx.net"
 REVIEW_PASSWORD = "Review123!"

@@ -7,7 +7,7 @@ import requests
 import json
 from datetime import datetime
 
-BACKEND_URL = "https://family-quest-15.preview.emergentagent.com/api"
+BACKEND_URL = "https://code-deploy-128.preview.emergentagent.com/api"
 
 def test_ai_theme_generation():
     """Test AI theme generation with proper auth"""
