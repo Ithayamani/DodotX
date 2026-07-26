@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Share, Image, ActivityIndicator, Switch, Linking } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -138,7 +139,7 @@ export default function ParentSettings() {
         `"${customTheme.name}" has been created and saved! You can apply it from the theme section.`
       );
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to generate theme');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to generate theme'));
     } finally {
       setGeneratingTheme(false);
     }
@@ -283,7 +284,7 @@ export default function ParentSettings() {
       Alert.alert('Account Deleted', 'Your account and all data have been removed.');
       router.replace('/');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to delete account');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to delete account'));
     }
   };
 

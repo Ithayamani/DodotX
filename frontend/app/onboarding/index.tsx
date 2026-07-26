@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import { useRouter } from 'expo-router';
 import { familyAPI, childrenAPI } from '../../src/api/client';
 import { useAppStore, useAuthStore } from '../../src/stores';
@@ -66,7 +67,7 @@ export default function Onboarding() {
 
       router.replace('/role-select');
     } catch (error: any) {
-      Alert.alert('Setup Failed', error.response?.data?.detail || 'Could not complete setup');
+      Alert.alert('Setup Failed', getErrorMessage(error, 'Could not complete setup'));
     } finally {
       setLoading(false);
     }

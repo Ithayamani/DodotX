@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
 import { rewardsAPI } from '../../src/api/client';
@@ -98,7 +99,7 @@ export default function ParentRewards() {
       resetForm();
       loadData();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to save reward');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to save reward'));
     }
   };
 

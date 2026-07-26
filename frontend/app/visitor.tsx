@@ -5,6 +5,7 @@ import {
   SafeAreaView, ScrollView, RefreshControl
 } from 'react-native';
 import { Alert } from '../src/utils/alert';
+import { getErrorMessage } from '../src/utils/errorMessage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { visitorAPI } from '../src/api/client';
@@ -37,8 +38,7 @@ export default function VisitorView() {
       await fetchVisitorData(code);
       setStep('dashboard');
     } catch (error: any) {
-      const detail = error.response?.data?.detail || 'Invalid or expired family code';
-      Alert.alert('Code Error', detail);
+      Alert.alert('Code Error', getErrorMessage(error, 'Invalid or expired family code'));
     } finally {
       setLoading(false);
     }

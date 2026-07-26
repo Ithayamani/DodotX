@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView
 } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../src/api/client';
@@ -50,7 +51,7 @@ export default function ForgotPassword() {
       Alert.alert('Code Sent', 'Check your email inbox for a 6-digit reset code.');
     } catch (error: any) {
       hapticError();
-      Alert.alert('Error', error.response?.data?.detail || 'Something went wrong');
+      Alert.alert('Error', getErrorMessage(error, 'Something went wrong'));
     } finally {
       setLoading(false);
     }
@@ -77,8 +78,7 @@ export default function ForgotPassword() {
       setStep('done');
     } catch (error: any) {
       hapticError();
-      const detail = error.response?.data?.detail || 'Failed to reset password';
-      Alert.alert('Error', detail);
+      Alert.alert('Error', getErrorMessage(error, 'Failed to reset password'));
     } finally {
       setLoading(false);
     }

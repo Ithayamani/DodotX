@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView
 } from 'react-native';
 import { Alert } from '../src/utils/alert';
+import { getErrorMessage } from '../src/utils/errorMessage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { familyAPI } from '../src/api/client';
@@ -38,8 +39,7 @@ export default function JoinFamily() {
       setFamilyInfo(result);
       setStep('name');
     } catch (error: any) {
-      const detail = error.response?.data?.detail || 'Invalid or expired family code';
-      Alert.alert('Code Error', detail);
+      Alert.alert('Code Error', getErrorMessage(error, 'Invalid or expired family code'));
     } finally {
       setLoading(false);
     }
@@ -80,8 +80,7 @@ export default function JoinFamily() {
         [{ text: 'Let\'s Go!', onPress: () => router.replace('/(child)') }]
       );
     } catch (error: any) {
-      const detail = error.response?.data?.detail || 'Failed to join family';
-      Alert.alert('Error', detail);
+      Alert.alert('Error', getErrorMessage(error, 'Failed to join family'));
     } finally {
       setLoading(false);
     }

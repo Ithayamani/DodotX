@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Image, Pressable } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -82,7 +83,7 @@ export default function ParentChildren() {
       
       Alert.alert('Success', 'Child added successfully!');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to add child');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to add child'));
     }
   };
 

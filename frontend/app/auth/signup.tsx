@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../src/api/client';
@@ -53,7 +54,7 @@ export default function Signup() {
       await setAuth(response.user, response.access_token);
       router.replace('/onboarding');
     } catch (error: any) {
-      Alert.alert('Signup Failed', error.response?.data?.detail || 'Could not create account');
+      Alert.alert('Signup Failed', getErrorMessage(error, 'Could not create account'));
     } finally {
       setLoading(false);
     }

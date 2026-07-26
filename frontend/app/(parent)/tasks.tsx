@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Switch } from 'react-native';
 import { Alert } from '../../src/utils/alert';
+import { getErrorMessage } from '../../src/utils/errorMessage';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/stores';
@@ -74,7 +75,7 @@ export default function ParentTasks() {
       await loadData();
       Alert.alert('Routines Created!', result.message || `${result.tasks?.length || 0} AI-generated routines added.`);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to auto-generate routines');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to auto-generate routines'));
     } finally {
       setAutoRoutineLoading(false);
     }
@@ -86,7 +87,7 @@ export default function ParentTasks() {
       const result = await aiAPI.adjustDifficulty();
       setDifficultyResult(result);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to analyze difficulty');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to analyze difficulty'));
     } finally {
       setDifficultyLoading(false);
     }
@@ -98,7 +99,7 @@ export default function ParentTasks() {
       const result = await aiAPI.suggestRewards();
       setRewardSuggestions(result.suggestions || []);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to suggest rewards');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to suggest rewards'));
     } finally {
       setRewardSugLoading(false);
     }
@@ -170,7 +171,7 @@ export default function ParentTasks() {
       resetForm();
       loadData();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to save task');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to save task'));
     }
   };
 
@@ -217,7 +218,7 @@ export default function ParentTasks() {
       setAISuggestions(suggestions);
       Alert.alert('Success', `Got ${suggestions.length} AI suggestions!`);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to get AI suggestions');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to get AI suggestions'));
     } finally {
       setAILoading(false);
     }
