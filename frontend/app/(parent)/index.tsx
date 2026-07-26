@@ -214,6 +214,17 @@ export default function ParentChildren() {
                     style={[styles.calendarButton, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
                     onPress={() => {
                       hapticLight();
+                      router.push({ pathname: '/child-tasks', params: { childId: child.id, childName: child.name } });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="checkbox-outline" size={20} color={colors.primary} />
+                  </ClayPressable>
+
+                  <ClayPressable
+                    style={[styles.calendarButton, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+                    onPress={() => {
+                      hapticLight();
                       router.push({ pathname: '/child-calendar', params: { childId: child.id, childName: child.name } });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
