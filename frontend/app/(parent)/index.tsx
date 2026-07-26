@@ -158,7 +158,12 @@ export default function ParentChildren() {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>Children</Text>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity onPress={() => router.push('/role-select')} style={styles.headerBackButton}>
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.title}>Children</Text>
+            </View>
             <ClayPressable
               style={[styles.addButton, { backgroundColor: colors.primary }, getClayShadow(colors.primary)]}
               onPress={() => setShowAddModal(true)}
@@ -241,13 +246,6 @@ export default function ParentChildren() {
               <Text style={styles.emptySubtext}>Tap + to add a child</Text>
             </View>
           )}
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/role-select')}
-          >
-            <Text style={styles.backText}>← Back to Home</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -452,16 +450,15 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     color: '#ccc',
   },
-  backButton: {
-    marginTop: 32,
-    padding: 16,
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
-  backText: {
-    fontSize: 16,
-    fontFamily: FONTS.body,
-    color: '#fff',
-    opacity: 0.7,
+  headerBackButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
   },
   modalOverlay: {
     flex: 1,

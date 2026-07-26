@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Alert } from '../../src/utils/alert';
 import { getErrorMessage } from '../../src/utils/errorMessage';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { familyAPI, childrenAPI } from '../../src/api/client';
 import { useAppStore, useAuthStore } from '../../src/stores';
@@ -151,6 +152,11 @@ export default function Onboarding() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
+        {step > 1 && (
+          <TouchableOpacity onPress={() => setStep(step - 1)} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>Setup DodotX</Text>
         <Text style={styles.subtitle}>Step {step} of 2</Text>
       </View>
@@ -167,6 +173,12 @@ const styles = StyleSheet.create({
   header: {
     padding: 24,
     paddingTop: 60,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: 32,

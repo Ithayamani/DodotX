@@ -314,7 +314,12 @@ export default function ParentSettings() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Text style={styles.title}>Settings</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push('/role-select')} style={styles.headerBackButton}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Settings</Text>
+        </View>
 
         {/* Profile Picture Section */}
         <View style={[styles.section, { backgroundColor: colors.card }, getClayShadow(colors.primary)]}>
@@ -573,13 +578,6 @@ export default function ParentSettings() {
             <Text style={styles.versionText}>DodotX v{APP_VERSION}</Text>
           </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.push('/role-select')}
-        >
-          <Text style={styles.backText}>← Back to Home</Text>
-        </TouchableOpacity>
       </View>
 
       {/* AI Theme Generator Modal */}
@@ -732,11 +730,21 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 60,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  headerBackButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+  },
   title: {
     fontSize: 28,
     fontFamily: FONTS.headingBold,
     color: '#fff',
-    marginBottom: 20,
   },
   section: {
     padding: 20,
@@ -949,17 +957,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONTS.headingSemiBold,
     color: '#fff',
-  },
-  backButton: {
-    marginTop: 32,
-    padding: 16,
-    alignItems: 'center',
-  },
-  backText: {
-    fontSize: 16,
-    fontFamily: FONTS.body,
-    color: '#fff',
-    opacity: 0.7,
   },
   modalOverlay: {
     flex: 1,
