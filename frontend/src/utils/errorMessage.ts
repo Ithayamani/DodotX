@@ -11,7 +11,14 @@ export function getErrorMessage(error: any, fallback = 'Something went wrong'): 
   if (typeof detail === 'string') return detail;
   if (Array.isArray(detail)) {
     const messages = detail
-      .map((d: any) => (typeof d === 'string' ? d : d?.msg))
+      .map((d: any) => {
+        if (typeof d === 'string') return d;
+        if (!d?.msg) return null;
+        // loc is typically ["body", "fieldName"] (or deeper for nested fields) --
+        // include the field name so "Field required" says *which* field.
+        const field = Array.isArray(d.loc) ? d.loc.filter((p: any) => p !== 'body').join('.') : null;
+        return field ? `${field}: ${d.msg}` : d.msg;
+      })
       .filter(Boolean);
     return messages.length ? messages.join('; ') : fallback;
   }
